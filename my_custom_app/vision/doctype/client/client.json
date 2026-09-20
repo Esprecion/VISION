@@ -1,0 +1,53 @@
+{
+ "doctype": "DocType",
+ "name": "Client",
+ "module": "VISION",
+ "custom": 0,
+ "autoname": "field:client_name",
+ "fields": [
+  {
+   "fieldname": "client_name",
+   "label": "Client Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "address",
+   "label": "Address",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "contact_person",
+   "label": "Contact Person",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "contact_email",
+   "label": "Contact Email",
+   "fieldtype": "Data",
+   "options": "Email"
+  },
+  {
+   "fieldname": "contact_phone",
+   "label": "Contact Phone",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "territory",
+   "label": "Territory",
+   "fieldtype": "Data",
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1
+  }
+ ]
+}

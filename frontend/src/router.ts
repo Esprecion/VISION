@@ -1,20 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+const businessDevTabs = [
+  { label: 'Dashboard', to: '/business-dev/dashboard' },
+  { label: 'Pipeline', to: '/business-dev/pipeline' },
+]
+
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: () => import('@/pages/Home.vue'),
+    redirect: '/dashboard',
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/pages/Dashboard.vue'),
   },
   {
     path: '/business-dev',
-    name: 'BusinessDevDashboard',
-    component: () => import('@/pages/BusinessDevDashboard.vue'),
-  },
-  {
-    path: '/business-dev-pipeline',
-    name: 'Pipeline',
-    component: () => import('@/pages/Pipeline.vue'),
+    component: () => import('@/layouts/DepartmentLayout.vue'),
+    props: { tabs: businessDevTabs },
+    children: [
+      { path: '', redirect: '/business-dev/dashboard' },
+      {
+        path: 'dashboard',
+        name: 'BusinessDevDashboard',
+        component: () => import('@/pages/BusinessDevDashboard.vue'),
+      },
+      {
+        path: 'pipeline',
+        name: 'Pipeline',
+        component: () => import('@/pages/Pipeline.vue'),
+      },
+    ],
   },
 ]
 

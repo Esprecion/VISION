@@ -1,0 +1,68 @@
+{
+ "doctype": "DocType",
+ "name": "Deal",
+ "module": "VISION",
+ "custom": 0,
+ "autoname": "hash",
+ "fields": [
+  {
+   "fieldname": "deal_title",
+   "label": "Deal Title",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "client",
+   "label": "Client",
+   "fieldtype": "Link",
+   "options": "Client",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "territory",
+   "label": "Territory",
+   "fieldtype": "Data",
+   "fetch_from": "client.territory",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "stage",
+   "label": "Stage",
+   "fieldtype": "Select",
+   "options": "Lead\nQualified\nProposal\nNegotiation\nWon\nLost",
+   "default": "Lead",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "value",
+   "label": "Value",
+   "fieldtype": "Currency",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "expected_close_date",
+   "label": "Expected Close Date",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "items",
+   "label": "Products",
+   "fieldtype": "Table",
+   "options": "Deal Item"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1
+  }
+ ]
+}

@@ -1,0 +1,64 @@
+{
+ "doctype": "DocType",
+ "name": "Service Contract",
+ "module": "VISION",
+ "custom": 0,
+ "autoname": "hash",
+ "fields": [
+  {
+   "fieldname": "client",
+   "label": "Client",
+   "fieldtype": "Link",
+   "options": "Client",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "deal",
+   "label": "Deal",
+   "fieldtype": "Link",
+   "options": "Deal",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "value",
+   "label": "Value",
+   "fieldtype": "Currency",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "start_date",
+   "label": "Start Date",
+   "fieldtype": "Date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "end_date",
+   "label": "End Date",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "Draft\nActive\nExpired\nTerminated",
+   "default": "Draft",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "agreement",
+   "label": "Agreement",
+   "fieldtype": "Attach"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1
+  }
+ ]
+}
