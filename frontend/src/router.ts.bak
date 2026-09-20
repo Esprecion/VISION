@@ -6,16 +6,6 @@ const routes = [
     name: 'Home',
     component: () => import('@/pages/Home.vue'),
   },
-  {
-    path: '/business-dev',
-    name: 'BusinessDevDashboard',
-    component: () => import('@/pages/BusinessDevDashboard.vue'),
-  },
-  {
-    path: '/business-dev-pipeline',
-    name: 'Pipeline',
-    component: () => import('@/pages/Pipeline.vue'),
-  },
 ]
 
 let router = createRouter({
