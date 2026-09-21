@@ -1,20 +1,8 @@
-<!--
-  Pipeline.vue
-
-  Business Dev Kanban board — mock data for now, since the Deal doctype
-  doesn't exist in my_custom_app yet. Once it does, swap MOCK_DEALS for
-  a createListResource call against your own Deal doctype and wire the
-  drag-drop handler to update the deal's status via frappe-ui.
-
-  Drop into: src/pages/
-  Register route: { path: '/business-dev-pipeline', name: 'Pipeline',
-                     component: () => import('@/pages/Pipeline.vue') }
--->
 <template>
   <div class="pipeline">
     <header class="pipeline-header">
       <h1>Business Dev · Pipeline</h1>
-      <RouterLink to="/business-dev" class="dash-link">← Dashboard</RouterLink>
+      <RouterLink to="/business-dev/dashboard" class="dash-link">← Dashboard</RouterLink>
     </header>
 
     <div class="summary-row">
@@ -54,19 +42,16 @@
         <div class="cards">
           <div
             v-for="deal in dealsByStage(stage.id)"
-            :key="deal.id"
+            :key="deal.name"
             class="card"
             :style="{ '--stage-color': stage.color }"
             draggable="true"
-            @dragstart="draggedDealId = deal.id"
+            @dragstart="draggedDealName = deal.name"
           >
-            <div class="org">{{ deal.org }}</div>
+            <div class="org">{{ deal.deal_title }}</div>
             <div class="value">{{ peso(deal.value) }}</div>
             <div class="card-foot">
-              <div class="owner">{{ deal.owner }}</div>
-              <div class="age" :class="{ stale: deal.days >= 14 }">
-                {{ deal.days }}d in stage
-              </div>
+              <div class="owner">{{ deal.client }}</div>
             </div>
           </div>
         </div>
@@ -79,57 +64,80 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { createListResource, createResource } from 'frappe-ui'
 
 const stages = [
-  { id: 'lead', name: 'Demo/Making', color: '#4c8dff' },
-  { id: 'prop', name: 'Proposal/Quotation', color: '#e0a93e' },
-  { id: 'neg', name: 'Negotiation', color: '#9d7bff' },
-  { id: 'ready', name: 'Ready to Close', color: '#37c9a6' },
-  { id: 'won', name: 'Won', color: '#3fbf7f' },
-  { id: 'lost', name: 'Lost', color: '#e5636b' },
+  { id: 'Lead', name: 'Lead', color: '#4c8dff' },
+  { id: 'Qualified', name: 'Qualified', color: '#37c9a6' },
+  { id: 'Proposal', name: 'Proposal', color: '#e0a93e' },
+  { id: 'Negotiation', name: 'Negotiation', color: '#9d7bff' },
+  { id: 'Won', name: 'Won', color: '#3fbf7f' },
+  { id: 'Lost', name: 'Lost', color: '#e5636b' },
 ]
 
-const deals = ref([
-  { id: 1, org: 'Acme Corp', value: 5000000, owner: 'SC', stage: 'lead', days: 2 },
-  { id: 2, org: 'Forge Digital', value: 4000000, owner: 'SC', stage: 'lost', days: 30 },
-  { id: 3, org: 'Meridian Systems', value: 25000000, owner: 'SC', stage: 'won', days: 18 },
-  { id: 4, org: 'PivotTech Solutions', value: 6000000, owner: 'SC', stage: 'neg', days: 9 },
-  { id: 5, org: 'ScaleUp Labs', value: 1200000, owner: 'SC', stage: 'ready', days: 4 },
-  { id: 6, org: 'TechStart Inc', value: 500000, owner: 'SC', stage: 'prop', days: 14 },
-  { id: 7, org: 'Vertex Analytics', value: 9000000, owner: 'JP', stage: 'lost', days: 22 },
-])
+const dealsResource = createListResource({
+  doctype: 'Deal',
+  fields: ['name', 'deal_title', 'client', 'stage', 'value'],
+  orderBy: 'modified desc',
+  pageLength: 100,
+  auto: true,
+})
 
-const draggedDealId = ref(null)
+const draggedDealName = ref(null)
 const dragOverStage = ref(null)
 
 function dealsByStage(stageId) {
-  return deals.value.filter((d) => d.stage === stageId)
+  return (dealsResource.data || []).filter((d) => d.stage === stageId)
 }
 
 function stageTotal(stageId) {
-  return peso(dealsByStage(stageId).reduce((sum, d) => sum + d.value, 0))
+  return peso(dealsByStage(stageId).reduce((sum, d) => sum + (d.value || 0), 0))
 }
+
+const updateStage = createResource({
+  url: 'frappe.client.set_value',
+  method: 'POST',
+})
 
 function onDrop(stageId) {
   dragOverStage.value = null
-  const deal = deals.value.find((d) => d.id === draggedDealId.value)
-  if (deal) {
-    deal.stage = stageId
-    deal.days = 0
+  const deal = (dealsResource.data || []).find((d) => d.name === draggedDealName.value)
+  if (deal && deal.stage !== stageId) {
+    const previousStage = deal.stage
+    deal.stage = stageId // optimistic update
+    updateStage.submit(
+      {
+        doctype: 'Deal',
+        name: deal.name,
+        fieldname: 'stage',
+        value: stageId,
+      },
+      {
+        onError: () => {
+          deal.stage = previousStage // revert on failure
+        },
+      }
+    )
   }
-  draggedDealId.value = null
+  draggedDealName.value = null
 }
 
-const totalValue = computed(() => deals.value.reduce((s, d) => s + d.value, 0))
+const totalValue = computed(() =>
+  (dealsResource.data || []).reduce((s, d) => s + (d.value || 0), 0)
+)
 const wonValue = computed(() =>
-  deals.value.filter((d) => d.stage === 'won').reduce((s, d) => s + d.value, 0)
+  (dealsResource.data || [])
+    .filter((d) => d.stage === 'Won')
+    .reduce((s, d) => s + (d.value || 0), 0)
 )
 const activeCount = computed(
-  () => deals.value.filter((d) => d.stage !== 'won' && d.stage !== 'lost').length
+  () =>
+    (dealsResource.data || []).filter((d) => d.stage !== 'Won' && d.stage !== 'Lost')
+      .length
 )
 
 function peso(n) {
-  return '₱' + Number(n).toLocaleString('en-PH')
+  return '₱' + Number(n || 0).toLocaleString('en-PH')
 }
 </script>
 
@@ -267,24 +275,8 @@ function peso(n) {
   justify-content: space-between;
 }
 .card .owner {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #2a3556;
-  color: #7c87a3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-}
-.card .age {
   font-size: 11px;
-  color: #4e5876;
-}
-.card .age.stale {
-  color: #e5636b;
-  font-weight: 600;
+  color: #7c87a3;
 }
 .add-card-btn {
   background: transparent;

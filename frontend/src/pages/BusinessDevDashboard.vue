@@ -1,26 +1,8 @@
-<!--
-  BusinessDevDashboard.vue
-
-  Drop this into: apps/crm/frontend/src/pages/
-  (adjust the path if your repo's structure differs — check src/pages/ for
-  existing examples like Deals.vue to confirm the convention)
-
-  Then register a route for it, e.g. in src/router.js:
-    {
-      path: '/business-dev-dashboard',
-      name: 'BusinessDevDashboard',
-      component: () => import('@/pages/BusinessDevDashboard.vue'),
-    }
-
-  Uses frappe-ui's createResource to call your 5 verified Query Reports
-  via Frappe's report API. No external chart library — bars are plain
-  divs sized with computed percentages, so nothing new needs installing.
--->
 <template>
   <div class="dashboard">
     <header class="dash-header">
       <h1>Business Development</h1>
-      <RouterLink to="/deals" class="kanban-link">View Pipeline →</RouterLink>
+      <RouterLink to="/business-dev/pipeline" class="kanban-link">View Pipeline →</RouterLink>
     </header>
 
     <!-- Pipeline Conversion Rate -->
@@ -41,17 +23,17 @@
         <div v-else class="bars">
           <div
             v-for="row in stageTimeRows"
-            :key="row.pipeline_stage"
+            :key="row.stage"
             class="bar-row"
           >
-            <div class="bar-label">{{ row.pipeline_stage }}</div>
+            <div class="bar-label">{{ row.stage }}</div>
             <div class="bar-track">
               <div
                 class="bar-fill"
-                :style="{ width: barWidth(row.avg_duration_hours, maxStageHours) }"
+                :style="{ width: barWidth(row.avg_hours_in_stage, maxStageHours) }"
               ></div>
             </div>
-            <div class="bar-value">{{ row.avg_duration_hours }}h</div>
+            <div class="bar-value">{{ row.avg_hours_in_stage }}h</div>
           </div>
         </div>
       </div>
@@ -110,14 +92,16 @@
           <thead>
             <tr>
               <th>Deal</th>
+              <th>Client</th>
               <th>Hours in Pipeline</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="row in velocityRows" :key="row.deal">
-              <td>{{ row.deal }}</td>
-              <td :class="{ stale: row.total_hours_in_pipeline > 336 }">
-                {{ row.total_hours_in_pipeline ?? '—' }}
+              <td>{{ row.deal_title }}</td>
+              <td>{{ row.client_name }}</td>
+              <td :class="{ stale: row.velocity_hours > 336 }">
+                {{ row.velocity_hours ?? '—' }}
               </td>
             </tr>
           </tbody>
@@ -131,9 +115,6 @@
 import { computed } from 'vue'
 import { createResource } from 'frappe-ui'
 
-// Each resource calls Frappe's report runner with the report name.
-// Adjust the method name below if this repo already wraps report calls
-// differently (check other pages for an existing pattern first).
 function useReport(reportName) {
   return createResource({
     url: 'frappe.desk.query_report.run',
@@ -143,20 +124,19 @@ function useReport(reportName) {
 }
 
 const conversionRate = useReport('Pipeline Conversion Rate')
-const stageTime = useReport('Average Time per Pipeline Stage')
+const stageTime = useReport('Average Time Per Pipeline Stage')
 const productType = useReport('Product Type Performance')
 const geo = useReport('Geographic Distribution of Clients')
 const velocity = useReport('Client Pipeline Velocity')
 
-// frappe.desk.query_report.run typically returns { result: [...rows], columns: [...] }
 const conversionRow = computed(() => conversionRate.data?.result?.[0])
 const conversionRateDisplay = computed(() =>
-  conversionRow.value ? Number(conversionRow.value.conversion_rate).toFixed(2) : '0.00'
+  conversionRow.value ? Number(conversionRow.value.conversion_rate_pct).toFixed(2) : '0.00'
 )
 
 const stageTimeRows = computed(() => stageTime.data?.result ?? [])
 const maxStageHours = computed(() =>
-  Math.max(1, ...stageTimeRows.value.map((r) => Number(r.avg_duration_hours) || 0))
+  Math.max(1, ...stageTimeRows.value.map((r) => Number(r.avg_hours_in_stage) || 0))
 )
 
 const productTypeRows = computed(() => productType.data?.result ?? [])
