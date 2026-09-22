@@ -2,7 +2,11 @@
   <div class="pipeline">
     <header class="pipeline-header">
       <h1>Business Dev · Pipeline</h1>
-      <RouterLink to="/business-dev/dashboard" class="dash-link">← Dashboard</RouterLink>
+      <div class="header-actions">
+        <button class="btn-secondary" @click="showClientDialog = true">+ Add Client</button>
+        <button class="btn-secondary" @click="showProductDialog = true">+ Add Product</button>
+        <RouterLink to="/business-dev/overview" class="dash-link">← Overview</RouterLink>
+      </div>
     </header>
 
     <div class="summary-row">
@@ -56,15 +60,45 @@
           </div>
         </div>
 
-        <button class="add-card-btn">+ Add deal</button>
+        <button class="add-card-btn" @click="openAddDeal(stage.id)">+ Add deal</button>
       </div>
     </div>
+
+    <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
+    <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
+    <AddDealDialog v-model="showDealDialog" :stage="dealDialogStage" @created="onDealCreated" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { createListResource, createResource } from 'frappe-ui'
+import ClientFormDialog from '@/components/ClientFormDialog.vue'
+import ProductFormDialog from '@/components/ProductFormDialog.vue'
+import AddDealDialog from '@/components/AddDealDialog.vue'
+
+const showClientDialog = ref(false)
+const showProductDialog = ref(false)
+
+function onClientCreated(doc) {
+  console.log('Client created:', doc.name)
+}
+
+function onProductCreated(doc) {
+  console.log('Product created:', doc.name)
+}
+
+const showDealDialog = ref(false)
+const dealDialogStage = ref('')
+
+function openAddDeal(stageId) {
+  dealDialogStage.value = stageId
+  showDealDialog.value = true
+}
+
+function onDealCreated(doc) {
+  dealsResource.reload()
+}
 
 const stages = [
   { id: 'Lead', name: 'Lead', color: '#4c8dff' },
@@ -104,7 +138,7 @@ function onDrop(stageId) {
   const deal = (dealsResource.data || []).find((d) => d.name === draggedDealName.value)
   if (deal && deal.stage !== stageId) {
     const previousStage = deal.stage
-    deal.stage = stageId // optimistic update
+    deal.stage = stageId
     updateStage.submit(
       {
         doctype: 'Deal',
@@ -114,7 +148,7 @@ function onDrop(stageId) {
       },
       {
         onError: () => {
-          deal.stage = previousStage // revert on failure
+          deal.stage = previousStage
         },
       }
     )
@@ -143,10 +177,10 @@ function peso(n) {
 
 <style scoped>
 .pipeline {
-  background: radial-gradient(1200px 600px at 10% -10%, #101b33 0%, #0a0f1d 55%);
+  background: #f9fafb;
   min-height: 100vh;
   padding: 32px;
-  color: #edeff5;
+  color: #111827;
   font-family: 'Inter', sans-serif;
 }
 .pipeline-header {
@@ -159,14 +193,34 @@ function peso(n) {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
+  color: #111827;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.btn-secondary {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  border-color: #b45309;
+  color: #b45309;
 }
 .dash-link {
-  color: #7c87a3;
+  color: #6b7280;
   text-decoration: none;
   font-size: 13px;
 }
 .dash-link:hover {
-  color: #c9a227;
+  color: #b45309;
 }
 .summary-row {
   display: flex;
@@ -176,7 +230,7 @@ function peso(n) {
 }
 .summary-item .label {
   font-size: 12px;
-  color: #7c87a3;
+  color: #6b7280;
   font-weight: 500;
   margin-bottom: 4px;
 }
@@ -185,9 +239,10 @@ function peso(n) {
   font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: #111827;
 }
 .summary-item.hero .value {
-  color: #c9a227;
+  color: #b45309;
   font-size: 28px;
 }
 .board {
@@ -197,8 +252,8 @@ function peso(n) {
 }
 .column {
   width: 260px;
-  background: #101728;
-  border: 1px solid #1a2338;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 14px;
   display: flex;
@@ -207,8 +262,8 @@ function peso(n) {
   flex-shrink: 0;
 }
 .column.drag-over {
-  border-color: #c9a227;
-  background: #131c33;
+  border-color: #b45309;
+  background: #fffbeb;
 }
 .col-title-row {
   display: flex;
@@ -226,18 +281,19 @@ function peso(n) {
   font-size: 13px;
   font-weight: 600;
   flex: 1;
+  color: #111827;
 }
 .col-count {
   font-size: 11px;
-  color: #4e5876;
-  background: #1a2338;
+  color: #6b7280;
+  background: #f3f4f6;
   border-radius: 999px;
   padding: 1px 7px;
 }
 .col-total {
   font-size: 13px;
   font-weight: 600;
-  color: #7c87a3;
+  color: #6b7280;
   font-variant-numeric: tabular-nums;
 }
 .cards {
@@ -247,20 +303,21 @@ function peso(n) {
   min-height: 30px;
 }
 .card {
-  background: #16203a;
-  border: 1px solid #232d47;
-  border-left: 3px solid var(--stage-color, #c9a227);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid var(--stage-color, #b45309);
   border-radius: 10px;
   padding: 12px 13px;
   cursor: grab;
 }
 .card:hover {
-  background: #1b274a;
+  background: #f9fafb;
 }
 .card .org {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 4px;
+  color: #111827;
 }
 .card .value {
   font-family: 'Space Grotesk', sans-serif;
@@ -268,6 +325,7 @@ function peso(n) {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   margin-bottom: 8px;
+  color: #111827;
 }
 .card-foot {
   display: flex;
@@ -276,13 +334,13 @@ function peso(n) {
 }
 .card .owner {
   font-size: 11px;
-  color: #7c87a3;
+  color: #6b7280;
 }
 .add-card-btn {
   background: transparent;
-  border: 1px dashed #232d47;
+  border: 1px dashed #d1d5db;
   border-radius: 10px;
-  color: #4e5876;
+  color: #9ca3af;
   font-size: 12px;
   font-weight: 500;
   padding: 9px;
@@ -290,7 +348,7 @@ function peso(n) {
   text-align: left;
 }
 .add-card-btn:hover {
-  color: #7c87a3;
-  border-color: #4e5876;
+  color: #6b7280;
+  border-color: #9ca3af;
 }
 </style>

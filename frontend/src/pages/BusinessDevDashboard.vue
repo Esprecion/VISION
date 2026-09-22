@@ -164,10 +164,10 @@ function peso(n) {
 
 <style scoped>
 .dashboard {
-  background: radial-gradient(1200px 600px at 10% -10%, #101b33 0%, #0a0f1d 55%);
+  background: #f9fafb;
   min-height: 100vh;
   padding: 32px;
-  color: #edeff5;
+  color: #111827;
   font-family: 'Inter', sans-serif;
 }
 
@@ -181,21 +181,23 @@ function peso(n) {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
+  color: #111827;
 }
 .kanban-link {
-  color: #7c87a3;
+  color: #6b7280;
   text-decoration: none;
   font-size: 13px;
 }
 .kanban-link:hover {
-  color: #c9a227;
+  color: #b45309;
 }
 
 .card {
-  background: #101728;
-  border: 1px solid #1a2338;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
   padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .hero-card {
@@ -203,7 +205,7 @@ function peso(n) {
 }
 .card-label {
   font-size: 12px;
-  color: #7c87a3;
+  color: #6b7280;
   font-weight: 500;
   margin-bottom: 8px;
 }
@@ -214,15 +216,15 @@ function peso(n) {
 }
 .card-value.hero {
   font-size: 34px;
-  color: #c9a227;
+  color: #b45309;
 }
 .card-value.loading {
   font-size: 24px;
-  color: #4e5876;
+  color: #9ca3af;
 }
 .card-sub {
   font-size: 13px;
-  color: #7c87a3;
+  color: #6b7280;
   margin-top: 4px;
 }
 
@@ -252,24 +254,24 @@ function peso(n) {
 }
 .bar-label {
   font-size: 12px;
-  color: #7c87a3;
+  color: #6b7280;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .bar-track {
-  background: #1a2338;
+  background: #e5e7eb;
   border-radius: 6px;
   height: 10px;
   overflow: hidden;
 }
 .bar-fill {
   height: 100%;
-  background: #4c8dff;
+  background: #3b82f6;
   border-radius: 6px;
 }
 .bar-fill.gold {
-  background: #c9a227;
+  background: #b45309;
 }
 .bar-value {
   font-family: 'Space Grotesk', sans-serif;
@@ -277,6 +279,7 @@ function peso(n) {
   font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  color: #111827;
 }
 
 .velocity-table {
@@ -287,17 +290,18 @@ function peso(n) {
 }
 .velocity-table th {
   text-align: left;
-  color: #7c87a3;
+  color: #6b7280;
   font-weight: 500;
   padding: 6px 4px;
-  border-bottom: 1px solid #1a2338;
+  border-bottom: 1px solid #e5e7eb;
 }
 .velocity-table td {
   padding: 8px 4px;
-  border-bottom: 1px solid #1a2338;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827;
 }
 .velocity-table td.stale {
-  color: #e5636b;
+  color: #dc2626;
   font-weight: 600;
 }
 </style>

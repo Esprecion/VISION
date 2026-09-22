@@ -7,7 +7,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import Sidebar from '@/components/Sidebar.vue'
 </script>
 
@@ -15,7 +15,7 @@ import Sidebar from '@/components/Sidebar.vue'
 .app-shell {
   display: flex;
   min-height: 100vh;
-  background: #05070d;
+  background: #f8fafc;
 }
 .app-main {
   flex: 1;

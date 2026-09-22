@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 const businessDevTabs = [
-  { label: 'Dashboard', to: '/business-dev/dashboard' },
+  { label: 'Overview', to: '/business-dev/overview' },
   { label: 'Pipeline', to: '/business-dev/pipeline' },
 ]
 
@@ -20,10 +20,10 @@ const routes = [
     component: () => import('@/layouts/DepartmentLayout.vue'),
     props: { tabs: businessDevTabs },
     children: [
-      { path: '', redirect: '/business-dev/dashboard' },
+      { path: '', redirect: '/business-dev/overview' },
       {
-        path: 'dashboard',
-        name: 'BusinessDevDashboard',
+        path: 'overview',
+        name: 'BusinessDevOverview',
         component: () => import('@/pages/BusinessDevDashboard.vue'),
       },
       {

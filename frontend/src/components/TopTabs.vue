@@ -22,11 +22,12 @@ defineProps<{
 .top-tabs {
   display: flex;
   gap: 0.5rem;
-  border-bottom: 1px solid #1c2540;
+  border-bottom: 1px solid #e5e7eb;
   padding: 0 1.5rem;
+  background: #ffffff;
 }
 .tab-item {
-  color: #8b93a7;
+  color: #6b7280;
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
   padding: 0.9rem 0.25rem;
@@ -34,7 +35,7 @@ defineProps<{
   text-decoration: none;
 }
 .tab-item-active {
-  color: #C9A227;
-  border-bottom-color: #C9A227;
+  color: #b45309;
+  border-bottom-color: #b45309;
 }
 </style>
