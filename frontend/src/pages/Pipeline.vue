@@ -51,6 +51,7 @@
             :style="{ '--stage-color': stage.color }"
             draggable="true"
             @dragstart="draggedDealName = deal.name"
+            @click="openDealDetail(deal.name)"
           >
             <div class="org">{{ deal.deal_title }}</div>
             <div class="value">{{ peso(deal.value) }}</div>
@@ -67,6 +68,7 @@
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
     <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
     <AddDealDialog v-model="showDealDialog" :stage="dealDialogStage" @created="onDealCreated" />
+    <DealDetailDialog v-model="showDealDetail" :deal-name="selectedDealName" @updated="dealsResource.reload()" />
   </div>
 </template>
 
@@ -76,6 +78,7 @@ import { createListResource, createResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import AddDealDialog from '@/components/AddDealDialog.vue'
+import DealDetailDialog from '@/components/DealDetailDialog.vue'
 
 const showClientDialog = ref(false)
 const showProductDialog = ref(false)
@@ -90,6 +93,14 @@ function onProductCreated(doc) {
 
 const showDealDialog = ref(false)
 const dealDialogStage = ref('')
+
+const showDealDetail = ref(false)
+const selectedDealName = ref('')
+
+function openDealDetail(dealName) {
+  selectedDealName.value = dealName
+  showDealDetail.value = true
+}
 
 function openAddDeal(stageId) {
   dealDialogStage.value = stageId
