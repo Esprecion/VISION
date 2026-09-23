@@ -6,6 +6,7 @@ class Deal(Document):
 	def validate(self):
 		for item in self.items:
 			item.amount = (item.quantity or 0) * (item.price or 0)
+		self.value = sum((item.amount or 0) for item in self.items)
 
 	def on_update(self):
 		previous = self.get_doc_before_save()

@@ -57,6 +57,9 @@
             <div class="value">{{ peso(deal.value) }}</div>
             <div class="card-foot">
               <div class="owner">{{ deal.client }}</div>
+              <div v-if="daysInStage(deal.name, deal.stage) !== null" class="days-badge">
+                {{ daysInStage(deal.name, deal.stage) }}d in stage
+              </div>
             </div>
           </div>
         </div>
@@ -68,7 +71,7 @@
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
     <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
     <AddDealDialog v-model="showDealDialog" :stage="dealDialogStage" @created="onDealCreated" />
-    <DealDetailDialog v-model="showDealDetail" :deal-name="selectedDealName" @updated="dealsResource.reload()" />
+    <DealDetailDialog v-model="showDealDetail" :deal-name="selectedDealName" @updated="dealsResource.reload(); stageLogsResource.reload()" />
   </div>
 </template>
 
@@ -109,6 +112,7 @@ function openAddDeal(stageId) {
 
 function onDealCreated(doc) {
   dealsResource.reload()
+  stageLogsResource.reload()
 }
 
 const stages = [
@@ -127,6 +131,22 @@ const dealsResource = createListResource({
   pageLength: 100,
   auto: true,
 })
+
+const stageLogsResource = createListResource({
+  doctype: 'Stage Log',
+  fields: ['deal', 'to_stage', 'changed_on'],
+  orderBy: 'changed_on desc',
+  pageLength: 500,
+  auto: true,
+})
+
+function daysInStage(dealName, currentStage) {
+  const logs = stageLogsResource.data || []
+  const latest = logs.find((l) => l.deal === dealName && l.to_stage === currentStage)
+  if (!latest) return null
+  const diffMs = Date.now() - new Date(latest.changed_on).getTime()
+  return Math.max(0, Math.floor(diffMs / 86400000))
+}
 
 const draggedDealName = ref(null)
 const dragOverStage = ref(null)
@@ -158,6 +178,9 @@ function onDrop(stageId) {
         value: stageId,
       },
       {
+        onSuccess: () => {
+          stageLogsResource.reload()
+        },
         onError: () => {
           deal.stage = previousStage
         },
@@ -361,5 +384,12 @@ function peso(n) {
 .add-card-btn:hover {
   color: #6b7280;
   border-color: #9ca3af;
+}
+.days-badge {
+  font-size: 11px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 999px;
 }
 </style>
