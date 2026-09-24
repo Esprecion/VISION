@@ -3,6 +3,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 const businessDevTabs = [
   { label: 'Overview', to: '/business-dev/overview' },
   { label: 'Pipeline', to: '/business-dev/pipeline' },
+  { label: 'Clients', to: '/business-dev/clients' },
+  { label: 'Products', to: '/business-dev/products' },
 ]
 
 const routes = [
@@ -30,6 +32,16 @@ const routes = [
         path: 'pipeline',
         name: 'Pipeline',
         component: () => import('@/pages/Pipeline.vue'),
+      },
+      {
+        path: 'clients',
+        name: 'Clients',
+        component: () => import('@/pages/Clients.vue'),
+      },
+      {
+        path: 'products',
+        name: 'Products',
+        component: () => import('@/pages/Products.vue'),
       },
     ],
   },

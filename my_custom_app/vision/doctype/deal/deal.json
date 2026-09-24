@@ -32,8 +32,8 @@
   {
    "fieldname": "stage",
    "label": "Stage",
-   "fieldtype": "Select",
-   "options": "Lead\nQualified\nProposal\nNegotiation\nWon\nLost",
+   "fieldtype": "Link",
+   "options": "Pipeline Stage",
    "default": "Lead",
    "reqd": 1,
    "in_list_view": 1

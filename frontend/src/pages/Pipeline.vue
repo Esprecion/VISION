@@ -5,6 +5,7 @@
       <div class="header-actions">
         <button class="btn-secondary" @click="showClientDialog = true">+ Add Client</button>
         <button class="btn-secondary" @click="showProductDialog = true">+ Add Product</button>
+        <button class="btn-secondary" @click="showManageStages = true">⚙ Manage Stages</button>
         <RouterLink to="/business-dev/overview" class="dash-link">← Overview</RouterLink>
       </div>
     </header>
@@ -72,6 +73,7 @@
     <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
     <AddDealDialog v-model="showDealDialog" :stage="dealDialogStage" @created="onDealCreated" />
     <DealDetailDialog v-model="showDealDetail" :deal-name="selectedDealName" @updated="dealsResource.reload(); stageLogsResource.reload()" />
+    <ManageStagesDialog v-model="showManageStages" @updated="stagesResource.reload(); dealsResource.reload()" />
   </div>
 </template>
 
@@ -82,9 +84,11 @@ import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import AddDealDialog from '@/components/AddDealDialog.vue'
 import DealDetailDialog from '@/components/DealDetailDialog.vue'
+import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
 
 const showClientDialog = ref(false)
 const showProductDialog = ref(false)
+const showManageStages = ref(false)
 
 function onClientCreated(doc) {
   console.log('Client created:', doc.name)
@@ -115,14 +119,22 @@ function onDealCreated(doc) {
   stageLogsResource.reload()
 }
 
-const stages = [
-  { id: 'Lead', name: 'Lead', color: '#4c8dff' },
-  { id: 'Qualified', name: 'Qualified', color: '#37c9a6' },
-  { id: 'Proposal', name: 'Proposal', color: '#e0a93e' },
-  { id: 'Negotiation', name: 'Negotiation', color: '#9d7bff' },
-  { id: 'Won', name: 'Won', color: '#3fbf7f' },
-  { id: 'Lost', name: 'Lost', color: '#e5636b' },
-]
+const stagesResource = createListResource({
+  doctype: 'Pipeline Stage',
+  fields: ['name', 'stage_name', 'color', 'is_locked', 'sequence'],
+  orderBy: 'sequence asc',
+  pageLength: 100,
+  auto: true,
+})
+
+const stages = computed(() =>
+  (stagesResource.data || []).map((s) => ({
+    id: s.stage_name,
+    name: s.stage_name,
+    color: s.color || '#9ca3af',
+    isLocked: !!s.is_locked,
+  }))
+)
 
 const dealsResource = createListResource({
   doctype: 'Deal',
