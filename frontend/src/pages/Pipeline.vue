@@ -41,7 +41,15 @@
       </div>
     </div>
 
-    <div class="board">
+    <input
+      v-model="searchQuery"
+      class="search-input"
+      type="text"
+      placeholder="Search deals by title or client..."
+    />
+
+    <div class="board-wrap">
+    <div class="board" ref="boardEl">
       <div
         v-for="stage in stages"
         :key="stage.id"
@@ -74,7 +82,11 @@
             <div class="value">{{ peso(deal.value) }}</div>
             <div class="card-foot">
               <div class="owner">{{ deal.client }}</div>
-              <div v-if="daysInStage(deal.name, deal.stage) !== null" class="days-badge">
+              <div
+                v-if="daysInStage(deal.name, deal.stage) !== null"
+                class="days-badge"
+                :class="stageSeverityClass(daysInStage(deal.name, deal.stage))"
+              >
                 {{ daysInStage(deal.name, deal.stage) }}d in stage
               </div>
             </div>
@@ -90,24 +102,30 @@
         <button class="add-card-btn" @click="openAddDeal(stage.id)">+ Add deal</button>
       </div>
     </div>
+      <div v-if="showScrollHint" class="scroll-hint">→</div>
+    </div>
 
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
     <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
     <AddDealDialog v-model="showDealDialog" :stage="dealDialogStage" @created="onDealCreated" />
     <DealDetailDialog v-model="showDealDetail" :deal-name="selectedDealName" @updated="dealsResource.reload(); stageLogsResource.reload()" />
     <ManageStagesDialog v-model="showManageStages" @updated="stagesResource.reload(); dealsResource.reload()" />
+    <ToastContainer />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { createListResource, createResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import AddDealDialog from '@/components/AddDealDialog.vue'
 import DealDetailDialog from '@/components/DealDetailDialog.vue'
 import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
+import { useToast } from '@/composables/useToast'
 
+const { showToast } = useToast()
 const showClientDialog = ref(false)
 const showProductDialog = ref(false)
 const showManageStages = ref(false)
@@ -119,11 +137,11 @@ onMounted(() => window.addEventListener('click', closeManageMenu))
 onUnmounted(() => window.removeEventListener('click', closeManageMenu))
 
 function onClientCreated(doc) {
-  console.log('Client created:', doc.name)
+  showToast(`Client "${doc.client_name}" added`)
 }
 
 function onProductCreated(doc) {
-  console.log('Product created:', doc.name)
+  showToast(`Product "${doc.product_name}" added`)
 }
 
 const showDealDialog = ref(false)
@@ -145,6 +163,7 @@ function openAddDeal(stageId) {
 function onDealCreated(doc) {
   dealsResource.reload()
   stageLogsResource.reload()
+  showToast(`Deal "${doc.deal_title}" added`)
 }
 
 const stagesResource = createListResource({
@@ -188,6 +207,27 @@ function daysInStage(dealName, currentStage) {
   return Math.max(0, Math.floor(diffMs / 86400000))
 }
 
+function stageSeverityClass(days) {
+  if (days >= 10) return 'severity-danger'
+  if (days >= 5) return 'severity-warning'
+  return ''
+}
+
+const boardEl = ref(null)
+const showScrollHint = ref(false)
+function checkOverflow() {
+  if (boardEl.value) {
+    showScrollHint.value = boardEl.value.scrollWidth > boardEl.value.clientWidth + 4
+  }
+}
+onMounted(() => {
+  checkOverflow()
+  window.addEventListener('resize', checkOverflow)
+})
+onUnmounted(() => window.removeEventListener('resize', checkOverflow))
+watch(() => dealsResource.data, () => nextTick(checkOverflow))
+watch(stages, () => nextTick(checkOverflow))
+
 function formatShortDate(isoStr) {
   if (!isoStr) return null
   const d = new Date(isoStr)
@@ -204,8 +244,17 @@ function closedDate(dealName, currentStage) {
 const draggedDealName = ref(null)
 const dragOverStage = ref(null)
 
+const searchQuery = ref('')
+
 function dealsByStage(stageId) {
-  return (dealsResource.data || []).filter((d) => d.stage === stageId)
+  const list = (dealsResource.data || []).filter((d) => d.stage === stageId)
+  if (!searchQuery.value.trim()) return list
+  const q = searchQuery.value.toLowerCase()
+  return list.filter(
+    (d) =>
+      (d.deal_title || '').toLowerCase().includes(q) ||
+      (d.client || '').toLowerCase().includes(q)
+  )
 }
 
 function stageTotal(stageId) {
@@ -528,5 +577,36 @@ function peso(n) {
   background: #f3f4f6;
   padding: 2px 6px;
   border-radius: 999px;
+}
+.days-badge.severity-warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+.days-badge.severity-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.search-input {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  background: #ffffff;
+}
+.board-wrap {
+  position: relative;
+}
+.scroll-hint {
+  position: absolute;
+  right: 0;
+  top: 45%;
+  background: linear-gradient(to right, transparent, #f9fafb 60%);
+  padding: 8px 10px 8px 24px;
+  color: #b45309;
+  font-weight: 700;
+  pointer-events: none;
 }
 </style>
