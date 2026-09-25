@@ -1,12 +1,28 @@
 <template>
   <div class="pipeline">
     <header class="pipeline-header">
-      <h1>Business Dev · Pipeline</h1>
+      <h1>Business Development · Pipeline</h1>
       <div class="header-actions">
-        <button class="btn-secondary" @click="showClientDialog = true">+ Add Client</button>
-        <button class="btn-secondary" @click="showProductDialog = true">+ Add Product</button>
-        <button class="btn-secondary" @click="showManageStages = true">⚙ Manage Stages</button>
-        <RouterLink to="/business-dev/overview" class="dash-link">← Overview</RouterLink>
+        <div class="period-picker">
+          <select v-model.number="selectedQuarter">
+            <option :value="1">Q1</option>
+            <option :value="2">Q2</option>
+            <option :value="3">Q3</option>
+            <option :value="4">Q4</option>
+          </select>
+          <select v-model.number="selectedYear">
+            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
+        <span class="range-label">{{ rangeLabel }}</span>
+        <div class="manage-dropdown">
+          <button class="btn-secondary" @click.stop="showManageMenu = !showManageMenu">⚙ Manage ▾</button>
+          <div v-if="showManageMenu" class="manage-menu">
+            <button @click="showClientDialog = true; showManageMenu = false">+ Add Client</button>
+            <button @click="showProductDialog = true; showManageMenu = false">+ Add Product</button>
+            <button @click="showManageStages = true; showManageMenu = false">Manage Stages</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -62,6 +78,12 @@
                 {{ daysInStage(deal.name, deal.stage) }}d in stage
               </div>
             </div>
+            <div class="card-dates">
+              <span>Created {{ formatShortDate(deal.creation) }}</span>
+              <span v-if="closedDate(deal.name, deal.stage)">
+                · Closed {{ closedDate(deal.name, deal.stage) }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -78,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { createListResource, createResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
@@ -89,6 +111,12 @@ import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
 const showClientDialog = ref(false)
 const showProductDialog = ref(false)
 const showManageStages = ref(false)
+const showManageMenu = ref(false)
+function closeManageMenu() {
+  showManageMenu.value = false
+}
+onMounted(() => window.addEventListener('click', closeManageMenu))
+onUnmounted(() => window.removeEventListener('click', closeManageMenu))
 
 function onClientCreated(doc) {
   console.log('Client created:', doc.name)
@@ -138,7 +166,7 @@ const stages = computed(() =>
 
 const dealsResource = createListResource({
   doctype: 'Deal',
-  fields: ['name', 'deal_title', 'client', 'stage', 'value'],
+  fields: ['name', 'deal_title', 'client', 'stage', 'value', 'creation'],
   orderBy: 'modified desc',
   pageLength: 100,
   auto: true,
@@ -158,6 +186,19 @@ function daysInStage(dealName, currentStage) {
   if (!latest) return null
   const diffMs = Date.now() - new Date(latest.changed_on).getTime()
   return Math.max(0, Math.floor(diffMs / 86400000))
+}
+
+function formatShortDate(isoStr) {
+  if (!isoStr) return null
+  const d = new Date(isoStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function closedDate(dealName, currentStage) {
+  if (currentStage !== 'Won' && currentStage !== 'Lost') return null
+  const logs = stageLogsResource.data || []
+  const entry = logs.find((l) => l.deal === dealName && l.to_stage === currentStage)
+  return entry ? formatShortDate(entry.changed_on) : null
 }
 
 const draggedDealName = ref(null)
@@ -205,11 +246,44 @@ function onDrop(stageId) {
 const totalValue = computed(() =>
   (dealsResource.data || []).reduce((s, d) => s + (d.value || 0), 0)
 )
-const wonValue = computed(() =>
-  (dealsResource.data || [])
-    .filter((d) => d.stage === 'Won')
-    .reduce((s, d) => s + (d.value || 0), 0)
+const today = new Date()
+const selectedQuarter = ref(Math.ceil((today.getMonth() + 1) / 3))
+const selectedYear = ref(today.getFullYear())
+const yearOptions = computed(() => {
+  const y = today.getFullYear()
+  return [y - 2, y - 1, y, y + 1]
+})
+const quarterRanges = {
+  1: ['01-01', '03-31'],
+  2: ['04-01', '06-30'],
+  3: ['07-01', '09-30'],
+  4: ['10-01', '12-31'],
+}
+const fromDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][0]}`)
+const toDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][1]}T23:59:59`)
+function formatDisplayDate(isoStr) {
+  const d = new Date(isoStr + (isoStr.includes('T') ? '' : 'T00:00:00'))
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+const rangeLabel = computed(
+  () => `${formatDisplayDate(fromDate.value)} – ${formatDisplayDate(toDate.value)}, ${selectedYear.value}`
 )
+
+const wonValue = computed(() => {
+  const deals = dealsResource.data || []
+  const logs = stageLogsResource.data || []
+  const fromMs = new Date(fromDate.value).getTime()
+  const toMs = new Date(toDate.value).getTime()
+  return deals
+    .filter((d) => {
+      if (d.stage !== 'Won') return false
+      const latestWon = logs.find((l) => l.deal === d.name && l.to_stage === 'Won')
+      if (!latestWon) return false
+      const t = new Date(latestWon.changed_on).getTime()
+      return t >= fromMs && t <= toMs
+    })
+    .reduce((s, d) => s + (d.value || 0), 0)
+})
 const activeCount = computed(
   () =>
     (dealsResource.data || []).filter((d) => d.stage !== 'Won' && d.stage !== 'Lost')
@@ -396,6 +470,57 @@ function peso(n) {
 .add-card-btn:hover {
   color: #6b7280;
   border-color: #9ca3af;
+}
+.card-dates {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+.manage-dropdown {
+  position: relative;
+}
+.manage-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 20;
+  overflow: hidden;
+}
+.manage-menu button {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #111827;
+  cursor: pointer;
+}
+.manage-menu button:hover {
+  background: #f9fafb;
+}
+.period-picker {
+  display: flex;
+  gap: 6px;
+}
+.period-picker select {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #111827;
+}
+.range-label {
+  color: #9ca3af;
+  font-size: 12px;
+  white-space: nowrap;
 }
 .days-badge {
   font-size: 11px;

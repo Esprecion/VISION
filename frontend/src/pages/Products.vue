@@ -33,7 +33,7 @@ const filteredProducts = computed(() => {
 <template>
   <div class="products-page">
     <header class="products-header">
-      <h1>Business Dev · Products</h1>
+      <h1>Business Development · Products</h1>
       <button class="btn-secondary" @click="showProductDialog = true">+ Add Product</button>
     </header>
 

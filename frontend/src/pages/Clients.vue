@@ -34,7 +34,7 @@ const filteredClients = computed(() => {
 <template>
   <div class="clients-page">
     <header class="clients-header">
-      <h1>Business Dev · Clients</h1>
+      <h1>Business Development · Clients</h1>
       <button class="btn-secondary" @click="showClientDialog = true">+ Add Client</button>
     </header>
 

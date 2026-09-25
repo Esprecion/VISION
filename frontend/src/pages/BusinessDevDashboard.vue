@@ -2,7 +2,21 @@
   <div class="dashboard">
     <header class="dash-header">
       <h1>Business Development</h1>
-      <RouterLink to="/business-dev/pipeline" class="kanban-link">View Pipeline →</RouterLink>
+      <div class="header-right">
+        <div class="period-picker">
+          <select v-model.number="selectedQuarter">
+            <option :value="1">Q1</option>
+            <option :value="2">Q2</option>
+            <option :value="3">Q3</option>
+            <option :value="4">Q4</option>
+          </select>
+          <select v-model.number="selectedYear">
+            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
+        <span class="range-label">{{ rangeLabel }}</span>
+        <RouterLink to="/business-dev/pipeline" class="kanban-link">View Pipeline →</RouterLink>
+      </div>
     </header>
 
     <!-- Pipeline Conversion Rate -->
@@ -112,15 +126,49 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { createResource } from 'frappe-ui'
 
+const today = new Date()
+const currentQuarter = Math.ceil((today.getMonth() + 1) / 3)
+const selectedQuarter = ref(currentQuarter)
+const selectedYear = ref(today.getFullYear())
+const yearOptions = computed(() => {
+  const y = today.getFullYear()
+  return [y - 2, y - 1, y, y + 1]
+})
+
+const quarterRanges = {
+  1: ['01-01', '03-31'],
+  2: ['04-01', '06-30'],
+  3: ['07-01', '09-30'],
+  4: ['10-01', '12-31'],
+}
+
+const fromDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][0]}`)
+const toDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][1]}`)
+
+function formatDisplayDate(isoStr) {
+  const d = new Date(isoStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+const rangeLabel = computed(
+  () => `${formatDisplayDate(fromDate.value)} – ${formatDisplayDate(toDate.value)}, ${selectedYear.value}`
+)
+
+const reportRegistry = []
+
 function useReport(reportName) {
-  return createResource({
+  const resource = createResource({
     url: 'frappe.desk.query_report.run',
-    params: { report_name: reportName },
+    params: {
+      report_name: reportName,
+      filters: { from_date: fromDate.value, to_date: toDate.value },
+    },
     auto: true,
   })
+  reportRegistry.push({ resource, reportName })
+  return resource
 }
 
 const conversionRate = useReport('Pipeline Conversion Rate')
@@ -128,6 +176,14 @@ const stageTime = useReport('Average Time Per Pipeline Stage')
 const productType = useReport('Product Type Performance')
 const geo = useReport('Geographic Distribution of Clients')
 const velocity = useReport('Client Pipeline Velocity')
+
+watch([selectedQuarter, selectedYear], () => {
+  const filters = { from_date: fromDate.value, to_date: toDate.value }
+  reportRegistry.forEach(({ resource, reportName }) => {
+    resource.update({ params: { report_name: reportName, filters } })
+    resource.reload()
+  })
+})
 
 const conversionRow = computed(() => conversionRate.data?.result?.[0])
 const conversionRateDisplay = computed(() =>
@@ -182,6 +238,28 @@ function peso(n) {
   font-weight: 600;
   margin: 0;
   color: #111827;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.period-picker {
+  display: flex;
+  gap: 6px;
+}
+.period-picker select {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #ffffff;
+  color: #111827;
+}
+.range-label {
+  color: #9ca3af;
+  font-size: 12px;
+  white-space: nowrap;
 }
 .kanban-link {
   color: #6b7280;

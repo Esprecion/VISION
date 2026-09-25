@@ -6,7 +6,7 @@
         Dashboard
       </router-link>
       <router-link to="/business-dev" class="nav-item" active-class="nav-item-active">
-        Business Dev
+        Business Development
       </router-link>
     </nav>
   </aside>
