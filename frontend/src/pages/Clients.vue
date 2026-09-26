@@ -2,7 +2,10 @@
 import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
+import { useToast } from '@/composables/useToast'
 
+const { showToast } = useToast()
 const showClientDialog = ref(false)
 const search = ref('')
 
@@ -14,8 +17,9 @@ const clientsResource = createListResource({
   auto: true,
 })
 
-function onClientCreated() {
+function onClientCreated(doc) {
   clientsResource.reload()
+  showToast(`Client "${doc.client_name}" added`)
 }
 
 const filteredClients = computed(() => {
@@ -72,6 +76,7 @@ const filteredClients = computed(() => {
     </div>
 
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
+    <ToastContainer />
   </div>
 </template>
 

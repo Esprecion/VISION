@@ -5,6 +5,7 @@ const businessDevTabs = [
   { label: 'Pipeline', to: '/business-dev/pipeline' },
   { label: 'Clients', to: '/business-dev/clients' },
   { label: 'Products', to: '/business-dev/products' },
+  { label: 'Contracts', to: '/business-dev/contracts' },
 ]
 
 const routes = [
@@ -42,6 +43,11 @@ const routes = [
         path: 'products',
         name: 'Products',
         component: () => import('@/pages/Products.vue'),
+      },
+      {
+        path: 'contracts',
+        name: 'Contracts',
+        component: () => import('@/pages/Contracts.vue'),
       },
     ],
   },

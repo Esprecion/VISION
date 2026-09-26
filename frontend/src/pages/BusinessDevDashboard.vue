@@ -311,6 +311,10 @@ function peso(n) {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 16px;
+  align-items: stretch;
+}
+.chart-card {
+  min-height: 200px;
 }
 @media (max-width: 900px) {
   .chart-row {

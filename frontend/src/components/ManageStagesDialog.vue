@@ -18,26 +18,33 @@
 
           <div class="row-actions">
             <template v-if="!stage.is_locked">
-              <button
-                v-if="editingName !== stage.name"
-                class="icon-btn"
-                title="Rename"
-                @click="startRename(stage)"
-              >
-                ✎
-              </button>
-              <button
-                v-else
-                class="icon-btn"
-                title="Save"
-                :disabled="renaming"
-                @click="confirmRename(stage)"
-              >
-                ✓
-              </button>
-              <button class="icon-btn danger" title="Delete" @click="confirmDelete(stage)">
-                ✕
-              </button>
+              <template v-if="pendingDeleteName === stage.name">
+                <span class="confirm-text">Delete?</span>
+                <button class="icon-btn confirm-yes" title="Confirm delete" @click="doDelete(stage)">✓</button>
+                <button class="icon-btn" title="Cancel" @click="cancelDelete">✕</button>
+              </template>
+              <template v-else>
+                <button
+                  v-if="editingName !== stage.name"
+                  class="icon-btn"
+                  title="Rename"
+                  @click="startRename(stage)"
+                >
+                  ✎
+                </button>
+                <button
+                  v-else
+                  class="icon-btn"
+                  title="Save"
+                  :disabled="renaming"
+                  @click="confirmRename(stage)"
+                >
+                  ✓
+                </button>
+                <button class="icon-btn danger" title="Delete" @click="startDelete(stage)">
+                  ✕
+                </button>
+              </template>
             </template>
           </div>
         </div>
@@ -126,7 +133,9 @@ async function confirmRename(stage) {
 }
 
 // --- Delete ---
-async function confirmDelete(stage) {
+const pendingDeleteName = ref(null)
+
+async function startDelete(stage) {
   errorMsg.value = ''
   const inUse = await call('frappe.client.get_count', {
     doctype: 'Deal',
@@ -136,12 +145,20 @@ async function confirmDelete(stage) {
     errorMsg.value = `Can't delete "${stage.stage_name}" — ${inUse} deal(s) are still in this stage.`
     return
   }
-  if (!confirm(`Delete stage "${stage.stage_name}"?`)) return
+  pendingDeleteName.value = stage.name
+}
+
+function cancelDelete() {
+  pendingDeleteName.value = null
+}
+
+async function doDelete(stage) {
   try {
     await call('frappe.client.delete', {
       doctype: 'Pipeline Stage',
       name: stage.name,
     })
+    pendingDeleteName.value = null
     await stagesResource.reload()
     emit('updated')
   } catch (e) {
@@ -237,6 +254,14 @@ async function addStage() {
 }
 .icon-btn.danger {
   color: #dc2626;
+}
+.confirm-text {
+  font-size: 12px;
+  color: #dc2626;
+  margin-right: 2px;
+}
+.icon-btn.confirm-yes {
+  color: #059669;
 }
 .add-row {
   display: flex;
