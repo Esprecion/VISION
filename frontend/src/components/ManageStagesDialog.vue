@@ -52,7 +52,17 @@
 
       <div class="add-row">
         <input v-model="newStageName" type="text" placeholder="New stage name" />
-        <input v-model="newStageColor" type="color" class="color-input" />
+        <div class="color-swatches">
+          <button
+            v-for="c in colorPresets"
+            :key="c"
+            type="button"
+            class="swatch"
+            :class="{ selected: newStageColor === c }"
+            :style="{ background: c }"
+            @click="newStageColor = c"
+          ></button>
+        </div>
         <button class="btn-secondary" :disabled="!newStageName.trim() || adding" @click="addStage">
           + Add
         </button>
@@ -167,8 +177,9 @@ async function doDelete(stage) {
 }
 
 // --- Add ---
+const colorPresets = ['#4c8dff', '#37c9a6', '#e0a93e', '#9d7bff', '#3fbf7f', '#e5636b', '#f472b6', '#6b7280']
 const newStageName = ref('')
-const newStageColor = ref('#9ca3af')
+const newStageColor = ref(colorPresets[0])
 const adding = ref(false)
 
 async function addStage() {
@@ -177,7 +188,7 @@ async function addStage() {
   adding.value = true
   errorMsg.value = ''
   try {
-    const maxSeq = Math.max(0, ...sortedStages.value.map((s) => s.sequence || 0))
+    const maxSeq = Math.max(0, ...sortedStages.value.filter((s) => !s.is_locked).map((s) => s.sequence || 0))
     await call('frappe.client.insert', {
       doc: {
         doctype: 'Pipeline Stage',
@@ -188,7 +199,7 @@ async function addStage() {
       },
     })
     newStageName.value = ''
-    newStageColor.value = '#9ca3af'
+    newStageColor.value = colorPresets[0]
     await stagesResource.reload()
     emit('updated')
   } catch (e) {
@@ -277,12 +288,21 @@ async function addStage() {
   padding: 8px 10px;
   font-size: 14px;
 }
-.color-input {
-  width: 36px;
-  height: 34px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 2px;
+.color-swatches {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.swatch.selected {
+  border-color: #111827;
 }
 .btn-secondary {
   background: #ffffff;

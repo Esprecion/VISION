@@ -16,15 +16,13 @@
   {
    "fieldname": "from_stage",
    "label": "From Stage",
-   "fieldtype": "Select",
-   "options": "\nLead\nQualified\nProposal\nNegotiation\nWon\nLost",
+   "fieldtype": "Data",
    "in_list_view": 1
   },
   {
    "fieldname": "to_stage",
    "label": "To Stage",
-   "fieldtype": "Select",
-   "options": "Lead\nQualified\nProposal\nNegotiation\nWon\nLost",
+   "fieldtype": "Data",
    "reqd": 1,
    "in_list_view": 1
   },

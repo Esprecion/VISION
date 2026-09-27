@@ -65,7 +65,10 @@
             <span class="col-title">{{ stage.name }}</span>
             <span class="col-count">{{ dealsByStage(stage.id).length }}</span>
           </div>
-          <div class="col-total">{{ stageTotal(stage.id) }}</div>
+          <div class="col-total">
+            {{ stageTotal(stage.id) }}
+            <span v-if="stage.isLocked" class="period-note">this quarter</span>
+          </div>
         </div>
 
         <div class="cards">
@@ -247,7 +250,21 @@ const dragOverStage = ref(null)
 const searchQuery = ref('')
 
 function dealsByStage(stageId) {
-  const list = (dealsResource.data || []).filter((d) => d.stage === stageId)
+  let list = (dealsResource.data || []).filter((d) => d.stage === stageId)
+
+  const stageObj = stages.value.find((s) => s.id === stageId)
+  if (stageObj?.isLocked) {
+    const logs = stageLogsResource.data || []
+    const fromMs = new Date(fromDate.value).getTime()
+    const toMs = new Date(toDate.value).getTime()
+    list = list.filter((d) => {
+      const latest = logs.find((l) => l.deal === d.name && l.to_stage === stageId)
+      if (!latest) return false
+      const t = new Date(latest.changed_on).getTime()
+      return t >= fromMs && t <= toMs
+    })
+  }
+
   if (!searchQuery.value.trim()) return list
   const q = searchQuery.value.toLowerCase()
   return list.filter(
@@ -553,6 +570,11 @@ function peso(n) {
 }
 .manage-menu button:hover {
   background: #f9fafb;
+}
+.period-note {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-left: 4px;
 }
 .period-picker {
   display: flex;

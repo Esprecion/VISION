@@ -19,13 +19,12 @@
       </div>
     </header>
 
-    <!-- Pipeline Conversion Rate -->
-    <div class="card hero-card">
-      <div class="card-label">Pipeline Conversion Rate</div>
-      <div v-if="conversionRate.loading" class="card-value loading">···</div>
-      <div v-else class="card-value hero">{{ conversionRateDisplay }}%</div>
-      <div class="card-sub" v-if="conversionRow">
-        {{ conversionRow.won_count }} won of {{ conversionRow.total_deals }} deals
+    <!-- Compact stat tile -->
+    <div class="stat-tiles stat-tiles-single">
+      <div class="stat-tile">
+        <div class="stat-label">CONVERSION RATE</div>
+        <div class="stat-value">{{ conversionRate.loading ? '···' : conversionRateDisplay + '%' }}</div>
+        <div class="stat-sub" v-if="conversionRow">{{ conversionRow.won_count }} won of {{ conversionRow.total_deals }} deals</div>
       </div>
     </div>
 
@@ -36,7 +35,7 @@
         <div v-if="stageTime.loading" class="card-value loading">···</div>
         <div v-else class="bars">
           <div
-            v-for="row in stageTimeRows"
+            v-for="row in visibleStageTimeRows"
             :key="row.stage"
             class="bar-row"
           >
@@ -49,6 +48,9 @@
             </div>
             <div class="bar-value">{{ row.avg_hours_in_stage }}h</div>
           </div>
+          <button v-if="stageTimeRows.length > 4" class="see-more" @click="showAllStageTime = !showAllStageTime">
+            {{ showAllStageTime ? 'Show less ▲' : `+${stageTimeRows.length - 4} more ▾` }}
+          </button>
         </div>
       </div>
 
@@ -58,7 +60,7 @@
         <div v-if="productType.loading" class="card-value loading">···</div>
         <div v-else class="bars">
           <div
-            v-for="row in productTypeRows"
+            v-for="row in visibleProductTypeRows"
             :key="row.product_type"
             class="bar-row"
           >
@@ -71,6 +73,9 @@
             </div>
             <div class="bar-value">{{ peso(row.total_value) }}</div>
           </div>
+          <button v-if="productTypeRows.length > 4" class="see-more" @click="showAllProductType = !showAllProductType">
+            {{ showAllProductType ? 'Show less ▲' : `+${productTypeRows.length - 4} more ▾` }}
+          </button>
         </div>
       </div>
     </div>
@@ -82,7 +87,7 @@
         <div v-if="geo.loading" class="card-value loading">···</div>
         <div v-else class="bars">
           <div
-            v-for="row in geoRows"
+            v-for="row in visibleGeoRows"
             :key="row.territory || 'unassigned'"
             class="bar-row"
           >
@@ -95,6 +100,9 @@
             </div>
             <div class="bar-value">{{ peso(row.total_value) }}</div>
           </div>
+          <button v-if="geoRows.length > 4" class="see-more" @click="showAllGeo = !showAllGeo">
+            {{ showAllGeo ? 'Show less ▲' : `+${geoRows.length - 4} more ▾` }}
+          </button>
         </div>
       </div>
 
@@ -111,7 +119,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in velocityRows" :key="row.deal">
+            <tr v-for="row in visibleVelocityRows" :key="row.deal">
               <td>{{ row.deal_title }}</td>
               <td>{{ row.client_name }}</td>
               <td :class="{ stale: row.velocity_hours > 336 }">
@@ -120,6 +128,9 @@
             </tr>
           </tbody>
         </table>
+        <button v-if="velocityRows.length > 4" class="see-more" @click="showAllVelocity = !showAllVelocity">
+          {{ showAllVelocity ? 'Show less ▲' : `+${velocityRows.length - 4} more ▾` }}
+        </button>
       </div>
     </div>
   </div>
@@ -190,22 +201,30 @@ const conversionRateDisplay = computed(() =>
   conversionRow.value ? Number(conversionRow.value.conversion_rate_pct).toFixed(2) : '0.00'
 )
 
+const showAllStageTime = ref(false)
 const stageTimeRows = computed(() => stageTime.data?.result ?? [])
+const visibleStageTimeRows = computed(() => showAllStageTime.value ? stageTimeRows.value : stageTimeRows.value.slice(0, 4))
 const maxStageHours = computed(() =>
   Math.max(1, ...stageTimeRows.value.map((r) => Number(r.avg_hours_in_stage) || 0))
 )
 
+const showAllProductType = ref(false)
 const productTypeRows = computed(() => productType.data?.result ?? [])
+const visibleProductTypeRows = computed(() => showAllProductType.value ? productTypeRows.value : productTypeRows.value.slice(0, 4))
 const maxProductValue = computed(() =>
   Math.max(1, ...productTypeRows.value.map((r) => Number(r.total_value) || 0))
 )
 
+const showAllGeo = ref(false)
 const geoRows = computed(() => geo.data?.result ?? [])
+const visibleGeoRows = computed(() => showAllGeo.value ? geoRows.value : geoRows.value.slice(0, 4))
 const maxGeoValue = computed(() =>
   Math.max(1, ...geoRows.value.map((r) => Number(r.total_value) || 0))
 )
 
+const showAllVelocity = ref(false)
 const velocityRows = computed(() => velocity.data?.result ?? [])
+const visibleVelocityRows = computed(() => showAllVelocity.value ? velocityRows.value : velocityRows.value.slice(0, 4))
 
 function barWidth(value, max) {
   const pct = Math.max(2, (Number(value) / max) * 100)
@@ -278,6 +297,51 @@ function peso(n) {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.stat-tiles-single {
+  grid-template-columns: minmax(200px, 280px);
+}
+.stat-tile {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #b45309;
+  font-variant-numeric: tabular-nums;
+}
+.stat-sub {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+.see-more {
+  background: none;
+  border: none;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0 0;
+  text-align: left;
+}
 .hero-card {
   margin-bottom: 20px;
 }
