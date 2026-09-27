@@ -4,11 +4,12 @@
       <h1>Business Development · Pipeline</h1>
       <div class="header-actions">
         <div class="period-picker">
-          <select v-model.number="selectedQuarter">
-            <option :value="1">Q1</option>
-            <option :value="2">Q2</option>
-            <option :value="3">Q3</option>
-            <option :value="4">Q4</option>
+          <select v-model="selectedQuarter">
+            <option value="1">Q1</option>
+            <option value="2">Q2</option>
+            <option value="3">Q3</option>
+            <option value="4">Q4</option>
+            <option value="FY">Full Year</option>
           </select>
           <select v-model.number="selectedYear">
             <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
@@ -113,6 +114,12 @@
     <AddDealDialog v-model="showDealDialog" :stage="dealDialogStage" @created="onDealCreated" />
     <DealDetailDialog v-model="showDealDetail" :deal-name="selectedDealName" @updated="dealsResource.reload(); stageLogsResource.reload()" />
     <ManageStagesDialog v-model="showManageStages" @updated="stagesResource.reload(); dealsResource.reload()" />
+    <ContractFormDialog
+      v-model="showContractSuggestDialog"
+      :prefill-deal-name="suggestDealName"
+      :prefill-client-name="suggestClientName"
+      @created="showToast('Contract created')"
+    />
     <ToastContainer />
   </div>
 </template>
@@ -125,6 +132,7 @@ import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import AddDealDialog from '@/components/AddDealDialog.vue'
 import DealDetailDialog from '@/components/DealDetailDialog.vue'
 import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
+import ContractFormDialog from '@/components/ContractFormDialog.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import { useToast } from '@/composables/useToast'
 
@@ -132,6 +140,9 @@ const { showToast } = useToast()
 const showClientDialog = ref(false)
 const showProductDialog = ref(false)
 const showManageStages = ref(false)
+const showContractSuggestDialog = ref(false)
+const suggestDealName = ref('')
+const suggestClientName = ref('')
 const showManageMenu = ref(false)
 function closeManageMenu() {
   showManageMenu.value = false
@@ -299,6 +310,16 @@ function onDrop(stageId) {
       {
         onSuccess: () => {
           stageLogsResource.reload()
+          if (stageId === 'Won') {
+            showToast(`"${deal.deal_title}" marked Won 🎉`, 'success', {
+              label: 'Create Contract',
+              onClick: () => {
+                suggestDealName.value = deal.name
+                suggestClientName.value = deal.client
+                showContractSuggestDialog.value = true
+              },
+            })
+          }
         },
         onError: () => {
           deal.stage = previousStage
@@ -313,7 +334,7 @@ const totalValue = computed(() =>
   (dealsResource.data || []).reduce((s, d) => s + (d.value || 0), 0)
 )
 const today = new Date()
-const selectedQuarter = ref(Math.ceil((today.getMonth() + 1) / 3))
+const selectedQuarter = ref(String(Math.ceil((today.getMonth() + 1) / 3)))
 const selectedYear = ref(today.getFullYear())
 const yearOptions = computed(() => {
   const y = today.getFullYear()
@@ -324,6 +345,7 @@ const quarterRanges = {
   2: ['04-01', '06-30'],
   3: ['07-01', '09-30'],
   4: ['10-01', '12-31'],
+  FY: ['01-01', '12-31'],
 }
 const fromDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][0]}`)
 const toDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][1]}T23:59:59`)

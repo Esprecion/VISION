@@ -65,7 +65,11 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, Autocomplete, createResource, createListResource } from 'frappe-ui'
 
-const props = defineProps({ modelValue: Boolean })
+const props = defineProps({
+  modelValue: Boolean,
+  prefillDealName: String,
+  prefillClientName: String,
+})
 const emit = defineEmits(['update:modelValue', 'created'])
 
 const show = ref(props.modelValue)
@@ -75,6 +79,10 @@ watch(show, (v) => {
   if (v) {
     dealsResource.reload()
     contractsResource.reload()
+    if (props.prefillDealName) {
+      form.deal = props.prefillDealName
+      form.client = props.prefillClientName || ''
+    }
   }
 })
 

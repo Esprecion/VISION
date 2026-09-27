@@ -4,11 +4,12 @@
       <h1>Business Development</h1>
       <div class="header-right">
         <div class="period-picker">
-          <select v-model.number="selectedQuarter">
-            <option :value="1">Q1</option>
-            <option :value="2">Q2</option>
-            <option :value="3">Q3</option>
-            <option :value="4">Q4</option>
+          <select v-model="selectedQuarter">
+            <option value="1">Q1</option>
+            <option value="2">Q2</option>
+            <option value="3">Q3</option>
+            <option value="4">Q4</option>
+            <option value="FY">Full Year</option>
           </select>
           <select v-model.number="selectedYear">
             <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
@@ -142,7 +143,7 @@ import { createResource } from 'frappe-ui'
 
 const today = new Date()
 const currentQuarter = Math.ceil((today.getMonth() + 1) / 3)
-const selectedQuarter = ref(currentQuarter)
+const selectedQuarter = ref(String(currentQuarter))
 const selectedYear = ref(today.getFullYear())
 const yearOptions = computed(() => {
   const y = today.getFullYear()
@@ -154,6 +155,7 @@ const quarterRanges = {
   2: ['04-01', '06-30'],
   3: ['07-01', '09-30'],
   4: ['10-01', '12-31'],
+  FY: ['01-01', '12-31'],
 }
 
 const fromDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][0]}`)
