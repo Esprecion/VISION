@@ -8,6 +8,13 @@ const businessDevTabs = [
   { label: 'Contracts', to: '/business-dev/contracts' },
 ]
 
+const operationsTabs = [
+  { label: 'Overview', to: '/operations/overview' },
+  { label: 'Projects', to: '/operations/projects' },
+  { label: 'Engagement Log', to: '/operations/engagement' },
+  { label: 'Tools', to: '/operations/tools' },
+]
+
 const routes = [
   {
     path: '/',
@@ -48,6 +55,63 @@ const routes = [
         path: 'contracts',
         name: 'Contracts',
         component: () => import('@/pages/Contracts.vue'),
+      },
+    ],
+  },
+  {
+    path: '/operations',
+    component: () => import('@/layouts/DepartmentLayout.vue'),
+    props: { tabs: operationsTabs },
+    children: [
+      { path: '', redirect: '/operations/overview' },
+      { path: 'overview', name: 'OperationsOverview', component: () => import('@/pages/OperationsOverview.vue') },
+      {
+        path: 'projects',
+        name: 'OpsProjects',
+        component: () => import('@/pages/OperationsList.vue'),
+        props: {
+          title: 'Projects',
+          doctype: 'Project',
+          columns: [
+            { key: 'name', label: 'ID' },
+            { key: 'client', label: 'Client' },
+            { key: 'project_type', label: 'Type' },
+            { key: 'stage', label: 'Stage' },
+            { key: 'committed_date', label: 'Committed' },
+            { key: 'actual_delivery_date', label: 'Delivered' },
+          ],
+        },
+      },
+      {
+        path: 'engagement',
+        name: 'OpsEngagement',
+        component: () => import('@/pages/OperationsList.vue'),
+        props: {
+          title: 'Client Engagement Log',
+          doctype: 'Client Engagement Log',
+          orderBy: 'contact_date desc',
+          columns: [
+            { key: 'client', label: 'Client' },
+            { key: 'contact_date', label: 'Date' },
+            { key: 'channel', label: 'Channel' },
+            { key: 'notes', label: 'Notes' },
+          ],
+        },
+      },
+      {
+        path: 'tools',
+        name: 'OpsTools',
+        component: () => import('@/pages/OperationsList.vue'),
+        props: {
+          title: 'Tool Subscriptions',
+          doctype: 'Tool Subscription',
+          columns: [
+            { key: 'tool_name', label: 'Tool' },
+            { key: 'billing_cycle', label: 'Billing' },
+            { key: 'current_cost', label: 'Cost', type: 'money' },
+            { key: 'renewal_date', label: 'Renewal' },
+          ],
+        },
       },
     ],
   },

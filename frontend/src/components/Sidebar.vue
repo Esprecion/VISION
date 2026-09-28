@@ -8,6 +8,9 @@
       <router-link to="/business-dev" class="nav-item" active-class="nav-item-active">
         Business Development
       </router-link>
+      <router-link to="/operations" class="nav-item" active-class="nav-item-active">
+        Operations
+      </router-link>
     </nav>
   </aside>
 </template>
