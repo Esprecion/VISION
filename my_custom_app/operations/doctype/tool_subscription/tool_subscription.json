@@ -1,0 +1,73 @@
+{
+ "doctype": "DocType",
+ "name": "Tool Subscription",
+ "module": "Operations",
+ "custom": 0,
+ "engine": "InnoDB",
+ "istable": 0,
+ "editable_grid": 0,
+ "track_changes": 1,
+ "field_order": [
+  "tool_name",
+  "billing_cycle",
+  "current_cost",
+  "renewal_date",
+  "projects_using",
+  "cost_history"
+ ],
+ "fields": [
+  {
+   "fieldname": "tool_name",
+   "fieldtype": "Data",
+   "label": "Tool Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "label": "Billing Cycle",
+   "options": "Monthly\nAnnual",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "current_cost",
+   "fieldtype": "Currency",
+   "label": "Current Cost",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "renewal_date",
+   "fieldtype": "Date",
+   "label": "Renewal Date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "projects_using",
+   "fieldtype": "Table",
+   "label": "Projects Using",
+   "options": "Tool Project Link"
+  },
+  {
+   "fieldname": "cost_history",
+   "fieldtype": "Table",
+   "label": "Cost History",
+   "options": "Tool Cost Entry"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "autoname": "field:tool_name"
+}

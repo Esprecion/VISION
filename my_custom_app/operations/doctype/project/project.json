@@ -1,0 +1,80 @@
+{
+ "doctype": "DocType",
+ "name": "Project",
+ "module": "Operations",
+ "custom": 0,
+ "engine": "InnoDB",
+ "istable": 0,
+ "editable_grid": 0,
+ "track_changes": 1,
+ "field_order": [
+  "contract",
+  "client",
+  "project_type",
+  "stage",
+  "start_date",
+  "committed_date",
+  "actual_delivery_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "label": "Contract",
+   "options": "Service Contract",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "client",
+   "fieldtype": "Link",
+   "label": "Client",
+   "options": "Client",
+   "fetch_from": "contract.client",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "project_type",
+   "fieldtype": "Data",
+   "label": "Project Type"
+  },
+  {
+   "fieldname": "stage",
+   "fieldtype": "Select",
+   "label": "Stage",
+   "options": "Kickoff\nDevelopment\nTesting\nDeployed",
+   "default": "Kickoff",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "fetch_from": "contract.start_date"
+  },
+  {
+   "fieldname": "committed_date",
+   "fieldtype": "Date",
+   "label": "Committed Delivery Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_delivery_date",
+   "fieldtype": "Date",
+   "label": "Actual Delivery Date"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "autoname": "format:PRJ-{#####}"
+}
