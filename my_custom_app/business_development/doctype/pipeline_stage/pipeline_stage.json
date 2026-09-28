@@ -1,7 +1,7 @@
 {
  "doctype": "DocType",
  "name": "Pipeline Stage",
- "module": "VISION",
+ "module": "Business Development",
  "custom": 0,
  "autoname": "field:stage_name",
  "fields": [

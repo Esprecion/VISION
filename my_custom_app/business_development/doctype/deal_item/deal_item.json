@@ -1,7 +1,7 @@
 {
  "doctype": "DocType",
  "name": "Deal Item",
- "module": "VISION",
+ "module": "Business Development",
  "custom": 0,
  "istable": 1,
  "fields": [

@@ -1,7 +1,7 @@
 {
  "doctype": "DocType",
  "name": "Product",
- "module": "VISION",
+ "module": "Business Development",
  "custom": 0,
  "autoname": "field:product_name",
  "fields": [

@@ -1,7 +1,7 @@
 {
  "doctype": "DocType",
  "name": "Client",
- "module": "VISION",
+ "module": "Business Development",
  "custom": 0,
  "autoname": "field:client_name",
  "fields": [
