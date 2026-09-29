@@ -15,6 +15,12 @@ const operationsTabs = [
   { label: 'Tools', to: '/operations/tools' },
 ]
 
+const financeTabs = [
+  { label: 'Overview', to: '/finance/overview' },
+  { label: 'Invoices', to: '/finance/invoices' },
+  { label: 'Expenses', to: '/finance/expenses' },
+]
+
 const routes = [
   {
     path: '/',
@@ -110,6 +116,49 @@ const routes = [
             { key: 'billing_cycle', label: 'Billing' },
             { key: 'current_cost', label: 'Cost', type: 'money' },
             { key: 'renewal_date', label: 'Renewal' },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    path: '/finance',
+    component: () => import('@/layouts/DepartmentLayout.vue'),
+    props: { tabs: financeTabs },
+    children: [
+      { path: '', redirect: '/finance/overview' },
+      { path: 'overview', name: 'FinanceOverview', component: () => import('@/pages/FinanceOverview.vue') },
+      {
+        path: 'invoices',
+        name: 'FinanceInvoices',
+        component: () => import('@/pages/OperationsList.vue'),
+        props: {
+          title: 'Invoices',
+          doctype: 'Invoice',
+          orderBy: 'issue_date desc',
+          columns: [
+            { key: 'name', label: 'ID' },
+            { key: 'client', label: 'Client' },
+            { key: 'amount', label: 'Amount', type: 'money' },
+            { key: 'issue_date', label: 'Issued' },
+            { key: 'due_date', label: 'Due' },
+            { key: 'status', label: 'Status' },
+          ],
+        },
+      },
+      {
+        path: 'expenses',
+        name: 'FinanceExpenses',
+        component: () => import('@/pages/OperationsList.vue'),
+        props: {
+          title: 'Expenses',
+          doctype: 'Expense',
+          orderBy: 'expense_date desc',
+          columns: [
+            { key: 'category', label: 'Category' },
+            { key: 'amount', label: 'Amount', type: 'money' },
+            { key: 'expense_date', label: 'Date' },
+            { key: 'project', label: 'Project' },
           ],
         },
       },

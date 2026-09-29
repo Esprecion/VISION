@@ -11,6 +11,9 @@
       <router-link to="/operations" class="nav-item" active-class="nav-item-active">
         Operations
       </router-link>
+      <router-link to="/finance" class="nav-item" active-class="nav-item-active">
+        Finance
+      </router-link>
     </nav>
   </aside>
 </template>
