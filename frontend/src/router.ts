@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { session } from '@/data/session'
 
 const businessDevTabs = [
   { label: 'Overview', to: '/business-dev/overview' },
@@ -172,3 +173,10 @@ let router = createRouter({
 })
 
 export default router
+
+router.beforeEach((to) => {
+  if (!session.isLoggedIn && to.path !== '/dashboard') {
+    window.location.href = '/login?redirect-to=/frontend' + to.fullPath
+    return false
+  }
+})

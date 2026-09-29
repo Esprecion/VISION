@@ -59,7 +59,7 @@ def run():
             "is_standard": "No",
             "module": "Finance",
             "query": query.strip(),
-            "roles": [{"role": "System Manager"}],
+            "roles": [{"role": "System Manager"}, {"role": "CBO"}, {"role": "COO"}, {"role": "CFO"}],
         }).insert(ignore_permissions=True)
         print("created:", name)
     frappe.db.commit()
