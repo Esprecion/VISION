@@ -5,3 +5,5 @@
 tags
 node_modules
 __pycache__
+my_custom_app/public/frontend/
+my_custom_app/www/frontend.html

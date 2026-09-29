@@ -11,7 +11,7 @@ export default defineConfig({
       lucideIcons: true,
       jinjaBootData: true,
       buildConfig: {
-        indexHtmlPath: `../${getAppName()}/www/${getAppName()}.html`,
+        indexHtmlPath: '../my_custom_app/www/frontend.html',
       },
     }),
     Icons({ compiler: 'vue3' }),
