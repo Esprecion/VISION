@@ -10,13 +10,27 @@
         </div>
 
         <div class="field">
-          <label>Client *</label>
+          <div class="label-row">
+            <label>Client *</label>
+            <button class="btn-link" @click="newClient = !newClient">
+              {{ newClient ? 'Pick existing client' : '+ New client' }}
+            </button>
+          </div>
           <Autocomplete
+            v-if="!newClient"
             :options="clientOptions"
             :model-value="form.client"
             @update:modelValue="(val) => (form.client = val?.value ?? val ?? '')"
             placeholder="Search clients..."
           />
+          <div v-else class="new-box">
+            <input v-model="clientForm.client_name" type="text" placeholder="Client name *" />
+            <input v-model="clientForm.contact_person" type="text" placeholder="Contact person" />
+            <input v-model="clientForm.contact_email" type="email" placeholder="Contact email" />
+            <input v-model="clientForm.contact_phone" type="text" placeholder="Contact phone" />
+            <input v-model="clientForm.territory" type="text" placeholder="Territory" />
+            <input v-model="clientForm.address" type="text" placeholder="Address" />
+          </div>
         </div>
 
         <div class="field">
@@ -38,11 +52,22 @@
               <div v-for="(item, idx) in items" :key="idx" class="items-row">
                 <div class="product-cell">
                   <Autocomplete
+                    v-if="!item.isNew"
                     :options="productOptions"
                     :model-value="item.product"
                     @update:modelValue="(val) => (item.product = val?.value ?? val ?? '')"
                     placeholder="Select product"
                   />
+                  <div v-else class="new-product">
+                    <input v-model="item.newName" type="text" placeholder="New product name *" />
+                    <select v-model="item.newType">
+                      <option value="">Type *</option>
+                      <option v-for="t in productTypes" :key="t" :value="t">{{ t }}</option>
+                    </select>
+                  </div>
+                  <button class="btn-link small" @click="item.isNew = !item.isNew">
+                    {{ item.isNew ? 'Pick existing' : '+ New product' }}
+                  </button>
                 </div>
                 <input v-model.number="item.quantity" type="number" min="0" />
                 <input v-model.number="item.price" type="number" min="0" step="0.01" @input="clampPrice(item)" />
@@ -103,13 +128,11 @@ watch(() => props.modelValue, (v) => (show.value = v))
 watch(show, (v) => {
   emit('update:modelValue', v)
   if (v) {
-    // refetch on every open — Clients/Products may have been added since last load
     clientsResource.reload()
     productsResource.reload()
   }
 })
 
-// --- Client + Product option lists (fetched once, filtered client-side by Autocomplete) ---
 const clientsResource = createListResource({
   doctype: 'Client',
   fields: ['name', 'client_name'],
@@ -136,21 +159,29 @@ const productOptions = computed(() =>
   }))
 )
 
+const productTypes = ['Software', 'Hardware', 'Consulting', 'Support']
+const newClient = ref(false)
+const clientForm = reactive({
+  client_name: '', contact_person: '', contact_email: '',
+  contact_phone: '', territory: '', address: '',
+})
+
 const form = reactive({
   deal_title: '',
   client: '',
   expected_close_date: '',
 })
 
-const items = ref([{ product: '', quantity: 1, price: 0 }])
+const blankItem = () => ({ product: '', isNew: false, newName: '', newType: '', quantity: 1, price: 0 })
+const items = ref([blankItem()])
 const expandedRows = reactive({})
 const totalExpanded = ref(false)
 
-const MAX_PESO_DIGITS = 12 // caps price entry at a realistic ceiling (~₱999B)
-const AMOUNT_TRUNCATE_LEN = 14 // characters shown before "..." kicks in
+const MAX_PESO_DIGITS = 12
+const AMOUNT_TRUNCATE_LEN = 14
 
 function addItem() {
-  items.value.push({ product: '', quantity: 1, price: 0 })
+  items.value.push(blankItem())
 }
 function removeItem(idx) {
   items.value.splice(idx, 1)
@@ -177,43 +208,59 @@ const totalValue = computed(() =>
 )
 
 const validItems = computed(() =>
-  items.value.filter((i) => i.product && Number(i.quantity) > 0 && Number(i.price) >= 0)
+  items.value.filter(
+    (i) =>
+      (i.isNew ? i.newName.trim() && i.newType : i.product) &&
+      Number(i.quantity) > 0 &&
+      Number(i.price) >= 0
+  )
 )
 
+const clientOk = computed(() =>
+  newClient.value ? !!clientForm.client_name.trim() : !!form.client
+)
 const canSubmit = computed(
-  () => form.deal_title && form.client && validItems.value.length > 0
+  () => form.deal_title && clientOk.value && validItems.value.length > 0
 )
 
 const createDeal = createResource({
-  url: 'frappe.client.insert',
+  url: 'my_custom_app.api.create_deal_with_details',
   method: 'POST',
 })
+
+function resetForm() {
+  form.deal_title = ''
+  form.client = ''
+  form.expected_close_date = ''
+  Object.keys(clientForm).forEach((k) => (clientForm[k] = ''))
+  newClient.value = false
+  items.value = [blankItem()]
+}
 
 function submit() {
   createDeal.submit(
     {
-      doc: {
-        doctype: 'Deal',
+      deal: {
         deal_title: form.deal_title,
-        client: form.client,
         stage: props.stage,
         expected_close_date: form.expected_close_date || null,
-        value: totalValue.value,
-        items: validItems.value.map((i) => ({
-          product: i.product,
-          quantity: i.quantity,
-          price: i.price,
-        })),
       },
+      client: newClient.value ? { new: { ...clientForm } } : { existing: form.client },
+      items: validItems.value.map((i) => ({
+        ...(i.isNew
+          ? { new_product: { product_name: i.newName, type: i.newType } }
+          : { product: i.product }),
+        quantity: i.quantity,
+        price: i.price,
+      })),
     },
     {
       onSuccess: (doc) => {
         emit('created', doc)
         show.value = false
-        form.deal_title = ''
-        form.client = ''
-        form.expected_close_date = ''
-        items.value = [{ product: '', quantity: 1, price: 0 }]
+        resetForm()
+        clientsResource.reload()
+        productsResource.reload()
       },
     }
   )
@@ -225,162 +272,69 @@ function peso(n) {
 </script>
 
 <style scoped>
-.form-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+.form-grid { display: flex; flex-direction: column; gap: 14px; }
 .stage-badge {
-  font-size: 13px;
-  color: #6b7280;
-  background: #fef3c7;
-  border-radius: 6px;
-  padding: 6px 10px;
-  width: fit-content;
+  font-size: 13px; color: #6b7280; background: #fef3c7;
+  border-radius: 6px; padding: 6px 10px; width: fit-content;
 }
-.stage-badge strong {
-  color: #b45309;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.field label {
-  font-size: 13px;
-  color: #4b5563;
-  font-weight: 500;
-}
+.stage-badge strong { color: #b45309; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 13px; color: #4b5563; font-weight: 500; }
 .field input {
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
-  font-family: inherit;
+  border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px;
+  font-size: 14px; font-family: inherit;
 }
-.field input:focus {
-  outline: none;
-  border-color: #6366f1;
+.field input:focus { outline: none; border-color: #6366f1; }
+.label-row { display: flex; justify-content: space-between; align-items: center; }
+.new-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.new-box input, .new-product input, .new-product select {
+  border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px;
+  font-size: 13px; font-family: inherit; width: 100%; box-sizing: border-box;
 }
-.items-table-wrap {
-  overflow-x: auto;
-  margin-top: 4px;
+.new-product { display: flex; flex-direction: column; gap: 4px; }
+.items-table-wrap { overflow-x: auto; margin-top: 4px; }
+.items-table { display: flex; flex-direction: column; gap: 6px; min-width: 480px; }
+.items-head, .items-row {
+  display: grid; grid-template-columns: 210px 56px 84px 84px 20px;
+  gap: 8px; align-items: center;
 }
-.items-table {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 480px;
-}
-.items-head,
-.items-row {
-  display: grid;
-  grid-template-columns: 210px 56px 84px 84px 20px;
-  gap: 8px;
-  align-items: center;
-}
-.items-head {
-  font-size: 11px;
-  color: #9ca3af;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-.product-cell {
-  width: 210px;
-  overflow: hidden;
-}
+.items-head { font-size: 11px; color: #9ca3af; font-weight: 500; text-transform: uppercase; }
+.product-cell { width: 210px; overflow: hidden; }
 .items-row input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
-  font-family: inherit;
+  width: 100%; box-sizing: border-box; border: 1px solid #d1d5db;
+  border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit;
 }
 .row-amount {
-  background: transparent;
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: #111827;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  max-width: 100%;
+  background: transparent; border: none; font-size: 13px; font-weight: 600;
+  color: #111827; padding: 0; text-align: left; cursor: pointer;
+  white-space: nowrap; overflow: hidden; max-width: 100%;
 }
-.row-amount:hover {
-  color: #b45309;
-}
+.row-amount:hover { color: #b45309; }
 .remove-row {
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0;
+  background: transparent; border: none; color: #9ca3af;
+  font-size: 16px; cursor: pointer; padding: 0;
 }
-.remove-row:hover {
-  color: #dc2626;
-}
+.remove-row:hover { color: #dc2626; }
 .btn-link {
-  background: transparent;
-  border: none;
-  color: #6366f1;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
-  width: fit-content;
+  background: transparent; border: none; color: #6366f1; font-size: 13px;
+  font-weight: 500; cursor: pointer; padding: 0; text-align: left; width: fit-content;
 }
+.btn-link.small { font-size: 11px; }
 .total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #e5e7eb;
-  padding-top: 10px;
-  font-size: 15px;
-  gap: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 15px; gap: 12px;
 }
-.total-row span {
-  flex-shrink: 0;
-}
+.total-row span { flex-shrink: 0; }
 .total-value {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  color: #b45309;
-  padding: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 100%;
-  text-align: right;
+  background: transparent; border: none; cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #b45309;
+  padding: 0; overflow: hidden; white-space: nowrap; max-width: 100%; text-align: right;
 }
-.total-value:hover {
-  text-decoration: underline;
-}
-.error-msg {
-  color: #dc2626;
-  font-size: 13px;
-}
+.total-value:hover { text-decoration: underline; }
+.error-msg { color: #dc2626; font-size: 13px; }
 .btn-primary {
-  background: #111827;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  width: 100%;
+  background: #111827; color: #ffffff; border: none; border-radius: 6px;
+  padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%;
 }
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
