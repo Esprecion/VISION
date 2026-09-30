@@ -27,11 +27,11 @@ const list = createResource({
 
 // Only roles with create permission see the button (the server enforces it too)
 const perm = createResource({
-  url: 'frappe.client.has_permission',
-  params: { doctype: props.doctype, docname: null, perm_type: 'create' },
+  url: 'my_custom_app.api.can_create',
+  params: { doctype: props.doctype },
   auto: !!props.createKind,
 })
-const canCreate = computed(() => !!props.createKind && perm.data?.has_permission !== false)
+const canCreate = computed(() => !!props.createKind && perm.data === true)
 
 const rows = computed(() => {
   const q = search.value.trim().toLowerCase()

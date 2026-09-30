@@ -63,7 +63,7 @@
         </template>
 
         <div v-if="createDoc.error" class="error-msg">
-          {{ createDoc.error.messages?.[0] || 'Something went wrong' }}
+          {{ errorText }}
         </div>
       </div>
     </template>
@@ -125,6 +125,9 @@ const valid = computed(() => {
 })
 
 const createDoc = createResource({ url: 'frappe.client.insert', method: 'POST' })
+const errorText = computed(() =>
+  String(createDoc.error?.messages?.[0] || 'Something went wrong').replace(/<[^>]+>/g, '')
+)
 
 function submit() {
   const doc = { doctype: props.kind }

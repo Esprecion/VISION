@@ -115,3 +115,8 @@ def _get_or_create_product(item, seen):
     doc.insert()
     seen[key] = doc.name
     return doc.name
+
+
+@frappe.whitelist()
+def can_create(doctype):
+    return bool(frappe.has_permission(doctype, "create"))
