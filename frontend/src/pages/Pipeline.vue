@@ -125,6 +125,7 @@
 </template>
 
 <script setup>
+import { parseLocal, startOfDayMs, endOfDayMs } from "../utils/dateRange"
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { createListResource, createResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
@@ -217,7 +218,7 @@ function daysInStage(dealName, currentStage) {
   const logs = stageLogsResource.data || []
   const latest = logs.find((l) => l.deal === dealName && l.to_stage === currentStage)
   if (!latest) return null
-  const diffMs = Date.now() - new Date(latest.changed_on).getTime()
+  const diffMs = Date.now() - parseLocal(latest.changed_on).getTime()
   return Math.max(0, Math.floor(diffMs / 86400000))
 }
 
@@ -244,7 +245,7 @@ watch(stages, () => nextTick(checkOverflow))
 
 function formatShortDate(isoStr) {
   if (!isoStr) return null
-  const d = new Date(isoStr)
+  const d = parseLocal(isoStr)
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
@@ -266,12 +267,12 @@ function dealsByStage(stageId) {
   const stageObj = stages.value.find((s) => s.id === stageId)
   if (stageObj?.isLocked) {
     const logs = stageLogsResource.data || []
-    const fromMs = new Date(fromDate.value).getTime()
-    const toMs = new Date(toDate.value).getTime()
+    const fromMs = startOfDayMs(fromDate.value)
+    const toMs = endOfDayMs(toDate.value)
     list = list.filter((d) => {
       const latest = logs.find((l) => l.deal === d.name && l.to_stage === stageId)
       if (!latest) return false
-      const t = new Date(latest.changed_on).getTime()
+      const t = parseLocal(latest.changed_on).getTime()
       return t >= fromMs && t <= toMs
     })
   }
@@ -360,14 +361,14 @@ const rangeLabel = computed(
 const wonValue = computed(() => {
   const deals = dealsResource.data || []
   const logs = stageLogsResource.data || []
-  const fromMs = new Date(fromDate.value).getTime()
-  const toMs = new Date(toDate.value).getTime()
+  const fromMs = startOfDayMs(fromDate.value)
+  const toMs = endOfDayMs(toDate.value)
   return deals
     .filter((d) => {
       if (d.stage !== 'Won') return false
       const latestWon = logs.find((l) => l.deal === d.name && l.to_stage === 'Won')
       if (!latestWon) return false
-      const t = new Date(latestWon.changed_on).getTime()
+      const t = parseLocal(latestWon.changed_on).getTime()
       return t >= fromMs && t <= toMs
     })
     .reduce((s, d) => s + (d.value || 0), 0)
