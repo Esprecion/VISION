@@ -136,6 +136,7 @@ const routes = [
         props: {
           title: 'Invoices',
           doctype: 'Invoice',
+          createKind: 'Invoice',
           orderBy: 'issue_date desc',
           columns: [
             { key: 'name', label: 'ID' },
@@ -154,6 +155,7 @@ const routes = [
         props: {
           title: 'Expenses',
           doctype: 'Expense',
+          createKind: 'Expense',
           orderBy: 'expense_date desc',
           columns: [
             { key: 'category', label: 'Category' },
