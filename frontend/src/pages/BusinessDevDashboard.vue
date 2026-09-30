@@ -141,7 +141,7 @@ const initialRange = quarterRange(0)
 const fromInput = ref(initialRange.from)
 const toInput = ref(initialRange.to)
 const fromDate = computed(() => fromInput.value)
-const toDate = computed(() => toInput.value)
+const toDate = computed(() => `${toInput.value} 23:59:59`)
 function setRange(r) {
   fromInput.value = r.from
   toInput.value = r.to
