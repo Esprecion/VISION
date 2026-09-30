@@ -4,7 +4,6 @@ import { session } from '@/data/session'
 
 const modules = [
   { to: '/business-dev', label: 'Business Development', role: 'CBO' },
-  { to: '/operations', label: 'Operations', role: 'COO' },
   { to: '/finance', label: 'Finance', role: 'CFO' },
 ]
 
