@@ -4,18 +4,13 @@
       <h1>Business Development</h1>
       <div class="header-right">
         <div class="period-picker">
-          <select v-model="selectedQuarter">
-            <option value="1">Q1</option>
-            <option value="2">Q2</option>
-            <option value="3">Q3</option>
-            <option value="4">Q4</option>
-            <option value="FY">Full Year</option>
-          </select>
-          <select v-model.number="selectedYear">
-            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-          </select>
+          <input type="date" v-model="fromInput" :max="toInput" />
+          <span class="range-label">to</span>
+          <input type="date" v-model="toInput" :min="fromInput" />
+          <button type="button" @click="setRange(quarterRange(0))">This quarter</button>
+          <button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
+          <button type="button" @click="setRange(yearRange())">This year</button>
         </div>
-        <span class="range-label">{{ rangeLabel }}</span>
         <RouterLink to="/business-dev/pipeline" class="kanban-link">View Pipeline →</RouterLink>
       </div>
     </header>
@@ -140,34 +135,17 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { createResource } from 'frappe-ui'
+import { quarterRange, yearRange } from '../utils/dateRange'
 
-const today = new Date()
-const currentQuarter = Math.ceil((today.getMonth() + 1) / 3)
-const selectedQuarter = ref(String(currentQuarter))
-const selectedYear = ref(today.getFullYear())
-const yearOptions = computed(() => {
-  const y = today.getFullYear()
-  return [y - 2, y - 1, y, y + 1]
-})
-
-const quarterRanges = {
-  1: ['01-01', '03-31'],
-  2: ['04-01', '06-30'],
-  3: ['07-01', '09-30'],
-  4: ['10-01', '12-31'],
-  FY: ['01-01', '12-31'],
+const initialRange = quarterRange(0)
+const fromInput = ref(initialRange.from)
+const toInput = ref(initialRange.to)
+const fromDate = computed(() => fromInput.value)
+const toDate = computed(() => toInput.value)
+function setRange(r) {
+  fromInput.value = r.from
+  toInput.value = r.to
 }
-
-const fromDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][0]}`)
-const toDate = computed(() => `${selectedYear.value}-${quarterRanges[selectedQuarter.value][1]}`)
-
-function formatDisplayDate(isoStr) {
-  const d = new Date(isoStr + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-const rangeLabel = computed(
-  () => `${formatDisplayDate(fromDate.value)} – ${formatDisplayDate(toDate.value)}, ${selectedYear.value}`
-)
 
 const reportRegistry = []
 
@@ -190,7 +168,8 @@ const productType = useReport('Product Type Performance')
 const geo = useReport('Geographic Distribution of Clients')
 const velocity = useReport('Client Pipeline Velocity')
 
-watch([selectedQuarter, selectedYear], () => {
+watch([fromInput, toInput], () => {
+  if (!fromInput.value || !toInput.value || fromInput.value > toInput.value) return
   const filters = { from_date: fromDate.value, to_date: toDate.value }
   reportRegistry.forEach(({ resource, reportName }) => {
     resource.update({ params: { report_name: reportName, filters } })
