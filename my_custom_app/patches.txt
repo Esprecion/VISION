@@ -5,3 +5,5 @@ my_custom_app.patches.rename_vision_module
 
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
+
+my_custom_app.patches.update_finance_reports

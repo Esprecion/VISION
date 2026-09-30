@@ -1,11 +1,22 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { createResource } from 'frappe-ui'
+import { yearRange } from '../utils/dateRange'
+import { quarterRange } from '../utils/dateRange'
 
-function useReport(name) {
+const initialRange = yearRange()
+const fromInput = ref(initialRange.from)
+const toInput = ref(initialRange.to)
+const range = () => ({ from_date: fromInput.value, to_date: toInput.value })
+function setRange(r) {
+  fromInput.value = r.from
+  toInput.value = r.to
+}
+
+function useReport(name, filters = {}) {
   return createResource({
     url: 'frappe.desk.query_report.run',
-    params: { report_name: name, filters: {} },
+    params: { report_name: name, filters },
     auto: true,
   })
 }
@@ -13,9 +24,17 @@ function useReport(name) {
 const cells = (row) => (Array.isArray(row) ? row : Object.values(row ?? {}))
 const rowsOf = (res) => (res.data?.result ?? []).map(cells)
 
-const revenue = useReport('Revenue per Client')
+const revenue = useReport('Revenue per Client', range())
 const aging = useReport('Accounts Receivable Aging')
-const burn = useReport('Net Burn Rate')
+const burn = useReport('Net Burn Rate', range())
+
+watch([fromInput, toInput], () => {
+  if (!fromInput.value || !toInput.value || fromInput.value > toInput.value) return
+  for (const [res, name] of [[revenue, 'Revenue per Client'], [burn, 'Net Burn Rate']]) {
+    res.update({ params: { report_name: name, filters: range() } })
+    res.reload()
+  }
+})
 
 const revenueRows = computed(() => rowsOf(revenue)) // [client, total, count]
 const totalRevenue = computed(() => revenueRows.value.reduce((s, r) => s + Number(r[1] || 0), 0))
@@ -36,7 +55,17 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 
 <template>
   <div class="dashboard">
-    <header class="dash-header"><h1>Finance</h1></header>
+    <header class="dash-header">
+      <h1>Finance</h1>
+      <div class="period-picker">
+        <input type="date" v-model="fromInput" :max="toInput" />
+        <span class="to">to</span>
+        <input type="date" v-model="toInput" :min="fromInput" />
+        <button type="button" @click="setRange(quarterRange(0))">This quarter</button>
+        <button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
+        <button type="button" @click="setRange(yearRange())">This year</button>
+      </div>
+    </header>
 
     <div class="tiles">
       <div class="tile">
@@ -108,7 +137,13 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 
 <style scoped>
 .dashboard { background: #f9fafb; min-height: 100vh; padding: 32px; font-family: 'Inter', sans-serif; color: #111827; }
-.dash-header h1 { font-size: 20px; font-weight: 600; margin: 0 0 24px; }
+.dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.dash-header h1 { font-size: 20px; font-weight: 600; margin: 0; }
+.period-picker { display: flex; gap: 8px; align-items: center; }
+.period-picker input { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; }
+.period-picker button { border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+.period-picker button:hover { background: #f3f4f6; }
+.period-picker .to { font-size: 12px; color: #9ca3af; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
 .tile, .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
 .tile { padding: 16px 18px; }
