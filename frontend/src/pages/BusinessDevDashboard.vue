@@ -431,4 +431,11 @@ function peso(n) {
   color: #dc2626;
   font-weight: 600;
 }
+/* bd-period-fix */
+.period-picker { align-items: center; gap: 8px; }
+.period-picker input { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; color: #111827; font-family: inherit; }
+.period-picker button { border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #111827; cursor: pointer; font-family: inherit; }
+.period-picker button:hover { background: #f3f4f6; }
+.header-right { gap: 20px; }
+.kanban-link { white-space: nowrap; }
 </style>
