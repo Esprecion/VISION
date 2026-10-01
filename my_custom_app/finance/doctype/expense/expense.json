@@ -18,7 +18,7 @@
    "fieldname": "category",
    "fieldtype": "Select",
    "label": "Category",
-   "options": "Tools and Subscriptions\nHardware\nInfrastructure\nContractors and Freelancers\nLabor\nOther",
+   "options": "Tools and Subscriptions\nHardware\nContractors and Freelancers\nLabor\nOther",
    "reqd": 1,
    "in_list_view": 1
   },

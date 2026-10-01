@@ -138,7 +138,7 @@ watch(show, (v) => {
 })
 
 const statuses = ['Draft', 'Sent', 'Paid', 'Overdue']
-const categories = ["Tools and Subscriptions", "Hardware", "Infrastructure", "Contractors and Freelancers", "Labor", "Other"]
+const categories = ["Tools and Subscriptions", "Hardware", "Contractors and Freelancers", "Labor", "Other"]
 
 function blank() {
   const t = formatLocalDate(new Date())

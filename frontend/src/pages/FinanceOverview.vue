@@ -175,7 +175,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
           </tr>
         </tbody>
       </table>
-      <div class="muted note">Expenses shown are project costs only (subscriptions, hardware, infrastructure).</div>
+      <div class="muted note">Expenses shown are project costs only (subscriptions, hardware, contractors, labor).</div>
 
     <div v-if="drill" class="drill-overlay" @click.self="drill = null">
       <div class="drill-box">

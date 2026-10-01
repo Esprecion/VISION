@@ -19,15 +19,15 @@ INVOICES = [
 EXPENSES = [
     # (project, category, date, items[(vendor, description, amount)])
     ("PRJ-00004", "Tools and Subscriptions", "2026-10-01", [("Figma", "Design seats", 2500), ("Claude", "AI assistant subscription", 1800)]),
-    ("PRJ-00004", "Infrastructure", "2026-10-01", [("Microsoft Azure", "Dashboard hosting", 3200)]),
+    ("PRJ-00004", "Tools and Subscriptions", "2026-10-01", [("Microsoft Azure", "Dashboard hosting", 3200)]),
     ("PRJ-00003", "Contractors and Freelancers", "2026-08-15", [("Freelance developer", "Scanner integration", 35000)]),
     ("PRJ-00003", "Tools and Subscriptions", "2026-09-01", [("GitHub", "Copilot seats", 1100), ("Jira", "Project tracking", 1500)]),
     ("PRJ-00003", "Hardware", "2026-06-10", [("Zebra Philippines", "Barcode scanners", 18000)]),
-    ("PRJ-00002", "Infrastructure", "2026-07-01", [("AWS", "Logistics platform hosting", 4800)]),
-    ("PRJ-00002", "Infrastructure", "2026-08-01", [("AWS", "Logistics platform hosting", 4800)]),
+    ("PRJ-00002", "Tools and Subscriptions", "2026-07-01", [("AWS", "Logistics platform hosting", 4800)]),
+    ("PRJ-00002", "Tools and Subscriptions", "2026-08-01", [("AWS", "Logistics platform hosting", 4800)]),
     ("PRJ-00002", "Contractors and Freelancers", "2026-07-20", [("Freelance QA tester", "Dispatch module testing", 12000)]),
     ("PRJ-00001", "Tools and Subscriptions", "2026-02-01", [("Figma", "Design seats", 2500), ("Notion", "Documentation", 900)]),
-    ("PRJ-00001", "Infrastructure", "2026-03-01", [("Microsoft Azure", "Data pipeline hosting", 3000)]),
+    ("PRJ-00001", "Tools and Subscriptions", "2026-03-01", [("Microsoft Azure", "Data pipeline hosting", 3000)]),
 ]
 
 
