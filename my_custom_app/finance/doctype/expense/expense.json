@@ -17,7 +17,7 @@
    "fieldname": "category",
    "fieldtype": "Select",
    "label": "Category",
-   "options": "Salaries\nTools and Subscriptions\nInfrastructure\nOther",
+   "options": "Tools and Subscriptions\nHardware\nInfrastructure",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -40,6 +40,7 @@
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project",
+   "reqd": 1,
    "in_list_view": 1
   }
  ],

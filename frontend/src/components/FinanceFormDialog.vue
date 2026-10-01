@@ -91,7 +91,7 @@ watch(() => props.modelValue, (v) => (show.value = v))
 watch(show, (v) => emit('update:modelValue', v))
 
 const statuses = ['Draft', 'Sent', 'Paid', 'Overdue']
-const categories = ['Salaries', 'Tools and Subscriptions', 'Infrastructure', 'Other']
+const categories = ['Tools and Subscriptions', 'Hardware', 'Infrastructure']
 
 function blank() {
   const t = formatLocalDate(new Date())
@@ -121,7 +121,7 @@ const projects = createResource({
 const valid = computed(() => {
   if (!(Number(form.amount) > 0)) return false
   if (isInvoice) return !!form.client && !!form.issue_date && !!form.due_date && form.due_date >= form.issue_date
-  return !!form.category && !!form.expense_date
+  return !!form.category && !!form.expense_date && !!form.project
 })
 
 const createDoc = createResource({ url: 'frappe.client.insert', method: 'POST' })
