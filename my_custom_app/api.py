@@ -120,3 +120,8 @@ def _get_or_create_product(item, seen):
 @frappe.whitelist()
 def can_create(doctype):
     return bool(frappe.has_permission(doctype, "create"))
+
+
+@frappe.whitelist()
+def get_perms(doctype):
+    return {p: bool(frappe.has_permission(doctype, p)) for p in ("create", "write", "delete")}

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { createResource } from 'frappe-ui'
+import { createResource, call } from 'frappe-ui'
 import FinanceFormDialog from '../components/FinanceFormDialog.vue'
 
 const props = defineProps({
@@ -13,6 +13,8 @@ const props = defineProps({
 
 const search = ref('')
 const showForm = ref(false)
+const editName = ref(null)
+const msg = ref('')
 
 const list = createResource({
   url: 'frappe.client.get_list',
@@ -26,12 +28,15 @@ const list = createResource({
 })
 
 // Only roles with create permission see the button (the server enforces it too)
-const perm = createResource({
-  url: 'my_custom_app.api.can_create',
+const perms = createResource({
+  url: 'my_custom_app.api.get_perms',
   params: { doctype: props.doctype },
   auto: !!props.createKind,
 })
-const canCreate = computed(() => !!props.createKind && perm.data === true)
+const canCreate = computed(() => !!props.createKind && perms.data?.create === true)
+const canEdit = computed(() => !!props.createKind && perms.data?.write === true)
+const canDelete = computed(() => !!props.createKind && perms.data?.delete === true)
+const hasActions = computed(() => canEdit.value || canDelete.value)
 
 const rows = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -46,6 +51,18 @@ function show(row, col) {
   if (col.type === 'money') return '₱' + Number(v).toLocaleString('en-PH')
   return v
 }
+function openNew() { editName.value = null; showForm.value = true }
+function openEdit(r) { editName.value = r.name; showForm.value = true }
+async function remove(r) {
+  if (!window.confirm('Delete ' + props.createKind + ' ' + r.name + '? This cannot be undone.')) return
+  msg.value = ''
+  try {
+    await call('frappe.client.delete', { doctype: props.doctype, name: r.name })
+    list.reload()
+  } catch (e) {
+    msg.value = String(e?.messages?.[0] || e?.message || 'Could not delete').replace(/<[^>]+>/g, '')
+  }
+}
 </script>
 
 <template>
@@ -54,24 +71,29 @@ function show(row, col) {
       <h1>{{ title }}</h1>
       <div class="head-right">
         <input v-model="search" class="search" placeholder="Search..." />
-        <button v-if="canCreate" class="btn-new" @click="showForm = true">+ New {{ createKind }}</button>
+        <button v-if="canCreate" class="btn-new" @click="openNew">+ New {{ createKind }}</button>
       </div>
     </header>
+    <div v-if="msg" class="err">{{ msg }}</div>
     <div class="card">
       <div v-if="list.loading" class="muted">···</div>
       <div v-else-if="!rows.length" class="muted">Nothing found.</div>
       <table v-else>
         <thead>
-          <tr><th v-for="c in columns" :key="c.key">{{ c.label }}</th></tr>
+          <tr><th v-for="c in columns" :key="c.key">{{ c.label }}</th><th v-if="hasActions"></th></tr>
         </thead>
         <tbody>
           <tr v-for="r in rows" :key="r.name">
             <td v-for="c in columns" :key="c.key">{{ show(r, c) }}</td>
+            <td v-if="hasActions" class="actions">
+              <button v-if="canEdit" type="button" class="act" @click="openEdit(r)">Edit</button>
+              <button v-if="canDelete" type="button" class="act del" @click="remove(r)">Delete</button>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <FinanceFormDialog v-if="createKind" v-model="showForm" :kind="createKind" @created="list.reload()" />
+    <FinanceFormDialog v-if="createKind" v-model="showForm" :kind="createKind" :edit-name="editName" @created="list.reload()" />
   </div>
 </template>
 
@@ -87,4 +109,9 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; color: #6b7280; font-weight: 500; padding: 8px 4px; border-bottom: 1px solid #e5e7eb; }
 td { padding: 10px 4px; border-bottom: 1px solid #f3f4f6; }
 .muted { color: #9ca3af; padding: 16px 0; }
+.err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+.actions { white-space: nowrap; text-align: right; }
+.act { background: none; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; margin-left: 6px; color: #374151; }
+.act:hover { background: #f3f4f6; }
+.act.del { color: #dc2626; border-color: #fecaca; }
 </style>

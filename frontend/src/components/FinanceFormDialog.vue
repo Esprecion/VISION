@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="show" :options="{ title: 'New ' + kind, size: '2xl' }">
+  <Dialog v-model="show" :options="{ title: editName ? 'Edit ' + kind + ' ' + editName : 'New ' + kind, size: '2xl' }">
     <template #body-content>
       <div class="form-grid">
         <template v-if="isInvoice">
@@ -106,12 +106,12 @@
           <div class="totals"><div class="grand">Total <b>{{ peso(expenseTotal) }}</b></div></div>
         </template>
 
-        <div v-if="createDoc.error" class="error-msg">{{ errorText }}</div>
+        <div v-if="activeRes.error" class="error-msg">{{ errorText }}</div>
       </div>
     </template>
     <template #actions>
-      <button class="btn-primary" :disabled="!valid || createDoc.loading" @click="submit">
-        {{ createDoc.loading ? 'Saving...' : 'Save ' + kind }}
+      <button class="btn-primary" :disabled="!valid || activeRes.loading" @click="submit">
+        {{ activeRes.loading ? 'Saving...' : (editName ? 'Update ' : 'Save ') + kind }}
       </button>
     </template>
   </Dialog>
@@ -126,15 +126,20 @@ const props = defineProps({
   modelValue: Boolean,
   kind: { type: String, default: 'Invoice' }, // 'Invoice' | 'Expense'
   prefill: { type: Object, default: null }, // invoice only: { client, contract, milestone, items }
+  editName: { type: String, default: null }, // when set, the dialog edits this record
 })
 const emit = defineEmits(['update:modelValue', 'created'])
 
 const isInvoice = props.kind === 'Invoice'
 const show = ref(props.modelValue)
 watch(() => props.modelValue, (v) => (show.value = v))
-watch(show, (v) => {
+watch(show, async (v) => {
   emit('update:modelValue', v)
-  if (v) Object.assign(form, blank())
+  if (v) {
+    Object.assign(form, blank())
+    loaded.value = null
+    if (props.editName) await loadForEdit()
+  }
 })
 
 const statuses = ['Draft', 'Sent', 'Paid', 'Overdue']
@@ -198,7 +203,7 @@ function projectLabel(p) {
 
 const contractTerms = ref({ days: 30, text: '' })
 function applyDue() {
-  if (!form.contract || !form.issue_date) return
+  if (props.editName || !form.contract || !form.issue_date) return
   const dt = parseLocal(form.issue_date)
   dt.setDate(dt.getDate() + Number(contractTerms.value.days || 0))
   form.due_date = formatLocalDate(dt)
@@ -217,7 +222,7 @@ watch(() => form.issue_date, applyDue)
 const milestoneOptions = ref([])
 watch(() => form.contract, async (c) => {
   milestoneOptions.value = []
-  if (!isInvoice || !c || props.prefill?.milestone) return
+  if (!isInvoice || !c || props.prefill?.milestone || props.editName) return
   try {
     const [doc, inv] = await Promise.all([
       call('frappe.client.get', { doctype: 'Service Contract', name: c }),
@@ -252,15 +257,43 @@ const valid = computed(() => {
 })
 
 const createDoc = createResource({ url: 'frappe.client.insert', method: 'POST' })
+const saveDoc = createResource({ url: 'frappe.client.save', method: 'POST' })
+const activeRes = computed(() => (props.editName ? saveDoc : createDoc))
+const loaded = ref(null)
 const errorText = computed(() =>
-  String(createDoc.error?.messages?.[0] || 'Something went wrong').replace(/<[^>]+>/g, '')
+  String(activeRes.value.error?.messages?.[0] || 'Something went wrong').replace(/<[^>]+>/g, '')
 )
 
+async function loadForEdit() {
+  try {
+    const d = await call('frappe.client.get', { doctype: props.kind, name: props.editName })
+    loaded.value = d
+    if (isInvoice) {
+      Object.assign(form, {
+        client: d.client || '', contract: d.contract || '', milestone: d.milestone || '',
+        issue_date: d.issue_date, due_date: d.due_date, status: d.status || 'Draft',
+        items: (d.items || []).map((i) => ({ item_name: i.item_name, quantity: i.quantity, rate: i.rate })),
+        charges: (d.charges || []).map((c) => ({ description: c.description, amount: c.amount })),
+      })
+    } else {
+      Object.assign(form, {
+        category: d.category || '', expense_date: d.expense_date, project: d.project || '',
+        items: (d.items || []).map((i) => ({ vendor: i.vendor, description: i.description || '', amount: i.amount })),
+      })
+    }
+  } catch (e) {
+    saveDoc.error = e
+  }
+}
+
 function submit() {
-  const doc = { doctype: props.kind }
+  const editing = !!props.editName
+  if (editing && !loaded.value) return
+  const doc = editing ? { ...loaded.value } : { doctype: props.kind }
   for (const [k, v] of Object.entries(form)) {
     if (k === 'items' || k === 'charges') continue
-    if (v !== '' && v !== null) doc[k] = v
+    if (editing) doc[k] = v === '' ? null : v
+    else if (v !== '' && v !== null) doc[k] = v
   }
   if (isInvoice) {
     doc.items = form.items.filter((i) => i.item_name).map((i) => ({ item_name: i.item_name, quantity: Number(i.quantity) || 0, rate: Number(i.rate) || 0 }))
@@ -272,7 +305,7 @@ function submit() {
     doc.items = form.items.filter((i) => i.vendor).map((i) => ({ vendor: i.vendor, description: i.description || '', amount: Number(i.amount) || 0 }))
     doc.amount = expenseTotal.value
   }
-  createDoc.submit(
+  (props.editName ? saveDoc : createDoc).submit(
     { doc },
     {
       onSuccess: (saved) => {
