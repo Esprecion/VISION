@@ -12,11 +12,11 @@
             </select>
           </div>
           <div class="field">
-            <label>Contract</label>
+            <label>Contract (deal and client)</label>
             <select v-model="form.contract" :disabled="!!prefill?.contract">
               <option value="">None</option>
               <option v-if="form.contract && !(contracts.data || []).some((c) => c.name === form.contract)" :value="form.contract">{{ form.contract }}</option>
-              <option v-for="c in contracts.data || []" :key="c.name" :value="c.name">{{ c.name }}</option>
+              <option v-for="c in contracts.data || []" :key="c.name" :value="c.name">{{ contractLabel(c) }}</option>
             </select>
           </div>
           <div v-if="form.contract" class="field">
@@ -151,9 +151,19 @@ const clients = createResource({
 })
 const contracts = createResource({
   url: 'frappe.client.get_list',
-  params: { doctype: 'Service Contract', fields: ['name'], limit_page_length: 500 },
+  params: { doctype: 'Service Contract', fields: ['name', 'client', 'deal', 'status'], limit_page_length: 500 },
   auto: isInvoice,
 })
+const deals = createResource({
+  url: 'frappe.client.get_list',
+  params: { doctype: 'Deal', fields: ['name', 'deal_title'], limit_page_length: 500 },
+  auto: isInvoice,
+})
+function contractLabel(c) {
+  const d = (deals.data || []).find((x) => x.name === c.deal)
+  const client = (clients.data || []).find((x) => x.name === c.client)
+  return `${d?.deal_title || c.deal} - ${client?.client_name || c.client}`
+}
 const projects = createResource({
   url: 'frappe.client.get_list',
   params: { doctype: 'Project', fields: ['name'], limit_page_length: 500 },
