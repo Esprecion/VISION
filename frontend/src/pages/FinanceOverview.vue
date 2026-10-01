@@ -27,10 +27,11 @@ const rowsOf = (res) => (res.data?.result ?? []).map(cells)
 const revenue = useReport('Revenue per Client', range())
 const aging = useReport('Accounts Receivable Aging')
 const burn = useReport('Net Burn Rate', range())
+const profit = useReport('Project Profitability', range())
 
 watch([fromInput, toInput], () => {
   if (!fromInput.value || !toInput.value || fromInput.value > toInput.value) return
-  for (const [res, name] of [[revenue, 'Revenue per Client'], [burn, 'Net Burn Rate']]) {
+  for (const [res, name] of [[revenue, 'Revenue per Client'], [burn, 'Net Burn Rate'], [profit, 'Project Profitability']]) {
     res.update({ params: { report_name: name, filters: range() } })
     res.reload()
   }
@@ -48,6 +49,15 @@ const latestBurn = computed(() => burnRows.value[burnRows.value.length - 1])
 const maxBurnAbs = computed(() =>
   Math.max(1, ...burnRows.value.flatMap((r) => [Math.abs(Number(r[1]) || 0), Math.abs(Number(r[2]) || 0)]))
 )
+
+const profitRows = computed(() => rowsOf(profit)) // [project, client, revenue, expenses, net, margin]
+const isOverhead = (r) => r[0] === 'Unassigned / Overhead'
+const isTotal = (r) => r[0] === 'COMPANY TOTAL'
+const margin = (r) => {
+  const rev = Number(r[2]) || 0
+  if (isOverhead(r) || rev <= 0) return '—'
+  return ((Number(r[4]) / rev) * 100).toFixed(1) + '%'
+}
 
 const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
@@ -118,6 +128,23 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
       </div>
     </div>
 
+    <div class="card profit-card">
+      <div class="card-label">Project Profitability (paid revenue minus expenses)</div>
+      <div v-if="profit.loading" class="muted">···</div>
+      <table v-else>
+        <thead><tr><th>Project</th><th>Client</th><th>Revenue</th><th>Expenses</th><th>Net</th><th>Margin</th></tr></thead>
+        <tbody>
+          <tr v-for="r in profitRows" :key="r[0]" :class="{ overhead: isOverhead(r), total: isTotal(r) }">
+            <td>{{ r[0] }}</td><td>{{ r[1] || '' }}</td>
+            <td>{{ peso(r[2]) }}</td><td>{{ peso(r[3]) }}</td>
+            <td :class="{ loss: Number(r[4]) < 0 }">{{ peso(r[4]) }}</td>
+            <td>{{ margin(r) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="muted note">Overhead = expenses not tied to a project. Company total includes it.</div>
+    </div>
+
     <div class="card">
       <div class="card-label">Accounts Receivable Aging</div>
       <div v-if="aging.loading" class="muted">···</div>
@@ -166,6 +193,11 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { text-align: left; color: #6b7280; font-weight: 500; padding: 6px 4px; border-bottom: 1px solid #e5e7eb; }
 td { padding: 8px 4px; border-bottom: 1px solid #e5e7eb; }
 td.stale { color: #dc2626; font-weight: 600; }
+.profit-card { margin-bottom: 16px; }
+tr.overhead td { color: #6b7280; font-style: italic; }
+tr.total td { font-weight: 700; border-top: 2px solid #111827; border-bottom: none; }
+td.loss { color: #dc2626; font-weight: 600; }
+.note { font-size: 12px; margin-top: 8px; }
 .muted { color: #9ca3af; }
 @media (max-width: 900px) { .tiles { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
 </style>
