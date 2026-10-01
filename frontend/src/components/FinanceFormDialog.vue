@@ -19,9 +19,13 @@
               <option v-for="c in contracts.data || []" :key="c.name" :value="c.name">{{ c.name }}</option>
             </select>
           </div>
-          <div v-if="form.milestone" class="field">
+          <div v-if="form.contract" class="field">
             <label>Milestone</label>
-            <input :value="form.milestone" type="text" disabled />
+            <select :value="form.milestone" :disabled="!!prefill?.milestone" @change="pickMilestone($event.target.value)">
+              <option value="">Select milestone</option>
+              <option v-if="form.milestone && !milestoneOptions.some((m) => m.milestone_name === form.milestone)" :value="form.milestone">{{ form.milestone }}</option>
+              <option v-for="m in milestoneOptions" :key="m.milestone_name" :value="m.milestone_name">{{ m.milestone_name }} ({{ peso(m.amount) }})</option>
+            </select>
           </div>
 
           <div class="section">Products / services</div>
@@ -104,7 +108,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { Dialog, createResource } from 'frappe-ui'
+import { Dialog, createResource, call } from 'frappe-ui'
 import { formatLocalDate } from '../utils/dateRange'
 
 const props = defineProps({
@@ -155,6 +159,29 @@ const projects = createResource({
   params: { doctype: 'Project', fields: ['name'], limit_page_length: 500 },
   auto: !isInvoice,
 })
+
+const milestoneOptions = ref([])
+watch(() => form.contract, async (c) => {
+  milestoneOptions.value = []
+  if (!isInvoice || !c || props.prefill?.milestone) return
+  try {
+    const [doc, inv] = await Promise.all([
+      call('frappe.client.get', { doctype: 'Service Contract', name: c }),
+      call('frappe.client.get_list', { doctype: 'Invoice', filters: { contract: c }, fields: ['milestone'], limit_page_length: 100 }),
+    ])
+    const used = new Set((inv || []).map((i) => i.milestone))
+    milestoneOptions.value = (doc.payment_milestones || []).filter((m) => !m.is_paid && !used.has(m.milestone_name))
+    if (doc.client) form.client = doc.client
+    form.milestone = ''
+  } catch (e) {
+    milestoneOptions.value = []
+  }
+})
+function pickMilestone(name) {
+  form.milestone = name
+  const m = milestoneOptions.value.find((x) => x.milestone_name === name)
+  if (m) form.items = [{ item_name: name, quantity: 1, rate: Number(m.amount) || 0 }]
+}
 
 const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 const subtotal = computed(() => (form.items || []).reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0), 0))
