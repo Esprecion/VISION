@@ -12,7 +12,12 @@
   "amount",
   "issue_date",
   "due_date",
-  "status"
+  "status",
+  "milestone",
+  "items",
+  "subtotal",
+  "charges",
+  "charges_total"
  ],
  "fields": [
   {
@@ -57,6 +62,35 @@
    "options": "Draft\nSent\nPaid\nOverdue",
    "default": "Draft",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "milestone",
+   "fieldtype": "Data",
+   "label": "Milestone"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Invoice Item"
+  },
+  {
+   "fieldname": "subtotal",
+   "fieldtype": "Currency",
+   "label": "Subtotal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "charges",
+   "fieldtype": "Table",
+   "label": "Additional Charges",
+   "options": "Invoice Charge"
+  },
+  {
+   "fieldname": "charges_total",
+   "fieldtype": "Currency",
+   "label": "Charges Total",
+   "read_only": 1
   }
  ],
  "permissions": [

@@ -44,13 +44,17 @@
           <div v-if="!editing">
             <table class="items-table">
               <thead>
-                <tr><th>Milestone</th><th>Amount</th><th>Paid</th></tr>
+                <tr><th>Milestone</th><th>Amount</th><th>Paid</th><th>Invoice</th></tr>
               </thead>
               <tbody>
                 <tr v-for="(m, i) in doc.payment_milestones" :key="i">
                   <td>{{ m.milestone_name }}</td>
                   <td>{{ peso(m.amount) }}</td>
                   <td>{{ m.is_paid ? 'Yes' : 'No' }}</td>
+                  <td>
+                    <template v-if="invoiceFor(m)">{{ invoiceFor(m).name }}</template>
+                    <button v-else-if="canInvoice && !m.is_paid" class="btn-secondary" @click="startInvoice(m)">Create Invoice</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -117,11 +121,19 @@
       </div>
     </template>
   </Dialog>
+  <FinanceFormDialog
+    v-if="canInvoice"
+    v-model="showInvoice"
+    kind="Invoice"
+    :prefill="invoicePrefill"
+    @created="loadInvoices(); emit('updated')"
+  />
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, call } from 'frappe-ui'
+import FinanceFormDialog from './FinanceFormDialog.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -145,6 +157,38 @@ const form = reactive({ start_date: '', end_date: '', payment_milestones: [] })
 
 const statusOptions = ['Draft', 'Under Negotiation', 'Finalized', 'Sent to Finance']
 
+const canInvoice = ref(false)
+const invoices = ref([])
+const showInvoice = ref(false)
+const invoicePrefill = ref(null)
+
+async function loadInvoices() {
+  try {
+    canInvoice.value = (await call('my_custom_app.api.can_create', { doctype: 'Invoice' })) === true
+    invoices.value =
+      (await call('frappe.client.get_list', {
+        doctype: 'Invoice',
+        filters: { contract: props.contractName },
+        fields: ['name', 'milestone', 'status'],
+        limit_page_length: 100,
+      })) || []
+  } catch (e) {
+    invoices.value = []
+  }
+}
+function invoiceFor(m) {
+  return invoices.value.find((i) => i.milestone === m.milestone_name)
+}
+function startInvoice(m) {
+  invoicePrefill.value = {
+    client: doc.value.client,
+    contract: props.contractName,
+    milestone: m.milestone_name,
+    items: [{ item_name: `${m.milestone_name} - ${dealInfo.value?.deal_title || doc.value.deal}`, quantity: 1, rate: Number(m.amount) || 0 }],
+  }
+  showInvoice.value = true
+}
+
 async function loadAll() {
   loading.value = true
   try {
@@ -152,6 +196,7 @@ async function loadAll() {
     if (doc.value?.deal) {
       dealInfo.value = await call('frappe.client.get', { doctype: 'Deal', name: doc.value.deal })
     }
+    await loadInvoices()
     await loadComments()
   } finally {
     loading.value = false

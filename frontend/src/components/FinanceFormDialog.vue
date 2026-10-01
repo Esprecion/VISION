@@ -1,33 +1,62 @@
 <template>
-  <Dialog v-model="show" :options="{ title: 'New ' + kind }">
+  <Dialog v-model="show" :options="{ title: 'New ' + kind, size: isInvoice ? '2xl' : undefined }">
     <template #body-content>
       <div class="form-grid">
-        <template v-if="kind === 'Invoice'">
+        <template v-if="isInvoice">
           <div class="field">
             <label>Client *</label>
-            <select v-model="form.client">
+            <select v-model="form.client" :disabled="!!prefill?.client">
               <option value="">Select client</option>
+              <option v-if="form.client && !(clients.data || []).some((c) => c.name === form.client)" :value="form.client">{{ form.client }}</option>
               <option v-for="c in clients.data || []" :key="c.name" :value="c.name">{{ c.client_name || c.name }}</option>
             </select>
           </div>
           <div class="field">
             <label>Contract</label>
-            <select v-model="form.contract">
+            <select v-model="form.contract" :disabled="!!prefill?.contract">
               <option value="">None</option>
+              <option v-if="form.contract && !(contracts.data || []).some((c) => c.name === form.contract)" :value="form.contract">{{ form.contract }}</option>
               <option v-for="c in contracts.data || []" :key="c.name" :value="c.name">{{ c.name }}</option>
             </select>
           </div>
-          <div class="field">
-            <label>Amount *</label>
-            <input v-model.number="form.amount" type="number" min="0" step="0.01" />
+          <div v-if="form.milestone" class="field">
+            <label>Milestone</label>
+            <input :value="form.milestone" type="text" disabled />
           </div>
-          <div class="field">
-            <label>Issue Date *</label>
-            <input v-model="form.issue_date" type="date" />
+
+          <div class="section">Products / services</div>
+          <div v-for="(it, i) in form.items" :key="'i' + i" class="line items">
+            <input v-model="it.item_name" type="text" placeholder="Item" />
+            <input v-model.number="it.quantity" type="number" min="0" step="any" placeholder="Qty" />
+            <input v-model.number="it.rate" type="number" min="0" step="0.01" placeholder="Rate" />
+            <span class="amt">{{ peso((Number(it.quantity) || 0) * (Number(it.rate) || 0)) }}</span>
+            <button type="button" class="x" @click="form.items.splice(i, 1)">×</button>
           </div>
-          <div class="field">
-            <label>Due Date *</label>
-            <input v-model="form.due_date" type="date" :min="form.issue_date" />
+          <button type="button" class="btn-link" @click="form.items.push({ item_name: '', quantity: 1, rate: 0 })">+ Add item</button>
+
+          <div class="section">Additional charges</div>
+          <div v-for="(c, i) in form.charges" :key="'c' + i" class="line charges">
+            <input v-model="c.description" type="text" placeholder="e.g. Rush fee, Hosting setup" />
+            <input v-model.number="c.amount" type="number" step="0.01" placeholder="Amount" />
+            <button type="button" class="x" @click="form.charges.splice(i, 1)">×</button>
+          </div>
+          <button type="button" class="btn-link" @click="form.charges.push({ description: '', amount: 0 })">+ Add charge</button>
+
+          <div class="totals">
+            <div>Subtotal <b>{{ peso(subtotal) }}</b></div>
+            <div>Charges <b>{{ peso(chargesTotal) }}</b></div>
+            <div class="grand">Total <b>{{ peso(total) }}</b></div>
+          </div>
+
+          <div class="two">
+            <div class="field">
+              <label>Issue Date *</label>
+              <input v-model="form.issue_date" type="date" />
+            </div>
+            <div class="field">
+              <label>Due Date *</label>
+              <input v-model="form.due_date" type="date" :min="form.issue_date" />
+            </div>
           </div>
           <div class="field">
             <label>Status</label>
@@ -54,17 +83,15 @@
             <input v-model="form.expense_date" type="date" />
           </div>
           <div class="field">
-            <label>Project *</label>
+            <label>Project</label>
             <select v-model="form.project">
-              <option value="" disabled>Select project</option>
+              <option value="">None</option>
               <option v-for="p in projects.data || []" :key="p.name" :value="p.name">{{ p.name }}</option>
             </select>
           </div>
         </template>
 
-        <div v-if="createDoc.error" class="error-msg">
-          {{ errorText }}
-        </div>
+        <div v-if="createDoc.error" class="error-msg">{{ errorText }}</div>
       </div>
     </template>
     <template #actions>
@@ -83,25 +110,36 @@ import { formatLocalDate } from '../utils/dateRange'
 const props = defineProps({
   modelValue: Boolean,
   kind: { type: String, default: 'Invoice' }, // 'Invoice' | 'Expense'
+  prefill: { type: Object, default: null }, // invoice only: { client, contract, milestone, items }
 })
 const emit = defineEmits(['update:modelValue', 'created'])
 
+const isInvoice = props.kind === 'Invoice'
 const show = ref(props.modelValue)
 watch(() => props.modelValue, (v) => (show.value = v))
-watch(show, (v) => emit('update:modelValue', v))
+watch(show, (v) => {
+  emit('update:modelValue', v)
+  if (v) Object.assign(form, blank())
+})
 
 const statuses = ['Draft', 'Sent', 'Paid', 'Overdue']
-const categories = ['Tools and Subscriptions', 'Hardware', 'Infrastructure']
+const categories = ['Salaries', 'Tools and Subscriptions', 'Infrastructure', 'Other']
 
 function blank() {
   const t = formatLocalDate(new Date())
-  return props.kind === 'Invoice'
-    ? { client: '', contract: '', amount: null, issue_date: t, due_date: t, status: 'Draft' }
-    : { category: '', amount: null, expense_date: t, project: '' }
+  if (isInvoice) {
+    const p = props.prefill || {}
+    const items = p.items?.length ? p.items : [{ item_name: '', quantity: 1, rate: 0 }]
+    return {
+      client: p.client || '', contract: p.contract || '', milestone: p.milestone || '',
+      issue_date: t, due_date: t, status: 'Draft',
+      items: items.map((i) => ({ ...i })), charges: [],
+    }
+  }
+  return { category: '', amount: null, expense_date: t, project: '' }
 }
 const form = reactive(blank())
 
-const isInvoice = props.kind === 'Invoice'
 const clients = createResource({
   url: 'frappe.client.get_list',
   params: { doctype: 'Client', fields: ['name', 'client_name'], limit_page_length: 500 },
@@ -118,10 +156,17 @@ const projects = createResource({
   auto: !isInvoice,
 })
 
+const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
+const subtotal = computed(() => (form.items || []).reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0), 0))
+const chargesTotal = computed(() => (form.charges || []).reduce((s, c) => s + (Number(c.amount) || 0), 0))
+const total = computed(() => subtotal.value + chargesTotal.value)
+
 const valid = computed(() => {
-  if (!(Number(form.amount) > 0)) return false
-  if (isInvoice) return !!form.client && !!form.issue_date && !!form.due_date && form.due_date >= form.issue_date
-  return !!form.category && !!form.expense_date && !!form.project
+  if (isInvoice) {
+    const goodItems = form.items.filter((i) => i.item_name && Number(i.quantity) > 0)
+    return !!form.client && goodItems.length > 0 && total.value > 0 && !!form.issue_date && !!form.due_date && form.due_date >= form.issue_date
+  }
+  return Number(form.amount) > 0 && !!form.category && !!form.expense_date
 })
 
 const createDoc = createResource({ url: 'frappe.client.insert', method: 'POST' })
@@ -132,7 +177,13 @@ const errorText = computed(() =>
 function submit() {
   const doc = { doctype: props.kind }
   for (const [k, v] of Object.entries(form)) {
+    if (k === 'items' || k === 'charges') continue
     if (v !== '' && v !== null) doc[k] = v
+  }
+  if (isInvoice) {
+    doc.items = form.items.filter((i) => i.item_name).map((i) => ({ item_name: i.item_name, quantity: Number(i.quantity) || 0, rate: Number(i.rate) || 0 }))
+    doc.charges = form.charges.filter((c) => c.description).map((c) => ({ description: c.description, amount: Number(c.amount) || 0 }))
+    doc.amount = total.value
   }
   createDoc.submit(
     { doc },
@@ -140,7 +191,6 @@ function submit() {
       onSuccess: (saved) => {
         emit('created', saved)
         show.value = false
-        Object.assign(form, blank())
       },
     }
   )
@@ -151,8 +201,19 @@ function submit() {
 .form-grid { display: flex; flex-direction: column; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label { font-size: 13px; color: #4b5563; font-weight: 500; }
-.field input, .field select { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 14px; background: #fff; }
-.field input:focus, .field select:focus { outline: none; border-color: #6366f1; }
+input, select { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 14px; background: #fff; }
+input:focus, select:focus { outline: none; border-color: #6366f1; }
+input:disabled, select:disabled { background: #f3f4f6; color: #6b7280; }
+.section { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; margin-top: 4px; }
+.line { display: grid; gap: 8px; align-items: center; }
+.line.items { grid-template-columns: 1fr 70px 110px 110px 24px; }
+.line.charges { grid-template-columns: 1fr 120px 24px; }
+.amt { font-size: 13px; text-align: right; }
+.x { background: none; border: none; color: #dc2626; font-size: 18px; cursor: pointer; }
+.btn-link { background: none; border: none; color: #b45309; font-size: 13px; cursor: pointer; width: fit-content; padding: 0; }
+.totals { display: flex; gap: 20px; justify-content: flex-end; font-size: 13px; color: #4b5563; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+.totals .grand { color: #111827; font-size: 15px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .error-msg { color: #dc2626; font-size: 13px; }
 .btn-primary { background: #111827; color: #fff; border: none; border-radius: 6px; padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
