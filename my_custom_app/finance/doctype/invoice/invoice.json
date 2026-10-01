@@ -17,7 +17,8 @@
   "items",
   "subtotal",
   "charges",
-  "charges_total"
+  "charges_total",
+  "terms_and_conditions"
  ],
  "fields": [
   {
@@ -91,6 +92,11 @@
    "fieldtype": "Currency",
    "label": "Charges Total",
    "read_only": 1
+  },
+  {
+   "fieldname": "terms_and_conditions",
+   "fieldtype": "Text",
+   "label": "Terms and Conditions"
   }
  ],
  "permissions": [

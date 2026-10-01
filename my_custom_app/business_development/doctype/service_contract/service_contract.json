@@ -57,6 +57,17 @@
    "fieldname": "agreement",
    "label": "Agreement",
    "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "payment_terms_days",
+   "fieldtype": "Int",
+   "label": "Payment Terms (days after invoice)",
+   "default": "30"
+  },
+  {
+   "fieldname": "terms_and_conditions",
+   "fieldtype": "Text",
+   "label": "Terms and Conditions"
   }
  ],
  "permissions": [

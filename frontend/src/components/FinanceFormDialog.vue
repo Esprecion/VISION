@@ -28,6 +28,11 @@
             </select>
           </div>
 
+          <div v-if="contractTerms.text || form.contract" class="terms-box">
+            <div class="terms-title">Contract terms: due {{ contractTerms.days }} days after issue</div>
+            <div v-if="contractTerms.text" class="terms-body">{{ contractTerms.text }}</div>
+          </div>
+
           <div class="section">Products / services</div>
           <div v-for="(it, i) in form.items" :key="'i' + i" class="line items">
             <input v-model="it.item_name" type="text" placeholder="Item" />
@@ -109,7 +114,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, createResource, call } from 'frappe-ui'
-import { formatLocalDate } from '../utils/dateRange'
+import { formatLocalDate, parseLocal } from '../utils/dateRange'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -170,6 +175,24 @@ const projects = createResource({
   auto: !isInvoice,
 })
 
+const contractTerms = ref({ days: 30, text: '' })
+function applyDue() {
+  if (!form.contract || !form.issue_date) return
+  const dt = parseLocal(form.issue_date)
+  dt.setDate(dt.getDate() + Number(contractTerms.value.days || 0))
+  form.due_date = formatLocalDate(dt)
+}
+watch(() => form.contract, async (c) => {
+  contractTerms.value = { days: 30, text: '' }
+  if (!isInvoice || !c) return
+  try {
+    const doc = await call('frappe.client.get', { doctype: 'Service Contract', name: c })
+    contractTerms.value = { days: doc.payment_terms_days ?? 30, text: doc.terms_and_conditions || '' }
+    applyDue()
+  } catch (e) {}
+}, { immediate: true })
+watch(() => form.issue_date, applyDue)
+
 const milestoneOptions = ref([])
 watch(() => form.contract, async (c) => {
   milestoneOptions.value = []
@@ -221,6 +244,7 @@ function submit() {
     doc.items = form.items.filter((i) => i.item_name).map((i) => ({ item_name: i.item_name, quantity: Number(i.quantity) || 0, rate: Number(i.rate) || 0 }))
     doc.charges = form.charges.filter((c) => c.description).map((c) => ({ description: c.description, amount: Number(c.amount) || 0 }))
     doc.amount = total.value
+    if (contractTerms.value.text) doc.terms_and_conditions = contractTerms.value.text
   }
   createDoc.submit(
     { doc },
@@ -254,4 +278,7 @@ input:disabled, select:disabled { background: #f3f4f6; color: #6b7280; }
 .error-msg { color: #dc2626; font-size: 13px; }
 .btn-primary { background: #111827; color: #fff; border: none; border-radius: 6px; padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.terms-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #92400e; }
+.terms-title { font-weight: 600; }
+.terms-body { margin-top: 4px; white-space: pre-wrap; color: #78350f; }
 </style>

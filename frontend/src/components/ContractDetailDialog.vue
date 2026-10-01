@@ -92,6 +92,24 @@
           </div>
         </div>
 
+        <div class="dd-section">
+          <div class="section-label">Payment Terms &amp; Conditions</div>
+          <div v-if="!editing">
+            <div class="dates-row">Invoices are due {{ doc.payment_terms_days ?? 30 }} days after they are issued</div>
+            <div class="terms-text">{{ doc.terms_and_conditions || 'No terms written yet. Click Edit to add them.' }}</div>
+          </div>
+          <div v-else class="milestone-rows">
+            <div class="field">
+              <label>Due after (days)</label>
+              <input v-model.number="form.payment_terms_days" type="number" min="0" />
+            </div>
+            <div class="field">
+              <label>Terms and conditions</label>
+              <textarea v-model="form.terms_and_conditions" rows="4" placeholder="e.g. Late payments accrue 2% per month. Work starts after the downpayment clears."></textarea>
+            </div>
+          </div>
+        </div>
+
         <div v-if="editing" class="edit-actions">
           <button class="btn-secondary" @click="cancelEdit">Cancel</button>
           <button class="btn-primary" :disabled="saving" @click="saveChanges">
@@ -153,7 +171,7 @@ const doc = ref(null)
 const dealInfo = ref(null)
 const editing = ref(false)
 const saving = ref(false)
-const form = reactive({ start_date: '', end_date: '', payment_milestones: [] })
+const form = reactive({ start_date: '', end_date: '', payment_terms_days: 30, terms_and_conditions: '', payment_milestones: [] })
 
 const statusOptions = ['Draft', 'Under Negotiation', 'Finalized', 'Sent to Finance']
 
@@ -206,6 +224,8 @@ async function loadAll() {
 function startEdit() {
   form.start_date = doc.value.start_date || ''
   form.end_date = doc.value.end_date || ''
+  form.payment_terms_days = doc.value.payment_terms_days ?? 30
+  form.terms_and_conditions = doc.value.terms_and_conditions || ''
   form.payment_milestones = (doc.value.payment_milestones || []).map((m) => ({
     milestone_name: m.milestone_name,
     amount: m.amount,
@@ -227,6 +247,8 @@ async function saveChanges() {
       ...doc.value,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
+      payment_terms_days: Number(form.payment_terms_days) || 0,
+      terms_and_conditions: form.terms_and_conditions || '',
       payment_milestones: form.payment_milestones,
     }
     const saved = await call('frappe.client.save', { doc: updatedDoc })
@@ -353,4 +375,6 @@ function peso(n) {
 .comment-input-row { display: flex; gap: 8px; margin-top: 12px; }
 .comment-input-row textarea { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; font-family: inherit; resize: vertical; }
 .comment-input-row button { background: #b45309; color: white; border: none; border-radius: 6px; padding: 0 16px; cursor: pointer; }
+.terms-text { white-space: pre-wrap; font-size: 13px; color: #4b5563; margin-top: 6px; }
+.field textarea { border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 9px; font-size: 13px; font-family: inherit; }
 </style>
