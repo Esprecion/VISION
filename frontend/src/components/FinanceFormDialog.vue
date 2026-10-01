@@ -54,9 +54,9 @@
             <input v-model="form.expense_date" type="date" />
           </div>
           <div class="field">
-            <label>Project</label>
+            <label>Project *</label>
             <select v-model="form.project">
-              <option value="">None</option>
+              <option value="" disabled>Select project</option>
               <option v-for="p in projects.data || []" :key="p.name" :value="p.name">{{ p.name }}</option>
             </select>
           </div>
