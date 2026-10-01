@@ -10,14 +10,15 @@
   "category",
   "amount",
   "expense_date",
-  "project"
+  "project",
+  "items"
  ],
  "fields": [
   {
    "fieldname": "category",
    "fieldtype": "Select",
    "label": "Category",
-   "options": "Tools and Subscriptions\nHardware\nInfrastructure",
+   "options": "Tools and Subscriptions\nHardware\nInfrastructure\nContractors and Freelancers\nLabor\nOther",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -42,6 +43,12 @@
    "options": "Project",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Cost Breakdown",
+   "options": "Expense Item"
   }
  ],
  "permissions": [

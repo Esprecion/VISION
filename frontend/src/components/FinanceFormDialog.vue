@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="show" :options="{ title: 'New ' + kind, size: isInvoice ? '2xl' : undefined }">
+  <Dialog v-model="show" :options="{ title: 'New ' + kind, size: '2xl' }">
     <template #body-content>
       <div class="form-grid">
         <template v-if="isInvoice">
@@ -84,20 +84,26 @@
             </select>
           </div>
           <div class="field">
-            <label>Amount *</label>
-            <input v-model.number="form.amount" type="number" min="0" step="0.01" />
-          </div>
-          <div class="field">
             <label>Date *</label>
             <input v-model="form.expense_date" type="date" />
           </div>
           <div class="field">
-            <label>Project</label>
+            <label>Project *</label>
             <select v-model="form.project">
-              <option value="">None</option>
-              <option v-for="p in projects.data || []" :key="p.name" :value="p.name">{{ p.name }}</option>
+              <option value="">Select project</option>
+              <option v-for="p in projects.data || []" :key="p.name" :value="p.name">{{ projectLabel(p) }}</option>
             </select>
           </div>
+
+          <div class="section">Cost breakdown (vendor / platform)</div>
+          <div v-for="(it, i) in form.items" :key="'e' + i" class="line exp">
+            <input v-model="it.vendor" type="text" placeholder="Vendor, e.g. Figma" />
+            <input v-model="it.description" type="text" placeholder="What it was for" />
+            <input v-model.number="it.amount" type="number" min="0" step="0.01" placeholder="Amount" />
+            <button type="button" class="x" @click="form.items.splice(i, 1)">×</button>
+          </div>
+          <button type="button" class="btn-link" @click="form.items.push({ vendor: '', description: '', amount: 0 })">+ Add line</button>
+          <div class="totals"><div class="grand">Total <b>{{ peso(expenseTotal) }}</b></div></div>
         </template>
 
         <div v-if="createDoc.error" class="error-msg">{{ errorText }}</div>
@@ -132,7 +138,7 @@ watch(show, (v) => {
 })
 
 const statuses = ['Draft', 'Sent', 'Paid', 'Overdue']
-const categories = ['Salaries', 'Tools and Subscriptions', 'Infrastructure', 'Other']
+const categories = ["Tools and Subscriptions", "Hardware", "Infrastructure", "Contractors and Freelancers", "Labor", "Other"]
 
 function blank() {
   const t = formatLocalDate(new Date())
@@ -145,7 +151,7 @@ function blank() {
       items: items.map((i) => ({ ...i })), charges: [],
     }
   }
-  return { category: '', amount: null, expense_date: t, project: '' }
+  return { category: '', expense_date: t, project: '', items: [{ vendor: '', description: '', amount: 0 }] }
 }
 const form = reactive(blank())
 
@@ -171,9 +177,24 @@ function contractLabel(c) {
 }
 const projects = createResource({
   url: 'frappe.client.get_list',
-  params: { doctype: 'Project', fields: ['name'], limit_page_length: 500 },
+  params: { doctype: 'Project', fields: ['name', 'contract'], limit_page_length: 500 },
   auto: !isInvoice,
 })
+const pContracts = createResource({
+  url: 'frappe.client.get_list',
+  params: { doctype: 'Service Contract', fields: ['name', 'deal'], limit_page_length: 500 },
+  auto: !isInvoice,
+})
+const pDeals = createResource({
+  url: 'frappe.client.get_list',
+  params: { doctype: 'Deal', fields: ['name', 'deal_title'], limit_page_length: 500 },
+  auto: !isInvoice,
+})
+function projectLabel(p) {
+  const c = (pContracts.data || []).find((x) => x.name === p.contract)
+  const d = (pDeals.data || []).find((x) => x.name === c?.deal)
+  return d?.deal_title ? `${d.deal_title} (${p.name})` : p.name
+}
 
 const contractTerms = ref({ days: 30, text: '' })
 function applyDue() {
@@ -220,13 +241,14 @@ const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 const subtotal = computed(() => (form.items || []).reduce((s, i) => s + (Number(i.quantity) || 0) * (Number(i.rate) || 0), 0))
 const chargesTotal = computed(() => (form.charges || []).reduce((s, c) => s + (Number(c.amount) || 0), 0))
 const total = computed(() => subtotal.value + chargesTotal.value)
+const expenseTotal = computed(() => (form.items || []).reduce((s, i) => s + (Number(i.amount) || 0), 0))
 
 const valid = computed(() => {
   if (isInvoice) {
     const goodItems = form.items.filter((i) => i.item_name && Number(i.quantity) > 0)
     return !!form.client && goodItems.length > 0 && total.value > 0 && !!form.issue_date && !!form.due_date && form.due_date >= form.issue_date
   }
-  return Number(form.amount) > 0 && !!form.category && !!form.expense_date
+  return expenseTotal.value > 0 && form.items.some((i) => i.vendor) && !!form.category && !!form.expense_date && !!form.project
 })
 
 const createDoc = createResource({ url: 'frappe.client.insert', method: 'POST' })
@@ -245,6 +267,10 @@ function submit() {
     doc.charges = form.charges.filter((c) => c.description).map((c) => ({ description: c.description, amount: Number(c.amount) || 0 }))
     doc.amount = total.value
     if (contractTerms.value.text) doc.terms_and_conditions = contractTerms.value.text
+  }
+  if (!isInvoice) {
+    doc.items = form.items.filter((i) => i.vendor).map((i) => ({ vendor: i.vendor, description: i.description || '', amount: Number(i.amount) || 0 }))
+    doc.amount = expenseTotal.value
   }
   createDoc.submit(
     { doc },
@@ -281,4 +307,5 @@ input:disabled, select:disabled { background: #f3f4f6; color: #6b7280; }
 .terms-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #92400e; }
 .terms-title { font-weight: 600; }
 .terms-body { margin-top: 4px; white-space: pre-wrap; color: #78350f; }
+.line.exp { grid-template-columns: 1fr 1.2fr 110px 24px; }
 </style>
