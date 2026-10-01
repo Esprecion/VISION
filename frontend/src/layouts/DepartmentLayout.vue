@@ -10,7 +10,7 @@ defineProps<{
   <div>
     <TopTabs :tabs="tabs" />
     <div class="department-content">
-      <router-view />
+      <router-view :key="$route.fullPath" />
     </div>
   </div>
 </template>
