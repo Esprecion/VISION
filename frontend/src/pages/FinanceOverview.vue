@@ -142,7 +142,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
           </tr>
         </tbody>
       </table>
-      <div class="muted note">Overhead = expenses not tied to a project. Company total includes it.</div>
+      <div class="muted note">Expenses shown are project costs only (subscriptions, hardware, infrastructure).</div>
     </div>
 
     <div class="card">
