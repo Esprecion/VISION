@@ -28,6 +28,7 @@ const revenue = useReport('Revenue per Client', range())
 const aging = useReport('Accounts Receivable Aging')
 const burn = useReport('Net Burn Rate', range())
 const profit = useReport('Project Profitability', range())
+const expenseRep = useReport('Expense by Category', range())
 
 const projectsRes = createResource({
   url: 'frappe.client.get_list',
@@ -64,7 +65,7 @@ function openDrill(kind, r) {
 
 watch([fromInput, toInput], () => {
   if (!fromInput.value || !toInput.value || fromInput.value > toInput.value) return
-  for (const [res, name] of [[revenue, 'Revenue per Client'], [burn, 'Net Burn Rate'], [profit, 'Project Profitability']]) {
+  for (const [res, name] of [[revenue, 'Revenue per Client'], [burn, 'Net Burn Rate'], [profit, 'Project Profitability'], [expenseRep, 'Expense by Category']]) {
     res.update({ params: { report_name: name, filters: range() } })
     res.reload()
   }
@@ -91,6 +92,71 @@ const margin = (r) => {
   if (isOverhead(r) || rev <= 0) return '—'
   return ((Number(r[4]) / rev) * 100).toFixed(1) + '%'
 }
+
+// ---------- A/R aging buckets ----------
+const BUCKETS = [
+  { key: 'current', label: 'Current', color: '#10b981', test: (d) => d <= 0 },
+  { key: 'b1', label: '1-30 days', color: '#f59e0b', test: (d) => d >= 1 && d <= 30 },
+  { key: 'b2', label: '31-60 days', color: '#f97316', test: (d) => d >= 31 && d <= 60 },
+  { key: 'b3', label: '61-90 days', color: '#ef4444', test: (d) => d >= 61 && d <= 90 },
+  { key: 'b4', label: '90+ days', color: '#991b1b', test: (d) => d > 90 },
+]
+const agingBuckets = computed(() =>
+  BUCKETS.map((b) => {
+    const rows = agingRows.value.filter((r) => b.test(Number(r[5]) || 0))
+    return { ...b, rows, total: rows.reduce((t, r) => t + Number(r[2] || 0), 0) }
+  })
+)
+function donutSegments(items, r = 40) {
+  const C = 2 * Math.PI * r
+  const sum = items.reduce((t, i) => t + i.total, 0) || 1
+  let used = 0
+  return items.map((i) => {
+    const len = (i.total / sum) * C
+    const seg = { ...i, dash: len + ' ' + (C - len), offset: -used }
+    used += len
+    return seg
+  })
+}
+const agingDonut = computed(() => donutSegments(agingBuckets.value.filter((b) => b.total > 0)))
+const dueLabel = (d) => {
+  d = Number(d) || 0
+  if (d > 0) return d + (d === 1 ? ' day overdue' : ' days overdue')
+  if (d === 0) return 'Due today'
+  return 'Due in ' + (-d) + (d === -1 ? ' day' : ' days')
+}
+
+// ---------- Expense by category ----------
+const expenseRows = computed(() => rowsOf(expenseRep)) // [category, vendor, amount]
+const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#84cc16', '#f97316']
+const expenseGroups = computed(() => {
+  const m = new Map()
+  for (const r of expenseRows.value) {
+    const k = r[0] || 'Uncategorized'
+    if (!m.has(k)) m.set(k, { key: k, label: k, rows: [], total: 0 })
+    const g = m.get(k)
+    g.rows.push(r)
+    g.total += Number(r[2] || 0)
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total).map((g, i) => ({ ...g, color: PALETTE[i % PALETTE.length] }))
+})
+const totalExpenses = computed(() => expenseGroups.value.reduce((t, g) => t + g.total, 0))
+const expenseDonut = computed(() => donutSegments(expenseGroups.value.filter((g) => g.total > 0)))
+
+// ---------- Profit tile ----------
+const companyTotal = computed(() => profitRows.value.find(isTotal))
+const profitNet = computed(() => Number(companyTotal.value?.[4] || 0))
+const profitMargin = computed(() => (companyTotal.value ? margin(companyTotal.value) : '—'))
+
+// ---------- Net Burn note ----------
+const burnSyncedAt = ref(null)
+watch(() => burn.data, (d) => { if (d) burnSyncedAt.value = new Date() })
+const burnNote = computed(() => {
+  const rows = burnRows.value
+  if (!rows.length) return ''
+  const when = burnSyncedAt.value ? burnSyncedAt.value.toLocaleString('en-PH') : '—'
+  return 'Net burn = expenses minus revenue per month. Covers ' + rows.length + ' month(s), ' + rows[0][0] + ' to ' + rows[rows.length - 1][0] + '. Last synced ' + when + '.'
+})
 
 const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
@@ -128,6 +194,11 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
         </div>
         <div class="sub" v-if="latestBurn">{{ latestBurn[0] }} · expenses minus revenue</div>
       </div>
+      <div class="tile">
+        <div class="label">NET PROFIT</div>
+        <div class="value" :class="{ neg: profitNet < 0 }">{{ profit.loading ? '···' : peso(profitNet) }}</div>
+        <div class="sub">{{ profitMargin }} margin</div>
+      </div>
     </div>
 
     <div class="row">
@@ -144,6 +215,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
       </div>
       <div class="card">
         <div class="card-label">Net Burn Rate by Month</div>
+        <div class="muted note">{{ burnNote }}</div>
         <div v-if="burn.loading" class="muted">···</div>
         <div v-else class="bars">
           <div v-for="r in burnRows" :key="r[0]" class="bar-row">
@@ -202,16 +274,72 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
     <div class="card">
       <div class="card-label">Accounts Receivable Aging</div>
       <div v-if="aging.loading" class="muted">···</div>
-      <table v-else>
-        <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Days Overdue</th></tr></thead>
-        <tbody>
-          <tr v-for="r in agingRows" :key="r[0]">
-            <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ peso(r[2]) }}</td>
-            <td>{{ r[3] }}</td><td>{{ r[4] }}</td>
-            <td :class="{ stale: Number(r[5]) > 0 }">{{ r[5] }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <template v-else>
+        <div class="aging-top">
+          <svg viewBox="0 0 100 100" class="donut">
+            <circle v-for="s in agingDonut" :key="s.key" cx="50" cy="50" r="40" fill="none"
+                    stroke-width="14" :stroke="s.color"
+                    :stroke-dasharray="s.dash" :stroke-dashoffset="s.offset" />
+          </svg>
+          <table class="bucket-table">
+            <tbody>
+              <tr v-for="b in agingBuckets" :key="b.key">
+                <td><span class="dot" :style="{ background: b.color }"></span>{{ b.label }}</td>
+                <td>{{ b.rows.length }} inv.</td>
+                <td>{{ peso(b.total) }}</td>
+              </tr>
+              <tr class="total"><td>Total</td><td>{{ agingRows.length }}</td><td>{{ peso(totalOutstanding) }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <table v-for="b in agingBuckets.filter((x) => x.rows.length)" :key="b.key">
+          <thead>
+            <tr><th colspan="5" :style="{ color: b.color }">{{ b.label }} · {{ peso(b.total) }}</th></tr>
+            <tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Due Date</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in b.rows" :key="r[0]">
+              <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ peso(r[2]) }}</td>
+              <td>{{ r[3] }}</td>
+              <td :class="{ stale: Number(r[5]) > 0 }">{{ dueLabel(r[5]) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Expenses by Category</div>
+      <div v-if="expenseRep.loading" class="muted">···</div>
+      <div v-else-if="!expenseGroups.length" class="muted">No expenses in this date range.</div>
+      <template v-else>
+        <div class="aging-top">
+          <svg viewBox="0 0 100 100" class="donut">
+            <circle v-for="s in expenseDonut" :key="s.key" cx="50" cy="50" r="40" fill="none"
+                    stroke-width="14" :stroke="s.color"
+                    :stroke-dasharray="s.dash" :stroke-dashoffset="s.offset" />
+          </svg>
+          <table class="bucket-table">
+            <tbody>
+              <tr v-for="g in expenseGroups" :key="g.key">
+                <td><span class="dot" :style="{ background: g.color }"></span>{{ g.label }}</td>
+                <td>{{ peso(g.total) }}</td>
+              </tr>
+              <tr class="total"><td>Total</td><td>{{ peso(totalExpenses) }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <table v-for="g in expenseGroups" :key="g.key">
+          <thead>
+            <tr><th colspan="2" :style="{ color: g.color }">{{ g.label }} · {{ peso(g.total) }}</th></tr>
+            <tr><th>Vendor</th><th>Amount</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in g.rows" :key="r[1]"><td>{{ r[1] }}</td><td>{{ peso(r[2]) }}</td></tr>
+            <tr class="total"><td>Subtotal</td><td>{{ peso(g.total) }}</td></tr>
+          </tbody>
+        </table>
+      </template>
     </div>
   </div>
 </template>
@@ -262,4 +390,13 @@ td.link:hover { color: #b45309; }
 .drill-box a { color: #b45309; text-decoration: none; }
 tr.drill-total td { font-weight: 700; border-top: 2px solid #111827; border-bottom: none; }
 @media (max-width: 900px) { .tiles { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
+.aging-top { display: flex; gap: 24px; align-items: center; margin-bottom: 16px; }
+.donut { width: 160px; height: 160px; transform: rotate(-90deg); flex: none; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+.bucket-table td { padding: 4px 12px 4px 0; }
+/* tiles-fix */
+.tiles { grid-template-columns: repeat(4, 1fr) !important; }
+.bucket-table { width: auto !important; min-width: 360px; }
+/* cols-fix */
+.card table:not(.bucket-table) { table-layout: fixed; width: 100%; }
 </style>

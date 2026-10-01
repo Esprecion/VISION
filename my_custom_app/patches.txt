@@ -10,3 +10,5 @@ my_custom_app.patches.update_finance_reports
 my_custom_app.patches.add_project_profitability
 my_custom_app.patches.seed_finance_data
 my_custom_app.patches.remove_infrastructure_category
+
+my_custom_app.patches.add_expense_report
