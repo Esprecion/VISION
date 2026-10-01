@@ -58,7 +58,8 @@
                 </tr>
               </tbody>
             </table>
-            <div class="deal-total">Contract Value: {{ peso(doc.value) }}</div>
+            <div class="deal-total">Milestones total: {{ peso(viewTotal) }}</div>
+            <div v-if="viewMismatch" class="warn">Does not match the deal value of {{ peso(dealVal) }} (difference {{ peso(Math.abs(viewTotal - dealVal)) }}). Click Edit to correct it.</div>
           </div>
           <div v-else class="milestone-rows">
             <div v-for="(m, i) in form.payment_milestones" :key="i" class="milestone-row">
@@ -71,6 +72,7 @@
               + Add milestone
             </button>
             <div class="deal-total">Total: {{ peso(editTotal) }}</div>
+            <div v-if="editMismatch" class="warn">Deal value is {{ peso(dealVal) }}; milestones are off by {{ peso(Math.abs(editTotal - dealVal)) }}.</div>
           </div>
         </div>
 
@@ -95,14 +97,9 @@
         <div class="dd-section">
           <div class="section-label">Payment Terms &amp; Conditions</div>
           <div v-if="!editing">
-            <div class="dates-row">Invoices are due {{ doc.payment_terms_days ?? 30 }} days after they are issued</div>
             <div class="terms-text">{{ doc.terms_and_conditions || 'No terms written yet. Click Edit to add them.' }}</div>
           </div>
           <div v-else class="milestone-rows">
-            <div class="field">
-              <label>Due after (days)</label>
-              <input v-model.number="form.payment_terms_days" type="number" min="0" />
-            </div>
             <div class="field">
               <label>Terms and conditions</label>
               <textarea v-model="form.terms_and_conditions" rows="4" placeholder="e.g. Late payments accrue 2% per month. Work starts after the downpayment clears."></textarea>
@@ -238,6 +235,10 @@ function cancelEdit() {
   editing.value = false
 }
 
+const viewTotal = computed(() => (doc.value?.payment_milestones || []).reduce((s, m) => s + (Number(m.amount) || 0), 0))
+const dealVal = computed(() => Number(dealInfo.value?.value) || 0)
+const viewMismatch = computed(() => dealVal.value > 0 && Math.abs(viewTotal.value - dealVal.value) >= 0.01)
+const editMismatch = computed(() => dealVal.value > 0 && Math.abs(editTotal.value - dealVal.value) >= 0.01)
 const editTotal = computed(() => form.payment_milestones.reduce((s, m) => s + (Number(m.amount) || 0), 0))
 
 async function saveChanges() {
@@ -247,7 +248,6 @@ async function saveChanges() {
       ...doc.value,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
-      payment_terms_days: Number(form.payment_terms_days) || 0,
       terms_and_conditions: form.terms_and_conditions || '',
       payment_milestones: form.payment_milestones,
     }
@@ -377,4 +377,5 @@ function peso(n) {
 .comment-input-row button { background: #b45309; color: white; border: none; border-radius: 6px; padding: 0 16px; cursor: pointer; }
 .terms-text { white-space: pre-wrap; font-size: 13px; color: #4b5563; margin-top: 6px; }
 .field textarea { border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 9px; font-size: 13px; font-family: inherit; }
+.warn { margin-top: 6px; font-size: 12px; color: #b91c1c; }
 </style>

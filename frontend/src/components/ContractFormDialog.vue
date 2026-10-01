@@ -18,6 +18,10 @@
           <input :value="form.client" type="text" disabled />
         </div>
 
+        <div v-if="form.deal" class="value-box">
+          Project value: <b>{{ dealValue > 0 ? peso(dealValue) : 'not set on this deal' }}</b>
+        </div>
+
         <div class="field-row">
           <div class="field">
             <label>Start Date</label>
@@ -31,6 +35,10 @@
 
         <div class="field">
           <label>Payment Milestones *</label>
+          <select v-if="dealValue > 0" v-model="templateChoice" class="tpl" @change="applyTemplate($event.target.value)">
+            <option value="">Fill from template...</option>
+            <option v-for="(t, i) in TEMPLATES" :key="t.label" :value="i">{{ t.label }}</option>
+          </select>
           <div class="milestone-rows">
             <div v-for="(m, i) in milestones" :key="i" class="milestone-row">
               <input v-model="m.milestone_name" type="text" placeholder="e.g. Downpayment" class="ms-name" />
@@ -42,6 +50,15 @@
             + Add milestone
           </button>
           <div class="total-row">Total: {{ peso(totalValue) }}</div>
+          <div v-if="dealValue > 0" class="balance" :class="{ ok: matches, bad: !matches }">
+            Milestones {{ peso(totalValue) }} of {{ peso(dealValue) }}:
+            {{ matches ? 'fully allocated' : (remaining > 0 ? peso(remaining) + ' left to allocate' : peso(-remaining) + ' over the deal value') }}
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Terms and conditions</label>
+          <textarea v-model="form.terms_and_conditions" rows="3" placeholder="e.g. Late payments accrue 2% per month. Work starts after the downpayment clears."></textarea>
         </div>
 
         <div v-if="createContract.error" class="error-msg">
@@ -63,7 +80,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { Dialog, Autocomplete, createResource, createListResource } from 'frappe-ui'
+import { Dialog, Autocomplete, createResource, createListResource, call } from 'frappe-ui'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -113,6 +130,7 @@ const form = reactive({
   client: '',
   start_date: '',
   end_date: '',
+  terms_and_conditions: '',
 })
 
 function onDealSelect(val) {
@@ -125,8 +143,45 @@ function onDealSelect(val) {
 const milestones = ref([{ milestone_name: 'Downpayment', amount: 0 }])
 const totalValue = computed(() => milestones.value.reduce((s, m) => s + (Number(m.amount) || 0), 0))
 
+// Real deal value, read from the database (Deal.value, or the sum of its items)
+const dealValue = ref(0)
+watch(() => form.deal, async (d) => {
+  dealValue.value = 0
+  if (!d) return
+  try {
+    const doc = await call('frappe.client.get', { doctype: 'Deal', name: d })
+    const fromItems = (doc.items || []).reduce((s, i) => s + (Number(i.amount) || 0), 0)
+    dealValue.value = Number(doc.value) || fromItems
+  } catch (e) {
+    dealValue.value = 0
+  }
+}, { immediate: true })
+
+const remaining = computed(() => Math.round((dealValue.value - totalValue.value) * 100) / 100)
+const matches = computed(() => dealValue.value <= 0 || Math.abs(remaining.value) < 0.01)
+
+const TEMPLATES = [
+  { label: '30 / 40 / 30', parts: [['Downpayment', 30], ['Progress payment', 40], ['Final payment', 30]] },
+  { label: '40 / 30 / 30', parts: [['Downpayment', 40], ['Progress payment', 30], ['Final payment', 30]] },
+  { label: '50 / 50', parts: [['Downpayment', 50], ['Final payment', 50]] },
+  { label: '100% upfront', parts: [['Full payment', 100]] },
+]
+const templateChoice = ref('')
+function applyTemplate(i) {
+  templateChoice.value = ''
+  const t = TEMPLATES[Number(i)]
+  if (!t || dealValue.value <= 0) return
+  let used = 0
+  milestones.value = t.parts.map(([name, pct], idx) => {
+    const last = idx === t.parts.length - 1
+    const amount = last ? Math.round((dealValue.value - used) * 100) / 100 : Math.round(dealValue.value * pct) / 100
+    used += amount
+    return { milestone_name: name, amount }
+  })
+}
+
 const canSubmit = computed(
-  () => form.deal && milestones.value.length > 0 && milestones.value.every((m) => m.milestone_name.trim() && m.amount > 0)
+  () => form.deal && milestones.value.length > 0 && milestones.value.every((m) => m.milestone_name.trim() && m.amount > 0) && matches.value
 )
 
 const createContract = createResource({
@@ -143,6 +198,7 @@ function submit() {
         client: form.client,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
+        terms_and_conditions: form.terms_and_conditions || '',
         payment_milestones: milestones.value,
       },
     },
@@ -154,6 +210,7 @@ function submit() {
         form.client = ''
         form.start_date = ''
         form.end_date = ''
+        form.terms_and_conditions = ''
         milestones.value = [{ milestone_name: 'Downpayment', amount: 0 }]
       },
     }
@@ -267,4 +324,10 @@ function peso(n) {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.value-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #92400e; }
+.tpl { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px; font-size: 13px; width: fit-content; margin-bottom: 8px; background: #fff; }
+.balance { font-size: 13px; margin-top: 4px; }
+.balance.ok { color: #047857; }
+.balance.bad { color: #b91c1c; }
+.field textarea { border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px; font-size: 14px; font-family: inherit; }
 </style>

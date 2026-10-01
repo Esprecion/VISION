@@ -28,8 +28,8 @@
             </select>
           </div>
 
-          <div v-if="contractTerms.text || form.contract" class="terms-box">
-            <div class="terms-title">Contract terms: due {{ contractTerms.days }} days after issue</div>
+          <div v-if="contractTerms.text" class="terms-box">
+            <div class="terms-title">Contract terms and conditions</div>
             <div v-if="contractTerms.text" class="terms-body">{{ contractTerms.text }}</div>
           </div>
 
@@ -64,7 +64,16 @@
             </div>
             <div class="field">
               <label>Due Date *</label>
-              <input v-model="form.due_date" type="date" :min="form.issue_date" />
+              <div class="due-row">
+                <select v-model="netDays" @change="applyDue()">
+                  <option value="15">Net 15</option>
+                  <option value="30">Net 30</option>
+                  <option value="45">Net 45</option>
+                  <option value="60">Net 60</option>
+                  <option value="">Custom date</option>
+                </select>
+                <input v-model="form.due_date" type="date" :min="form.issue_date" @input="netDays = ''" />
+              </div>
             </div>
           </div>
           <div class="field">
@@ -138,6 +147,8 @@ watch(show, async (v) => {
   if (v) {
     Object.assign(form, blank())
     loaded.value = null
+    netDays.value = props.editName ? '' : '30'
+    applyDue()
     if (props.editName) await loadForEdit()
   }
 })
@@ -202,10 +213,11 @@ function projectLabel(p) {
 }
 
 const contractTerms = ref({ days: 30, text: '' })
+const netDays = ref('30')
 function applyDue() {
-  if (props.editName || !form.contract || !form.issue_date) return
+  if (props.editName || netDays.value === '' || !form.issue_date) return
   const dt = parseLocal(form.issue_date)
-  dt.setDate(dt.getDate() + Number(contractTerms.value.days || 0))
+  dt.setDate(dt.getDate() + Number(netDays.value))
   form.due_date = formatLocalDate(dt)
 }
 watch(() => form.contract, async (c) => {
@@ -341,4 +353,5 @@ input:disabled, select:disabled { background: #f3f4f6; color: #6b7280; }
 .terms-title { font-weight: 600; }
 .terms-body { margin-top: 4px; white-space: pre-wrap; color: #78350f; }
 .line.exp { grid-template-columns: 1fr 1.2fr 110px 24px; }
+.due-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
 </style>
