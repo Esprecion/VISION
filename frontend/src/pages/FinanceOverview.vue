@@ -29,6 +29,39 @@ const aging = useReport('Accounts Receivable Aging')
 const burn = useReport('Net Burn Rate', range())
 const profit = useReport('Project Profitability', range())
 
+const projectsRes = createResource({
+  url: 'frappe.client.get_list',
+  params: { doctype: 'Project', fields: ['name', 'contract'], limit_page_length: 500 },
+  auto: true,
+})
+const drill = ref(null)
+const drillRes = createResource({ url: 'frappe.client.get_list', auto: false })
+const drillRows = computed(() =>
+  (drillRes.data || []).map((d) =>
+    drill.value?.kind === 'expense'
+      ? { id: d.name, label: d.category + (d.project ? ' · ' + d.project : ''), date: d.expense_date, amount: d.amount, href: '/app/expense/' + d.name }
+      : { id: d.name, label: d.client, date: d.issue_date, amount: d.amount, href: '/app/invoice/' + d.name }
+  )
+)
+const drillTotal = computed(() => drillRows.value.reduce((t, r) => t + Number(r.amount || 0), 0))
+function openDrill(kind, r) {
+  const all = r[0] === 'COMPANY TOTAL'
+  const { from_date, to_date } = range()
+  let params
+  if (kind === 'expense') {
+    const filters = { expense_date: ['between', [from_date, to_date]] }
+    if (!all) filters.project = r[0]
+    params = { doctype: 'Expense', fields: ['name', 'category', 'amount', 'expense_date', 'project'], filters, order_by: 'expense_date desc', limit_page_length: 200 }
+  } else {
+    const filters = { status: 'Paid', issue_date: ['between', [from_date, to_date]] }
+    if (!all) filters.contract = (projectsRes.data || []).find((p) => p.name === r[0])?.contract || '__none__'
+    params = { doctype: 'Invoice', fields: ['name', 'client', 'amount', 'issue_date'], filters, order_by: 'issue_date desc', limit_page_length: 200 }
+  }
+  drill.value = { kind, title: all ? 'All projects' : r[0] }
+  drillRes.update({ params })
+  drillRes.reload()
+}
+
 watch([fromInput, toInput], () => {
   if (!fromInput.value || !toInput.value || fromInput.value > toInput.value) return
   for (const [res, name] of [[revenue, 'Revenue per Client'], [burn, 'Net Burn Rate'], [profit, 'Project Profitability']]) {
@@ -136,13 +169,34 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
         <tbody>
           <tr v-for="r in profitRows" :key="r[0]" :class="{ overhead: isOverhead(r), total: isTotal(r) }">
             <td>{{ r[0] }}</td><td>{{ r[1] || '' }}</td>
-            <td>{{ peso(r[2]) }}</td><td>{{ peso(r[3]) }}</td>
+            <td class="link" @click="openDrill('revenue', r)">{{ peso(r[2]) }}</td><td class="link" @click="openDrill('expense', r)">{{ peso(r[3]) }}</td>
             <td :class="{ loss: Number(r[4]) < 0 }">{{ peso(r[4]) }}</td>
             <td>{{ margin(r) }}</td>
           </tr>
         </tbody>
       </table>
       <div class="muted note">Expenses shown are project costs only (subscriptions, hardware, infrastructure).</div>
+
+    <div v-if="drill" class="drill-overlay" @click.self="drill = null">
+      <div class="drill-box">
+        <div class="drill-head">
+          <strong>{{ drill.kind === 'expense' ? 'Expenses' : 'Paid invoices' }} · {{ drill.title }}</strong>
+          <button type="button" @click="drill = null">×</button>
+        </div>
+        <div v-if="drillRes.loading" class="muted">···</div>
+        <div v-else-if="!drillRows.length" class="muted">No records in this date range.</div>
+        <table v-else>
+          <thead><tr><th>ID</th><th>Details</th><th>Date</th><th>Amount</th></tr></thead>
+          <tbody>
+            <tr v-for="d in drillRows" :key="d.id">
+              <td><a :href="d.href" target="_blank">{{ d.id }}</a></td>
+              <td>{{ d.label }}</td><td>{{ d.date }}</td><td>{{ peso(d.amount) }}</td>
+            </tr>
+            <tr class="drill-total"><td colspan="3">Total</td><td>{{ peso(drillTotal) }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     </div>
 
     <div class="card">
@@ -199,5 +253,13 @@ tr.total td { font-weight: 700; border-top: 2px solid #111827; border-bottom: no
 td.loss { color: #dc2626; font-weight: 600; }
 .note { font-size: 12px; margin-top: 8px; }
 .muted { color: #9ca3af; }
+td.link { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+td.link:hover { color: #b45309; }
+.drill-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.drill-box { background: #fff; border-radius: 14px; padding: 18px 20px; width: min(560px, 92vw); max-height: 80vh; overflow: auto; }
+.drill-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.drill-head button { border: none; background: none; font-size: 20px; cursor: pointer; }
+.drill-box a { color: #b45309; text-decoration: none; }
+tr.drill-total td { font-weight: 700; border-top: 2px solid #111827; border-bottom: none; }
 @media (max-width: 900px) { .tiles { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
 </style>
