@@ -8,3 +8,4 @@ my_custom_app.patches.rename_vision_module
 
 my_custom_app.patches.update_finance_reports
 my_custom_app.patches.add_project_profitability
+my_custom_app.patches.seed_finance_data
