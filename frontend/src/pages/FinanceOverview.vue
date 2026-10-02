@@ -358,7 +358,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 .tile { padding: 16px 18px; }
 .card { padding: 18px 20px; }
 .label { font-size: 11px; color: #6b7280; font-weight: 600; letter-spacing: .03em; margin-bottom: 6px; }
-.value { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: #b45309; }
+.value { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: #111827; }
 .value.neg { color: #16a34a; }
 .sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }

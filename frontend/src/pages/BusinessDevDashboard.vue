@@ -305,7 +305,7 @@ function peso(n) {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 26px;
   font-weight: 700;
-  color: #b45309;
+  color: #111827;
   font-variant-numeric: tabular-nums;
 }
 .stat-sub {
@@ -339,7 +339,7 @@ function peso(n) {
 }
 .card-value.hero {
   font-size: 34px;
-  color: #b45309;
+  color: #111827;
 }
 .card-value.loading {
   font-size: 24px;
