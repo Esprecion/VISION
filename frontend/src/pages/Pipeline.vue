@@ -434,7 +434,7 @@ function peso(n) {
   color: #111827;
 }
 .summary-item.hero .value {
-  color: #b45309;
+  color: #111827;
   font-size: 28px;
 }
 .board {

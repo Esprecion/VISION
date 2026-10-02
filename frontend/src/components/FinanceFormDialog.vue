@@ -149,6 +149,7 @@ watch(show, async (v) => {
     loaded.value = null
     netDays.value = props.editName ? '' : '30'
     applyDue()
+    if (!isInvoice) { projects.reload(); pContracts.reload(); pDeals.reload() }
     if (props.editName) await loadForEdit()
   }
 })
