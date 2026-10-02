@@ -44,7 +44,7 @@ export const session = reactive({
     immediate: false,
     onSuccess() {
       sessionUser.value = getSessionUserFromCookie()
-      window.location.href = '/login'
+      window.location.href = '/login?redirect-to=/frontend/dashboard'
     },
   }),
   user: sessionUser,

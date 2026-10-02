@@ -14,6 +14,12 @@ const items = computed(() =>
       (m.role === 'COO' && session.isCOO) || (m.role === 'CFO' && session.isCFO),
   }))
 )
+const roleLabel = computed(() =>
+  session.isAdmin ? 'Admin' : (['CBO', 'CFO', 'COO'].find((r) => session.roles.includes(r)) || '')
+)
+function logout() {
+  session.logout.submit()
+}
 </script>
 
 <template>
@@ -34,6 +40,13 @@ const items = computed(() =>
         <span v-if="!m.editable" class="badge">View only</span>
       </router-link>
     </nav>
+    <div v-if="session.isLoggedIn" class="sidebar-footer">
+      <div class="who">
+        <div class="who-name">{{ session.user }}</div>
+        <div v-if="roleLabel" class="who-role">{{ roleLabel }}</div>
+      </div>
+      <button type="button" class="logout" @click="logout">Log out</button>
+    </div>
   </aside>
 </template>
 
@@ -85,4 +98,11 @@ const items = computed(() =>
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
 }
+.sidebar { display: flex; flex-direction: column; }
+.sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid #e5e7eb; }
+.who { padding: 0 0.5rem 0.75rem; }
+.who-name { font-size: 0.8rem; color: #111827; word-break: break-all; }
+.who-role { font-size: 0.7rem; color: #6b7280; margin-top: 2px; }
+.logout { width: 100%; border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 0.5rem; font-size: 0.85rem; color: #111827; cursor: pointer; font-family: inherit; }
+.logout:hover { background: #f3f4f6; }
 </style>
