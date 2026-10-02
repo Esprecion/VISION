@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { createResource, call } from 'frappe-ui'
 import FinanceFormDialog from '../components/FinanceFormDialog.vue'
+import { quarterRange, yearRange } from '../utils/dateRange'
 
 const props = defineProps({
   title: String,
@@ -38,12 +39,39 @@ const canEdit = computed(() => !!props.createKind && perms.data?.write === true)
 const canDelete = computed(() => !!props.createKind && perms.data?.delete === true)
 const hasActions = computed(() => canEdit.value || canDelete.value)
 
+const fromDate = ref('')
+const toDate = ref('')
+const optFilter = ref('')
+const dateKey = computed(() => props.columns.find((c) => c.key === 'issue_date' || c.key === 'expense_date')?.key)
+const filterCol = computed(() => props.columns.find((c) => c.key === 'status' || c.key === 'category'))
+const moneyKey = computed(() => props.columns.find((c) => c.type === 'money')?.key)
+const filterOptions = computed(() => {
+  const k = filterCol.value?.key
+  if (!k) return []
+  return [...new Set((list.data ?? []).map((r) => r[k]).filter(Boolean))].sort()
+})
+const dateInvalid = computed(() => !!fromDate.value && !!toDate.value && fromDate.value > toDate.value)
+const hasFilters = computed(() => !!(fromDate.value || toDate.value || optFilter.value || search.value))
+function setRange(r) { fromDate.value = r.from; toDate.value = r.to }
+function clearFilters() { fromDate.value = ''; toDate.value = ''; optFilter.value = ''; search.value = '' }
+const money = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
+
 const rows = computed(() => {
   const q = search.value.trim().toLowerCase()
-  const all = list.data ?? []
-  if (!q) return all
-  return all.filter((r) => Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(q)))
+  const dk = dateKey.value
+  const fk = filterCol.value?.key
+  return (list.data ?? []).filter((r) => {
+    if (fk && optFilter.value && r[fk] !== optFilter.value) return false
+    if (dk && !dateInvalid.value) {
+      const d = r[dk]
+      if (fromDate.value && (!d || d < fromDate.value)) return false
+      if (toDate.value && (!d || d > toDate.value)) return false
+    }
+    if (q && !Object.values(r).some((v) => String(v ?? '').toLowerCase().includes(q))) return false
+    return true
+  })
 })
+const total = computed(() => rows.value.reduce((t, r) => t + Number(r[moneyKey.value] || 0), 0))
 
 function show(row, col) {
   const v = row[col.key]
@@ -74,6 +102,20 @@ async function remove(r) {
         <button v-if="canCreate" class="btn-new" @click="openNew">+ New {{ createKind }}</button>
       </div>
     </header>
+    <div class="filters">
+      <label>From <input type="date" v-model="fromDate" :max="toDate || undefined" /></label>
+      <label>To <input type="date" v-model="toDate" :min="fromDate || undefined" /></label>
+      <button type="button" @click="setRange(quarterRange(0))">This quarter</button>
+      <button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
+      <button type="button" @click="setRange(yearRange())">This year</button>
+      <select v-if="filterCol" v-model="optFilter">
+        <option value="">All {{ filterCol.label.toLowerCase() }}</option>
+        <option v-for="o in filterOptions" :key="o" :value="o">{{ o }}</option>
+      </select>
+      <button v-if="hasFilters" type="button" class="clear" @click="clearFilters">Clear</button>
+      <span class="summary">Showing {{ rows.length }} of {{ (list.data || []).length }}<template v-if="moneyKey"> · {{ money(total) }}</template></span>
+    </div>
+    <div v-if="dateInvalid" class="err">The end date is before the start date, so the date filter is ignored.</div>
     <div v-if="msg" class="err">{{ msg }}</div>
     <div class="card">
       <div v-if="list.loading" class="muted">···</div>
@@ -114,4 +156,11 @@ td { padding: 10px 4px; border-bottom: 1px solid #f3f4f6; }
 .act { background: none; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; margin-left: 6px; color: #374151; }
 .act:hover { background: #f3f4f6; }
 .act.del { color: #dc2626; border-color: #fecaca; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; font-size: 13px; color: #6b7280; }
+.filters label { display: flex; align-items: center; gap: 6px; }
+.filters input, .filters select { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; color: #111827; font-family: inherit; }
+.filters button { border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #111827; cursor: pointer; font-family: inherit; }
+.filters button:hover { background: #f3f4f6; }
+.filters .clear { color: #dc2626; border-color: #fecaca; }
+.filters .summary { margin-left: auto; color: #4b5563; font-weight: 500; }
 </style>
