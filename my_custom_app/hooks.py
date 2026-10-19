@@ -255,5 +255,5 @@ after_install = "my_custom_app.patches.create_cbo_coo_cfo_roles.create_roles"
 
 
 website_route_rules = [
-    {"from_route": "/frontend/<path:app_path>", "to_route": "frontend"},
+	{"from_route": "/frontend/<path:app_path>", "to_route": "frontend"},
 ]

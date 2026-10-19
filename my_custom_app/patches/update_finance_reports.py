@@ -38,6 +38,6 @@ ORDER BY m.month"""
 
 
 def execute():
-    for name, q in (("Revenue per Client", REVENUE), ("Net Burn Rate", BURN)):
-        if frappe.db.exists("Report", name):
-            frappe.db.set_value("Report", name, "query", q)
+	for name, q in (("Revenue per Client", REVENUE), ("Net Burn Rate", BURN)):
+		if frappe.db.exists("Report", name):
+			frappe.db.set_value("Report", name, "query", q)

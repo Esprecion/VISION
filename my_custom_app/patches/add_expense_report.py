@@ -14,18 +14,20 @@ ORDER BY e.category, SUM(i.amount) DESC
 
 
 def execute():
-    if frappe.db.exists("Report", NAME):
-        doc = frappe.get_doc("Report", NAME)
-        doc.query = QUERY
-        doc.save(ignore_permissions=True)
-        return
-    frappe.get_doc({
-        "doctype": "Report",
-        "report_name": NAME,
-        "ref_doctype": "Expense",
-        "report_type": "Query Report",
-        "is_standard": "No",
-        "module": "Finance",
-        "query": QUERY,
-        "roles": [{"role": "System Manager"}, {"role": "CBO"}, {"role": "COO"}, {"role": "CFO"}],
-    }).insert(ignore_permissions=True)
+	if frappe.db.exists("Report", NAME):
+		doc = frappe.get_doc("Report", NAME)
+		doc.query = QUERY
+		doc.save(ignore_permissions=True)
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Report",
+			"report_name": NAME,
+			"ref_doctype": "Expense",
+			"report_type": "Query Report",
+			"is_standard": "No",
+			"module": "Finance",
+			"query": QUERY,
+			"roles": [{"role": "System Manager"}, {"role": "CBO"}, {"role": "COO"}, {"role": "CFO"}],
+		}
+	).insert(ignore_permissions=True)

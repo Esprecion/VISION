@@ -47,16 +47,18 @@ NAME = "Project Profitability"
 
 
 def execute():
-    if frappe.db.exists("Report", NAME):
-        frappe.db.set_value("Report", NAME, "query", QUERY)
-        return
-    frappe.get_doc({
-        "doctype": "Report",
-        "report_name": NAME,
-        "ref_doctype": "Invoice",
-        "report_type": "Query Report",
-        "is_standard": "No",
-        "module": frappe.db.get_value("DocType", "Invoice", "module"),
-        "query": QUERY,
-        "roles": [{"role": "CFO"}, {"role": "System Manager"}],
-    }).insert(ignore_permissions=True)
+	if frappe.db.exists("Report", NAME):
+		frappe.db.set_value("Report", NAME, "query", QUERY)
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Report",
+			"report_name": NAME,
+			"ref_doctype": "Invoice",
+			"report_type": "Query Report",
+			"is_standard": "No",
+			"module": frappe.db.get_value("DocType", "Invoice", "module"),
+			"query": QUERY,
+			"roles": [{"role": "CFO"}, {"role": "System Manager"}],
+		}
+	).insert(ignore_permissions=True)
