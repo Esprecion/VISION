@@ -11,4 +11,5 @@ my_custom_app.patches.add_project_profitability
 my_custom_app.patches.seed_finance_data
 my_custom_app.patches.remove_infrastructure_category
 
+my_custom_app.patches.create_cbo_coo_cfo_roles
 my_custom_app.patches.add_expense_report
