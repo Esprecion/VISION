@@ -3,7 +3,6 @@
   "type": "module",
   "private": true,
   "version": "0.0.0",
-  "boilerplate_script": "boilerplate.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
