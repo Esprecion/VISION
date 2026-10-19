@@ -1,7 +1,7 @@
 app_name = "my_custom_app"
 app_title = "VISION"
 app_publisher = "Ashlee adesprecion@student.apc.edu.ph"
-app_description = "A technically one stop shop for MSME\'nce, and others."
+app_description = "A technically one stop shop for MSMEs, and others."
 app_email = "adesprecion@student.apc.edu.ph"
 app_license = "mit"
 

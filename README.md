@@ -1,25 +1,41 @@
-### VISION
+# VISION
 
-A technically one stop shop for MSME\'nce, and others.
+VISION is a unified platform for MSMEs and others to manage business development, operations, and finance in one place.
 
-### Installation
+## Modules
+
+- **Business Development** - Clients, Deals, Pipeline Stages, Products, and Service Contracts
+- **Operations** - Projects, Tool Subscriptions and tracking, and Client Engagement Logs
+- **Finance** - Invoices, Expenses, and financial reporting
+
+## Roles
+
+- **CBO** (Chief Business Officer)
+- **COO** (Chief Operating Officer)
+- **CFO** (Chief Financial Officer)
+
+## Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
 
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
+`ash
+cd 
+bench get-app  --branch main
 bench install-app my_custom_app
-```
+`
 
-### Contributing
+## Deploy
 
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+To deploy VISION on [Frappe Cloud](https://frappecloud.com/), follow the standard Frappe app deployment process. Ensure all dependencies are installed and migrations run successfully.
 
-```bash
+## Contributing
+
+This app uses pre-commit for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+
+`ash
 cd apps/my_custom_app
 pre-commit install
-```
+`
 
 Pre-commit is configured to use the following tools for checking and formatting your code:
 
@@ -27,7 +43,3 @@ Pre-commit is configured to use the following tools for checking and formatting 
 - eslint
 - prettier
 - pyupgrade
-
-### License
-
-mit
