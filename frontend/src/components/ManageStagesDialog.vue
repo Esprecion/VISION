@@ -3,7 +3,7 @@
     <template #body-content>
       <div class="stages-list">
         <div v-for="stage in sortedStages" :key="stage.name" class="stage-row">
-          <span class="dot" :style="{ background: stage.color || '#9ca3af' }"></span>
+          <span class="dot" :style="{ background: stage.color || 'var(--color-gray-400)' }"></span>
 
           <input
             v-if="editingName === stage.name"
@@ -222,7 +222,7 @@ async function addStage() {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
 }
 .dot {
@@ -234,19 +234,19 @@ async function addStage() {
 .stage-label {
   flex: 1;
   font-size: 14px;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 .rename-input {
   flex: 1;
-  border: 1px solid #6366f1;
+  border: 1px solid var(--color-indigo-500);
   border-radius: 6px;
   padding: 4px 8px;
   font-size: 14px;
 }
 .locked-badge {
   font-size: 11px;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: var(--color-gray-500);
+  background: var(--color-gray-100);
   padding: 2px 8px;
   border-radius: 999px;
 }
@@ -256,7 +256,7 @@ async function addStage() {
 }
 .icon-btn {
   border: none;
-  background: #f3f4f6;
+  background: var(--color-gray-100);
   border-radius: 6px;
   width: 26px;
   height: 26px;
@@ -264,11 +264,11 @@ async function addStage() {
   font-size: 13px;
 }
 .icon-btn.danger {
-  color: #dc2626;
+  color: var(--color-red-600);
 }
 .confirm-text {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--color-red-600);
   margin-right: 2px;
 }
 .icon-btn.confirm-yes {
@@ -278,12 +278,12 @@ async function addStage() {
   display: flex;
   gap: 8px;
   align-items: center;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-gray-200);
   padding-top: 12px;
 }
 .add-row input[type='text'] {
   flex: 1;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-gray-300);
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 14px;
@@ -302,25 +302,12 @@ async function addStage() {
   padding: 0;
 }
 .swatch.selected {
-  border-color: #111827;
+  border-color: var(--color-gray-900);
 }
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 14px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn-secondary { padding: 8px 14px; white-space: nowrap; }
+
 .error-msg {
-  color: #dc2626;
+  color: var(--color-red-600);
   font-size: 13px;
   margin-top: 10px;
 }

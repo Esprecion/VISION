@@ -274,21 +274,21 @@ function peso(n) {
 <style scoped>
 .form-grid { display: flex; flex-direction: column; gap: 14px; }
 .stage-badge {
-  font-size: 13px; color: #6b7280; background: #fef3c7;
+  font-size: 13px; color: var(--color-gray-500); background: var(--color-amber-100);
   border-radius: 6px; padding: 6px 10px; width: fit-content;
 }
-.stage-badge strong { color: #b45309; }
+.stage-badge strong { color: var(--color-amber-700); }
 .field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 13px; color: #4b5563; font-weight: 500; }
+.field label { font-size: 13px; color: var(--color-gray-600); font-weight: 500; }
 .field input {
-  border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 10px;
+  border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 8px 10px;
   font-size: 14px; font-family: inherit;
 }
-.field input:focus { outline: none; border-color: #6366f1; }
+.field input:focus { outline: none; border-color: var(--color-indigo-500); }
 .label-row { display: flex; justify-content: space-between; align-items: center; }
 .new-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .new-box input, .new-product input, .new-product select {
-  border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px;
+  border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 6px 8px;
   font-size: 13px; font-family: inherit; width: 100%; box-sizing: border-box;
 }
 .new-product { display: flex; flex-direction: column; gap: 4px; }
@@ -298,43 +298,39 @@ function peso(n) {
   display: grid; grid-template-columns: 210px 56px 84px 84px 20px;
   gap: 8px; align-items: center;
 }
-.items-head { font-size: 11px; color: #9ca3af; font-weight: 500; text-transform: uppercase; }
+.items-head { font-size: 11px; color: var(--color-gray-400); font-weight: 500; text-transform: uppercase; }
 .product-cell { width: 210px; overflow: hidden; }
 .items-row input {
-  width: 100%; box-sizing: border-box; border: 1px solid #d1d5db;
+  width: 100%; box-sizing: border-box; border: 1px solid var(--color-gray-300);
   border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit;
 }
 .row-amount {
   background: transparent; border: none; font-size: 13px; font-weight: 600;
-  color: #111827; padding: 0; text-align: left; cursor: pointer;
+  color: var(--color-gray-900); padding: 0; text-align: left; cursor: pointer;
   white-space: nowrap; overflow: hidden; max-width: 100%;
 }
-.row-amount:hover { color: #b45309; }
+.row-amount:hover { color: var(--color-amber-700); }
 .remove-row {
-  background: transparent; border: none; color: #9ca3af;
+  background: transparent; border: none; color: var(--color-gray-400);
   font-size: 16px; cursor: pointer; padding: 0;
 }
-.remove-row:hover { color: #dc2626; }
+.remove-row:hover { color: var(--color-red-600); }
 .btn-link {
-  background: transparent; border: none; color: #6366f1; font-size: 13px;
+  background: transparent; border: none; color: var(--color-indigo-500); font-size: 13px;
   font-weight: 500; cursor: pointer; padding: 0; text-align: left; width: fit-content;
 }
 .btn-link.small { font-size: 11px; }
 .total-row {
   display: flex; justify-content: space-between; align-items: center;
-  border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 15px; gap: 12px;
+  border-top: 1px solid var(--color-gray-200); padding-top: 10px; font-size: 15px; gap: 12px;
 }
 .total-row span { flex-shrink: 0; }
 .total-value {
   background: transparent; border: none; cursor: pointer;
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: #b45309;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--color-amber-700);
   padding: 0; overflow: hidden; white-space: nowrap; max-width: 100%; text-align: right;
 }
 .total-value:hover { text-decoration: underline; }
-.error-msg { color: #dc2626; font-size: 13px; }
-.btn-primary {
-  background: #111827; color: #ffffff; border: none; border-radius: 6px;
-  padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; width: 100%;
-}
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.error-msg { color: var(--color-red-600); font-size: 13px; }
+.btn-primary { width: 100%; }
 </style>

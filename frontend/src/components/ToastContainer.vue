@@ -27,8 +27,8 @@ function onAction(t) {
   z-index: 100;
 }
 .toast {
-  background: #111827;
-  color: #ffffff;
+  background: var(--color-gray-900);
+  color: var(--color-white);
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -39,15 +39,15 @@ function onAction(t) {
   gap: 12px;
 }
 .toast.success {
-  background: #065f46;
+  background: var(--color-emerald-800);
 }
 .toast.error {
-  background: #991b1b;
+  background: var(--color-red-800);
 }
 .toast-action {
   background: rgba(255, 255, 255, 0.15);
   border: none;
-  color: #ffffff;
+  color: var(--color-white);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;

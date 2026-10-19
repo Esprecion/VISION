@@ -77,10 +77,10 @@ const filteredProducts = computed(() => {
 
 <style scoped>
 .products-page {
-  background: #f9fafb;
+  background: var(--color-gray-50);
   min-height: 100vh;
   padding: 32px;
-  color: #111827;
+  color: var(--color-gray-900);
   font-family: 'Inter', sans-serif;
 }
 .products-header {
@@ -93,31 +93,22 @@ const filteredProducts = computed(() => {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
-  color: #111827;
+  color: var(--color-gray-900);
 }
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 14px;
-  cursor: pointer;
-}
+.btn-secondary { border-radius: 8px; padding: 8px 14px; }
 .search-input {
   width: 100%;
   max-width: 360px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 14px;
   margin-bottom: 16px;
-  background: #ffffff;
+  background: var(--color-white);
 }
 .table-wrap {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -130,14 +121,14 @@ const filteredProducts = computed(() => {
   text-align: left;
   padding: 10px 16px;
   font-size: 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 .products-table th {
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
-  background: #f9fafb;
+  background: var(--color-gray-50);
 }
 .products-table tr:last-child td {
   border-bottom: none;
@@ -146,8 +137,8 @@ const filteredProducts = computed(() => {
   font-weight: 600;
 }
 .type-badge {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-amber-100);
+  color: var(--color-amber-700);
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 12px;
@@ -155,7 +146,7 @@ const filteredProducts = computed(() => {
 }
 .empty-row {
   text-align: center;
-  color: #6b7280;
+  color: var(--color-gray-500);
   padding: 24px;
 }
 </style>

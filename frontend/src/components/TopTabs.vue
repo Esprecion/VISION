@@ -22,12 +22,12 @@ defineProps<{
 .top-tabs {
   display: flex;
   gap: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
   padding: 0 1.5rem;
-  background: #ffffff;
+  background: var(--color-white);
 }
 .tab-item {
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
   padding: 0.9rem 0.25rem;
@@ -35,7 +35,7 @@ defineProps<{
   text-decoration: none;
 }
 .tab-item-active {
-  color: #b45309;
-  border-bottom-color: #b45309;
+  color: var(--color-amber-700);
+  border-bottom-color: var(--color-amber-700);
 }
 </style>

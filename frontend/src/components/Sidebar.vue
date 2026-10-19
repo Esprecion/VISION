@@ -54,12 +54,12 @@ function logout() {
 .sidebar {
   width: 220px;
   min-height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
+  background: var(--color-white);
+  border-right: 1px solid var(--color-gray-200);
   padding: 1.5rem 1rem;
 }
 .sidebar-brand {
-  color: #b45309;
+  color: var(--color-amber-700);
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
   font-size: 1.1rem;
@@ -75,7 +75,7 @@ function logout() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
   padding: 0.6rem 0.75rem;
@@ -83,26 +83,26 @@ function logout() {
   text-decoration: none;
 }
 .nav-item:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--color-gray-100);
+  color: var(--color-gray-900);
 }
 .nav-item-active {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-amber-100);
+  color: var(--color-amber-700);
   font-weight: 500;
 }
 .badge {
   font-size: 0.65rem;
-  color: #9ca3af;
-  background: #f3f4f6;
+  color: var(--color-gray-400);
+  background: var(--color-gray-100);
   padding: 0.1rem 0.4rem;
   border-radius: 999px;
 }
 .sidebar { display: flex; flex-direction: column; }
-.sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid #e5e7eb; }
+.sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-gray-200); }
 .who { padding: 0 0.5rem 0.75rem; }
-.who-name { font-size: 0.8rem; color: #111827; word-break: break-all; }
-.who-role { font-size: 0.7rem; color: #6b7280; margin-top: 2px; }
-.logout { width: 100%; border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 0.5rem; font-size: 0.85rem; color: #111827; cursor: pointer; font-family: inherit; }
-.logout:hover { background: #f3f4f6; }
+.who-name { font-size: 0.8rem; color: var(--color-gray-900); word-break: break-all; }
+.who-role { font-size: 0.7rem; color: var(--color-gray-500); margin-top: 2px; }
+.logout { width: 100%; border: 1px solid var(--color-gray-200); background: var(--color-white); border-radius: 6px; padding: 0.5rem; font-size: 0.85rem; color: var(--color-gray-900); cursor: pointer; font-family: inherit; }
+.logout:hover { background: var(--color-gray-100); }
 </style>

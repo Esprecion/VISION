@@ -220,10 +220,10 @@ function peso(n) {
 
 <style scoped>
 .dashboard {
-  background: #f9fafb;
+  background: var(--color-gray-50);
   min-height: 100vh;
   padding: 32px;
-  color: #111827;
+  color: var(--color-gray-900);
   font-family: 'Inter', sans-serif;
 }
 
@@ -237,7 +237,7 @@ function peso(n) {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 .header-right {
   display: flex;
@@ -249,30 +249,30 @@ function peso(n) {
   gap: 6px;
 }
 .period-picker select {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   padding: 6px 8px;
   font-size: 13px;
-  background: #ffffff;
-  color: #111827;
+  background: var(--color-white);
+  color: var(--color-gray-900);
 }
 .range-label {
-  color: #9ca3af;
+  color: var(--color-gray-400);
   font-size: 12px;
   white-space: nowrap;
 }
 .kanban-link {
-  color: #6b7280;
+  color: var(--color-gray-500);
   text-decoration: none;
   font-size: 13px;
 }
 .kanban-link:hover {
-  color: #b45309;
+  color: var(--color-amber-700);
 }
 
 .card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 14px;
   padding: 18px 20px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -288,15 +288,15 @@ function peso(n) {
   grid-template-columns: minmax(200px, 280px);
 }
 .stat-tile {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 14px;
   padding: 16px 18px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 .stat-label {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 600;
   letter-spacing: 0.03em;
   margin-bottom: 6px;
@@ -305,18 +305,18 @@ function peso(n) {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 26px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   font-variant-numeric: tabular-nums;
 }
 .stat-sub {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-gray-400);
   margin-top: 4px;
 }
 .see-more {
   background: none;
   border: none;
-  color: #b45309;
+  color: var(--color-amber-700);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -328,7 +328,7 @@ function peso(n) {
 }
 .card-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 500;
   margin-bottom: 8px;
 }
@@ -339,15 +339,15 @@ function peso(n) {
 }
 .card-value.hero {
   font-size: 34px;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 .card-value.loading {
   font-size: 24px;
-  color: #9ca3af;
+  color: var(--color-gray-400);
 }
 .card-sub {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-gray-500);
   margin-top: 4px;
 }
 
@@ -381,24 +381,24 @@ function peso(n) {
 }
 .bar-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-gray-500);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .bar-track {
-  background: #e5e7eb;
+  background: var(--color-gray-200);
   border-radius: 6px;
   height: 10px;
   overflow: hidden;
 }
 .bar-fill {
   height: 100%;
-  background: #3b82f6;
+  background: var(--color-blue-500);
   border-radius: 6px;
 }
 .bar-fill.gold {
-  background: #b45309;
+  background: var(--color-amber-700);
 }
 .bar-value {
   font-family: 'Space Grotesk', sans-serif;
@@ -406,7 +406,7 @@ function peso(n) {
   font-weight: 600;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .velocity-table {
@@ -417,25 +417,25 @@ function peso(n) {
 }
 .velocity-table th {
   text-align: left;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 500;
   padding: 6px 4px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 .velocity-table td {
   padding: 8px 4px;
-  border-bottom: 1px solid #e5e7eb;
-  color: #111827;
+  border-bottom: 1px solid var(--color-gray-200);
+  color: var(--color-gray-900);
 }
 .velocity-table td.stale {
-  color: #dc2626;
+  color: var(--color-red-600);
   font-weight: 600;
 }
 /* bd-period-fix */
 .period-picker { align-items: center; gap: 8px; }
-.period-picker input { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; color: #111827; font-family: inherit; }
-.period-picker button { border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #111827; cursor: pointer; font-family: inherit; }
-.period-picker button:hover { background: #f3f4f6; }
+.period-picker input { border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--color-white); color: var(--color-gray-900); font-family: inherit; }
+.period-picker button { border: 1px solid var(--color-gray-200); background: var(--color-white); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--color-gray-900); cursor: pointer; font-family: inherit; }
+.period-picker button:hover { background: var(--color-gray-100); }
 .header-right { gap: 20px; }
 .kanban-link { white-space: nowrap; }
 </style>

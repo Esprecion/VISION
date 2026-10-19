@@ -140,27 +140,27 @@ async function remove(r) {
 </template>
 
 <style scoped>
-.page { background: #f9fafb; min-height: 100vh; padding: 32px; font-family: 'Inter', sans-serif; color: #111827; }
+.page { background: var(--color-gray-50); min-height: 100vh; padding: 32px; font-family: 'Inter', sans-serif; color: var(--color-gray-900); }
 .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .head h1 { font-size: 20px; font-weight: 600; margin: 0; }
 .head-right { display: flex; gap: 10px; align-items: center; }
-.search { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 240px; }
-.btn-new { background: #111827; color: #fff; border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px 20px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+.search { border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 240px; }
+.btn-new { background: var(--color-gray-900); color: var(--color-white); border: none; border-radius: 6px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.card { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: 14px; padding: 12px 20px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: left; color: #6b7280; font-weight: 500; padding: 8px 4px; border-bottom: 1px solid #e5e7eb; }
-td { padding: 10px 4px; border-bottom: 1px solid #f3f4f6; }
-.muted { color: #9ca3af; padding: 16px 0; }
-.err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
+th { text-align: left; color: var(--color-gray-500); font-weight: 500; padding: 8px 4px; border-bottom: 1px solid var(--color-gray-200); }
+td { padding: 10px 4px; border-bottom: 1px solid var(--color-gray-100); }
+.muted { color: var(--color-gray-400); padding: 16px 0; }
+.err { background: #fef2f2; border: 1px solid var(--color-red-200); color: var(--color-red-700); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 12px; }
 .actions { white-space: nowrap; text-align: right; }
-.act { background: none; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; margin-left: 6px; color: #374151; }
-.act:hover { background: #f3f4f6; }
-.act.del { color: #dc2626; border-color: #fecaca; }
-.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; font-size: 13px; color: #6b7280; }
+.act { background: none; border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; margin-left: 6px; color: var(--color-gray-700); }
+.act:hover { background: var(--color-gray-100); }
+.act.del { color: var(--color-red-600); border-color: var(--color-red-200); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; font-size: 13px; color: var(--color-gray-500); }
 .filters label { display: flex; align-items: center; gap: 6px; }
-.filters input, .filters select { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; color: #111827; font-family: inherit; }
-.filters button { border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 13px; color: #111827; cursor: pointer; font-family: inherit; }
-.filters button:hover { background: #f3f4f6; }
-.filters .clear { color: #dc2626; border-color: #fecaca; }
-.filters .summary { margin-left: auto; color: #4b5563; font-weight: 500; }
+.filters input, .filters select { border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--color-white); color: var(--color-gray-900); font-family: inherit; }
+.filters button { border: 1px solid var(--color-gray-200); background: var(--color-white); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--color-gray-900); cursor: pointer; font-family: inherit; }
+.filters button:hover { background: var(--color-gray-100); }
+.filters .clear { color: var(--color-red-600); border-color: var(--color-red-200); }
+.filters .summary { margin-left: auto; color: var(--color-gray-600); font-weight: 500; }
 </style>

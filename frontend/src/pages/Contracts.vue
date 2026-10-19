@@ -148,10 +148,10 @@ function peso(n) {
 
 <style scoped>
 .contracts-page {
-  background: #f9fafb;
+  background: var(--color-gray-50);
   min-height: 100vh;
   padding: 32px;
-  color: #111827;
+  color: var(--color-gray-900);
   font-family: 'Inter', sans-serif;
 }
 .contracts-header {
@@ -164,31 +164,22 @@ function peso(n) {
   font-size: 20px;
   font-weight: 600;
   margin: 0;
-  color: #111827;
+  color: var(--color-gray-900);
 }
-.btn-secondary {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  color: #111827;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 14px;
-  cursor: pointer;
-}
+.btn-secondary { border-radius: 8px; padding: 8px 14px; }
 .search-input {
   width: 100%;
   max-width: 360px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 14px;
   margin-bottom: 16px;
-  background: #ffffff;
+  background: var(--color-white);
 }
 .table-wrap {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -201,14 +192,14 @@ function peso(n) {
   text-align: left;
   padding: 10px 16px;
   font-size: 14px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 .contracts-table th {
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
-  background: #f9fafb;
+  background: var(--color-gray-50);
 }
 .contracts-table tr:last-child td {
   border-bottom: none;
@@ -220,10 +211,10 @@ function peso(n) {
   cursor: pointer;
 }
 .clickable-row:hover {
-  background: #f9fafb;
+  background: var(--color-gray-50);
 }
 .status-select {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-gray-200);
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 12px;
@@ -231,24 +222,24 @@ function peso(n) {
   cursor: pointer;
 }
 .status-draft {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
 }
 .status-negotiation {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-amber-100);
+  color: var(--color-amber-700);
 }
 .status-finalized {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--color-blue-100);
+  color: var(--color-blue-700);
 }
 .status-sent {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--color-emerald-100);
+  color: var(--color-emerald-800);
 }
 .empty-row {
   text-align: center;
-  color: #6b7280;
+  color: var(--color-gray-500);
   padding: 24px;
 }
 </style>

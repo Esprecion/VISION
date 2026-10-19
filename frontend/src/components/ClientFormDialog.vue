@@ -98,36 +98,22 @@ function submit() {
 }
 .field label {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--color-gray-600);
   font-weight: 500;
 }
 .field input {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-gray-300);
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 14px;
 }
 .field input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--color-indigo-500);
 }
 .error-msg {
-  color: #dc2626;
+  color: var(--color-red-600);
   font-size: 13px;
 }
-.btn-primary {
-  background: #111827;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  width: 100%;
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn-primary { width: 100%; }
 </style>

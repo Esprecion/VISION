@@ -345,50 +345,50 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 </template>
 
 <style scoped>
-.dashboard { background: #f9fafb; min-height: 100vh; padding: 32px; font-family: 'Inter', sans-serif; color: #111827; }
+.dashboard { background: var(--color-gray-50); min-height: 100vh; padding: 32px; font-family: 'Inter', sans-serif; color: var(--color-gray-900); }
 .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .dash-header h1 { font-size: 20px; font-weight: 600; margin: 0; }
 .period-picker { display: flex; gap: 8px; align-items: center; }
-.period-picker input { border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px 8px; font-size: 13px; background: #fff; }
-.period-picker button { border: 1px solid #e5e7eb; background: #fff; border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
-.period-picker button:hover { background: #f3f4f6; }
-.period-picker .to { font-size: 12px; color: #9ca3af; }
+.period-picker input { border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--color-white); }
+.period-picker button { border: 1px solid var(--color-gray-200); background: var(--color-white); border-radius: 6px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+.period-picker button:hover { background: var(--color-gray-100); }
+.period-picker .to { font-size: 12px; color: var(--color-gray-400); }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
-.tile, .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+.tile, .card { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: 14px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
 .tile { padding: 16px 18px; }
 .card { padding: 18px 20px; }
-.label { font-size: 11px; color: #6b7280; font-weight: 600; letter-spacing: .03em; margin-bottom: 6px; }
-.value { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: #111827; }
-.value.neg { color: #16a34a; }
-.sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+.label { font-size: 11px; color: var(--color-gray-500); font-weight: 600; letter-spacing: .03em; margin-bottom: 6px; }
+.value { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: var(--color-gray-900); }
+.value.neg { color: var(--color-green-600); }
+.sub { font-size: 12px; color: var(--color-gray-400); margin-top: 4px; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.card-label { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 8px; }
+.card-label { font-size: 12px; color: var(--color-gray-500); font-weight: 500; margin-bottom: 8px; }
 .bars { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 .bar-row { display: grid; grid-template-columns: 130px 1fr 100px; align-items: center; gap: 10px; }
-.bar-label { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-track { background: #e5e7eb; border-radius: 6px; height: 10px; overflow: hidden; }
-.bar-fill { height: 100%; background: #3b82f6; border-radius: 6px; }
-.bar-fill.gold { background: #b45309; }
+.bar-label { font-size: 12px; color: var(--color-gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { background: var(--color-gray-200); border-radius: 6px; height: 10px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--color-blue-500); border-radius: 6px; }
+.bar-fill.gold { background: var(--color-amber-700); }
 .bar-value { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 600; text-align: right; }
-.bar-value.neg { color: #16a34a; }
+.bar-value.neg { color: var(--color-green-600); }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: left; color: #6b7280; font-weight: 500; padding: 6px 4px; border-bottom: 1px solid #e5e7eb; }
-td { padding: 8px 4px; border-bottom: 1px solid #e5e7eb; }
-td.stale { color: #dc2626; font-weight: 600; }
+th { text-align: left; color: var(--color-gray-500); font-weight: 500; padding: 6px 4px; border-bottom: 1px solid var(--color-gray-200); }
+td { padding: 8px 4px; border-bottom: 1px solid var(--color-gray-200); }
+td.stale { color: var(--color-red-600); font-weight: 600; }
 .profit-card { margin-bottom: 16px; }
-tr.overhead td { color: #6b7280; font-style: italic; }
-tr.total td { font-weight: 700; border-top: 2px solid #111827; border-bottom: none; }
-td.loss { color: #dc2626; font-weight: 600; }
+tr.overhead td { color: var(--color-gray-500); font-style: italic; }
+tr.total td { font-weight: 700; border-top: 2px solid var(--color-gray-900); border-bottom: none; }
+td.loss { color: var(--color-red-600); font-weight: 600; }
 .note { font-size: 12px; margin-top: 8px; }
-.muted { color: #9ca3af; }
+.muted { color: var(--color-gray-400); }
 td.link { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
-td.link:hover { color: #b45309; }
+td.link:hover { color: var(--color-amber-700); }
 .drill-overlay { position: fixed; inset: 0; background: rgba(17,24,39,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.drill-box { background: #fff; border-radius: 14px; padding: 18px 20px; width: min(560px, 92vw); max-height: 80vh; overflow: auto; }
+.drill-box { background: var(--color-white); border-radius: 14px; padding: 18px 20px; width: min(560px, 92vw); max-height: 80vh; overflow: auto; }
 .drill-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .drill-head button { border: none; background: none; font-size: 20px; cursor: pointer; }
-.drill-box a { color: #b45309; text-decoration: none; }
-tr.drill-total td { font-weight: 700; border-top: 2px solid #111827; border-bottom: none; }
+.drill-box a { color: var(--color-amber-700); text-decoration: none; }
+tr.drill-total td { font-weight: 700; border-top: 2px solid var(--color-gray-900); border-bottom: none; }
 @media (max-width: 900px) { .tiles { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } }
 .aging-top { display: flex; gap: 24px; align-items: center; margin-bottom: 16px; }
 .donut { width: 160px; height: 160px; transform: rotate(-90deg); flex: none; }
