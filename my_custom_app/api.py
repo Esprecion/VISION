@@ -26,6 +26,10 @@ def create_deal_with_details(deal, client, items):
 	if not items:
 		frappe.throw("Add at least one product line")
 
+	# Validate everything before writing anything so a bad line saves nothing.
+	_validate_client(client)
+	_validate_items(items)
+
 	client_name = _get_or_create_client(client)
 
 	seen_products = {}
@@ -53,6 +57,44 @@ def create_deal_with_details(deal, client, items):
 	)
 	doc.insert()
 	return doc.as_dict()
+
+
+def _validate_client(client):
+	existing = client.get("existing")
+	if existing:
+		if not frappe.db.exists("Client", existing):
+			frappe.throw(f"Client {existing} does not exist")
+		return
+
+	name = ((client.get("new") or {}).get("client_name") or "").strip()
+	if not name:
+		frappe.throw("Client name is required")
+
+
+def _validate_items(items):
+	seen = set()
+	for it in items:
+		existing = it.get("product")
+		if existing:
+			if not frappe.db.exists("Product", existing):
+				frappe.throw(f"Product {existing} does not exist")
+		else:
+			new = it.get("new_product") or {}
+			name = (new.get("product_name") or "").strip()
+			if not name:
+				frappe.throw("Each line needs a product")
+			key = name.lower()
+			if key not in seen:
+				if not frappe.db.exists("Product", name):
+					ptype = new.get("type")
+					if ptype not in ("Software", "Hardware", "Consulting", "Support"):
+						frappe.throw(f"Choose a type for new product {name}")
+				seen.add(key)
+
+		qty = int(it.get("quantity") or 0)
+		price = float(it.get("price") or 0)
+		if qty <= 0 or price < 0:
+			frappe.throw("Each line needs a quantity above 0 and a price of 0 or more")
 
 
 def _get_or_create_client(client):
