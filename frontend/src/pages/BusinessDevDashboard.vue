@@ -1,26 +1,44 @@
 <template>
   <div class="dashboard">
-    <header class="dash-header">
-      <h1>Business Development</h1>
-      <div class="header-right">
+    <PageHeader title="Business Development">
+      <template #actions>
         <div class="period-picker">
-          <input type="date" v-model="fromInput" :max="toInput" />
+          <input type="date" v-model="fromInput" :max="toInput" aria-label="From date" />
           <span class="range-label">to</span>
-          <input type="date" v-model="toInput" :min="fromInput" />
+          <input type="date" v-model="toInput" :min="fromInput" aria-label="To date" />
           <button type="button" @click="setRange(quarterRange(0))">This quarter</button>
           <button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
           <button type="button" @click="setRange(yearRange())">This year</button>
         </div>
-        <RouterLink to="/business-dev/pipeline" class="kanban-link">View Pipeline →</RouterLink>
-      </div>
-    </header>
+        <RouterLink to="/business-dev/pipeline" class="kanban-link">
+          View Pipeline
+          <ArrowRightIcon class="kanban-link__icon" aria-hidden="true" />
+        </RouterLink>
+      </template>
+    </PageHeader>
 
     <!-- Compact stat tile -->
     <div class="stat-tiles stat-tiles-single">
-      <div class="stat-tile">
+      <div v-if="conversionRate.loading" class="stat-tile">
+        <AppSkeleton variant="tile" />
+      </div>
+      <div v-else-if="conversionRate.error" class="stat-tile">
         <div class="stat-label">CONVERSION RATE</div>
-        <div class="stat-value">{{ conversionRate.loading ? '···' : conversionRateDisplay + '%' }}</div>
-        <div class="stat-sub" v-if="conversionRow">{{ conversionRow.won_count }} won of {{ conversionRow.total_deals }} deals</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub stat-sub--error">
+          Couldn't load.
+          <button type="button" class="retry-link" @click="conversionRate.reload()">
+            Retry
+          </button>
+        </div>
+      </div>
+      <div v-else class="stat-tile">
+        <div class="stat-label">CONVERSION RATE</div>
+        <div class="stat-value">{{ conversionRateDisplay }}%</div>
+        <div class="stat-sub" v-if="conversionRow">
+          {{ conversionRow.won_count }} won of {{ conversionRow.total_deals }} deals
+        </div>
+        <div class="stat-sub" v-else>No deals in this period</div>
       </div>
     </div>
 
@@ -28,51 +46,55 @@
       <!-- Average Time per Pipeline Stage -->
       <div class="card chart-card">
         <div class="card-label">Average Time per Pipeline Stage</div>
-        <div v-if="stageTime.loading" class="card-value loading">···</div>
-        <div v-else class="bars">
-          <div
-            v-for="row in visibleStageTimeRows"
-            :key="row.stage"
-            class="bar-row"
-          >
-            <div class="bar-label">{{ row.stage }}</div>
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: barWidth(row.avg_hours_in_stage, maxStageHours) }"
-              ></div>
-            </div>
-            <div class="bar-value">{{ row.avg_hours_in_stage }}h</div>
-          </div>
-          <button v-if="stageTimeRows.length > 4" class="see-more" @click="showAllStageTime = !showAllStageTime">
-            {{ showAllStageTime ? 'Show less ▲' : `+${stageTimeRows.length - 4} more ▾` }}
-          </button>
-        </div>
+        <BarList
+          :rows="stageTimeBarRows"
+          :loading="stageTime.loading"
+          :error="stageTime.error"
+          :on-retry="() => stageTime.reload()"
+          color="blue"
+        />
+        <button
+          v-if="stageTimeRows.length > 4"
+          type="button"
+          class="see-more"
+          @click="showAllStageTime = !showAllStageTime"
+        >
+          <template v-if="showAllStageTime">
+            Show less
+            <ChevronUpIcon class="see-more__icon" aria-hidden="true" />
+          </template>
+          <template v-else>
+            +{{ stageTimeRows.length - 4 }} more
+            <ChevronDownIcon class="see-more__icon" aria-hidden="true" />
+          </template>
+        </button>
       </div>
 
       <!-- Product Type Performance -->
       <div class="card chart-card">
         <div class="card-label">Product Type Performance</div>
-        <div v-if="productType.loading" class="card-value loading">···</div>
-        <div v-else class="bars">
-          <div
-            v-for="row in visibleProductTypeRows"
-            :key="row.product_type"
-            class="bar-row"
-          >
-            <div class="bar-label">{{ row.product_type }}</div>
-            <div class="bar-track">
-              <div
-                class="bar-fill gold"
-                :style="{ width: barWidth(row.total_value, maxProductValue) }"
-              ></div>
-            </div>
-            <div class="bar-value">{{ peso(row.total_value) }}</div>
-          </div>
-          <button v-if="productTypeRows.length > 4" class="see-more" @click="showAllProductType = !showAllProductType">
-            {{ showAllProductType ? 'Show less ▲' : `+${productTypeRows.length - 4} more ▾` }}
-          </button>
-        </div>
+        <BarList
+          :rows="productTypeBarRows"
+          :loading="productType.loading"
+          :error="productType.error"
+          :on-retry="() => productType.reload()"
+          color="amber"
+        />
+        <button
+          v-if="productTypeRows.length > 4"
+          type="button"
+          class="see-more"
+          @click="showAllProductType = !showAllProductType"
+        >
+          <template v-if="showAllProductType">
+            Show less
+            <ChevronUpIcon class="see-more__icon" aria-hidden="true" />
+          </template>
+          <template v-else>
+            +{{ productTypeRows.length - 4 }} more
+            <ChevronDownIcon class="see-more__icon" aria-hidden="true" />
+          </template>
+        </button>
       </div>
     </div>
 
@@ -80,53 +102,82 @@
       <!-- Geographic Distribution -->
       <div class="card chart-card">
         <div class="card-label">Geographic Distribution of Clients</div>
-        <div v-if="geo.loading" class="card-value loading">···</div>
-        <div v-else class="bars">
-          <div
-            v-for="row in visibleGeoRows"
-            :key="row.territory || 'unassigned'"
-            class="bar-row"
-          >
-            <div class="bar-label">{{ row.territory || 'Unassigned' }}</div>
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: barWidth(row.total_value, maxGeoValue) }"
-              ></div>
-            </div>
-            <div class="bar-value">{{ peso(row.total_value) }}</div>
-          </div>
-          <button v-if="geoRows.length > 4" class="see-more" @click="showAllGeo = !showAllGeo">
-            {{ showAllGeo ? 'Show less ▲' : `+${geoRows.length - 4} more ▾` }}
-          </button>
-        </div>
+        <BarList
+          :rows="geoBarRows"
+          :loading="geo.loading"
+          :error="geo.error"
+          :on-retry="() => geo.reload()"
+          color="blue"
+        />
+        <button
+          v-if="geoRows.length > 4"
+          type="button"
+          class="see-more"
+          @click="showAllGeo = !showAllGeo"
+        >
+          <template v-if="showAllGeo">
+            Show less
+            <ChevronUpIcon class="see-more__icon" aria-hidden="true" />
+          </template>
+          <template v-else>
+            +{{ geoRows.length - 4 }} more
+            <ChevronDownIcon class="see-more__icon" aria-hidden="true" />
+          </template>
+        </button>
       </div>
 
       <!-- Client Pipeline Velocity — table, not a chart -->
       <div class="card chart-card">
         <div class="card-label">Client Pipeline Velocity</div>
-        <div v-if="velocity.loading" class="card-value loading">···</div>
-        <table v-else class="velocity-table">
-          <thead>
-            <tr>
-              <th>Deal</th>
-              <th>Client</th>
-              <th>Hours in Pipeline</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in visibleVelocityRows" :key="row.deal">
-              <td>{{ row.deal_title }}</td>
-              <td>{{ row.client_name }}</td>
-              <td :class="{ stale: row.velocity_hours > 336 }">
-                {{ row.velocity_hours ?? '—' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <button v-if="velocityRows.length > 4" class="see-more" @click="showAllVelocity = !showAllVelocity">
-          {{ showAllVelocity ? 'Show less ▲' : `+${velocityRows.length - 4} more ▾` }}
-        </button>
+        <AppSkeleton v-if="velocity.loading" variant="table" :rows="4" :cols="3" />
+        <ErrorState
+          v-else-if="velocity.error"
+          title="Couldn't load this table"
+          :message="velocity.error.message"
+          :on-retry="() => velocity.reload()"
+        />
+        <EmptyState
+          v-else-if="!velocityRows.length"
+          title="No deals in this period"
+          description="Deals that entered the pipeline during the selected dates will appear here."
+        />
+        <template v-else>
+          <div class="table-scroll">
+            <table class="velocity-table">
+              <thead>
+                <tr>
+                  <th>Deal</th>
+                  <th>Client</th>
+                  <th>Hours in Pipeline</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in visibleVelocityRows" :key="row.deal">
+                  <td>{{ row.deal_title }}</td>
+                  <td>{{ row.client_name }}</td>
+                  <td :class="{ stale: row.velocity_hours > 336 }">
+                    {{ row.velocity_hours ?? '—' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button
+            v-if="velocityRows.length > 4"
+            type="button"
+            class="see-more"
+            @click="showAllVelocity = !showAllVelocity"
+          >
+            <template v-if="showAllVelocity">
+              Show less
+              <ChevronUpIcon class="see-more__icon" aria-hidden="true" />
+            </template>
+            <template v-else>
+              +{{ velocityRows.length - 4 }} more
+              <ChevronDownIcon class="see-more__icon" aria-hidden="true" />
+            </template>
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -136,6 +187,14 @@
 import { ref, computed, watch } from 'vue'
 import { createResource } from 'frappe-ui'
 import { quarterRange, yearRange } from '../utils/dateRange'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import BarList from '@/components/ui/BarList.vue'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import ArrowRightIcon from '~icons/lucide/arrow-right'
+import ChevronUpIcon from '~icons/lucide/chevron-up'
+import ChevronDownIcon from '~icons/lucide/chevron-down'
 
 const initialRange = quarterRange(0)
 const fromInput = ref(initialRange.from)
@@ -185,32 +244,39 @@ const conversionRateDisplay = computed(() =>
 const showAllStageTime = ref(false)
 const stageTimeRows = computed(() => stageTime.data?.result ?? [])
 const visibleStageTimeRows = computed(() => showAllStageTime.value ? stageTimeRows.value : stageTimeRows.value.slice(0, 4))
-const maxStageHours = computed(() =>
-  Math.max(1, ...stageTimeRows.value.map((r) => Number(r.avg_hours_in_stage) || 0))
+const stageTimeBarRows = computed(() =>
+  visibleStageTimeRows.value.map((r) => ({
+    label: r.stage,
+    value: r.avg_hours_in_stage,
+    display: `${r.avg_hours_in_stage}h`,
+  }))
 )
 
 const showAllProductType = ref(false)
 const productTypeRows = computed(() => productType.data?.result ?? [])
 const visibleProductTypeRows = computed(() => showAllProductType.value ? productTypeRows.value : productTypeRows.value.slice(0, 4))
-const maxProductValue = computed(() =>
-  Math.max(1, ...productTypeRows.value.map((r) => Number(r.total_value) || 0))
+const productTypeBarRows = computed(() =>
+  visibleProductTypeRows.value.map((r) => ({
+    label: r.product_type,
+    value: r.total_value,
+    display: peso(r.total_value),
+  }))
 )
 
 const showAllGeo = ref(false)
 const geoRows = computed(() => geo.data?.result ?? [])
 const visibleGeoRows = computed(() => showAllGeo.value ? geoRows.value : geoRows.value.slice(0, 4))
-const maxGeoValue = computed(() =>
-  Math.max(1, ...geoRows.value.map((r) => Number(r.total_value) || 0))
+const geoBarRows = computed(() =>
+  visibleGeoRows.value.map((r) => ({
+    label: r.territory || 'Unassigned',
+    value: r.total_value,
+    display: peso(r.total_value),
+  }))
 )
 
 const showAllVelocity = ref(false)
 const velocityRows = computed(() => velocity.data?.result ?? [])
 const visibleVelocityRows = computed(() => showAllVelocity.value ? velocityRows.value : velocityRows.value.slice(0, 4))
-
-function barWidth(value, max) {
-  const pct = Math.max(2, (Number(value) / max) * 100)
-  return pct + '%'
-}
 
 function peso(n) {
   if (n == null) return '₱0'
@@ -222,67 +288,74 @@ function peso(n) {
 .dashboard {
   background: var(--color-gray-50);
   min-height: 100vh;
-  padding: 32px;
+  padding: var(--page-pad);
   color: var(--color-gray-900);
-  font-family: 'Inter', sans-serif;
 }
 
-.dash-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-.dash-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--color-gray-900);
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
 .period-picker {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
-.period-picker select {
+.period-picker input {
   border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: 6px var(--space-2);
+  font-size: var(--fs-sm);
   background: var(--color-white);
   color: var(--color-gray-900);
+  font-family: inherit;
+}
+.period-picker button {
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--fs-sm);
+  color: var(--color-gray-900);
+  cursor: pointer;
+  font-family: inherit;
+}
+.period-picker button:hover {
+  background: var(--color-gray-100);
 }
 .range-label {
-  color: var(--color-gray-400);
-  font-size: 12px;
+  color: var(--color-gray-600);
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 .kanban-link {
-  color: var(--color-gray-500);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-gray-600);
   text-decoration: none;
-  font-size: 13px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
 }
 .kanban-link:hover {
   color: var(--color-amber-700);
+}
+.kanban-link__icon {
+  width: 14px;
+  height: 14px;
 }
 
 .card {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 14px;
-  padding: 18px 20px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-xs);
 }
 
 .stat-tiles {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 .stat-tiles-single {
   grid-template-columns: minmax(200px, 280px);
@@ -290,140 +363,97 @@ function peso(n) {
 .stat-tile {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  box-shadow: var(--shadow-xs);
 }
 .stat-label {
-  font-size: 11px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   font-weight: 600;
   letter-spacing: 0.03em;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-2);
 }
 .stat-value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 26px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   color: var(--color-gray-900);
   font-variant-numeric: tabular-nums;
 }
 .stat-sub {
-  font-size: 12px;
-  color: var(--color-gray-400);
-  margin-top: 4px;
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
+  margin-top: var(--space-1);
+}
+.stat-sub--error {
+  color: var(--color-red-600);
+}
+.retry-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-amber-700);
+  font-weight: 600;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
 }
 .see-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   background: none;
   border: none;
   color: var(--color-amber-700);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   cursor: pointer;
-  padding: 4px 0 0;
+  padding: var(--space-1) 0 0;
   text-align: left;
+  font-family: inherit;
 }
-.hero-card {
-  margin-bottom: 20px;
+.see-more__icon {
+  width: 12px;
+  height: 12px;
 }
 .card-label {
-  font-size: 12px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   font-weight: 500;
-  margin-bottom: 8px;
-}
-.card-value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.card-value.hero {
-  font-size: 34px;
-  color: var(--color-gray-900);
-}
-.card-value.loading {
-  font-size: 24px;
-  color: var(--color-gray-400);
-}
-.card-sub {
-  font-size: 13px;
-  color: var(--color-gray-500);
-  margin-top: 4px;
+  margin-bottom: var(--space-2);
 }
 
 .chart-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
   align-items: stretch;
 }
 .chart-card {
   min-height: 200px;
 }
-@media (max-width: 900px) {
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
-}
 
-.bars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+.table-scroll {
+  overflow-x: auto;
 }
-.bar-row {
-  display: grid;
-  grid-template-columns: 110px 1fr 90px;
-  align-items: center;
-  gap: 10px;
-}
-.bar-label {
-  font-size: 12px;
-  color: var(--color-gray-500);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bar-track {
-  background: var(--color-gray-200);
-  border-radius: 6px;
-  height: 10px;
-  overflow: hidden;
-}
-.bar-fill {
-  height: 100%;
-  background: var(--color-blue-500);
-  border-radius: 6px;
-}
-.bar-fill.gold {
-  background: var(--color-amber-700);
-}
-.bar-value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-gray-900);
-}
-
 .velocity-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: var(--space-2);
+  font-size: var(--fs-sm);
 }
 .velocity-table th {
   text-align: left;
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   font-weight: 500;
-  padding: 6px 4px;
+  padding: var(--space-2) var(--space-1);
   border-bottom: 1px solid var(--color-gray-200);
+  white-space: nowrap;
 }
 .velocity-table td {
-  padding: 8px 4px;
+  padding: var(--space-2) var(--space-1);
   border-bottom: 1px solid var(--color-gray-200);
   color: var(--color-gray-900);
 }
@@ -431,11 +461,15 @@ function peso(n) {
   color: var(--color-red-600);
   font-weight: 600;
 }
-/* bd-period-fix */
-.period-picker { align-items: center; gap: 8px; }
-.period-picker input { border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 8px; font-size: 13px; background: var(--color-white); color: var(--color-gray-900); font-family: inherit; }
-.period-picker button { border: 1px solid var(--color-gray-200); background: var(--color-white); border-radius: 6px; padding: 6px 10px; font-size: 13px; color: var(--color-gray-900); cursor: pointer; font-family: inherit; }
-.period-picker button:hover { background: var(--color-gray-100); }
-.header-right { gap: 20px; }
-.kanban-link { white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .chart-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .stat-tiles-single {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
