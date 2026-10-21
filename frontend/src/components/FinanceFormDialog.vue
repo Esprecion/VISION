@@ -39,17 +39,25 @@
             <input v-model.number="it.quantity" type="number" min="0" step="any" placeholder="Qty" />
             <input v-model.number="it.rate" type="number" min="0" step="0.01" placeholder="Rate" />
             <span class="amt">{{ peso((Number(it.quantity) || 0) * (Number(it.rate) || 0)) }}</span>
-            <button type="button" class="x" @click="form.items.splice(i, 1)">×</button>
+            <button type="button" class="x" :aria-label="'Remove item ' + (i + 1)" @click="form.items.splice(i, 1)">
+              <XIcon aria-hidden="true" />
+            </button>
           </div>
-          <button type="button" class="btn-link" @click="form.items.push({ item_name: '', quantity: 1, rate: 0 })">+ Add item</button>
+          <button type="button" class="btn-link" @click="form.items.push({ item_name: '', quantity: 1, rate: 0 })">
+            <PlusIcon aria-hidden="true" /> Add item
+          </button>
 
           <div class="section">Additional charges</div>
           <div v-for="(c, i) in form.charges" :key="'c' + i" class="line charges">
             <input v-model="c.description" type="text" placeholder="e.g. Rush fee, Hosting setup" />
             <input v-model.number="c.amount" type="number" step="0.01" placeholder="Amount" />
-            <button type="button" class="x" @click="form.charges.splice(i, 1)">×</button>
+            <button type="button" class="x" :aria-label="'Remove charge ' + (i + 1)" @click="form.charges.splice(i, 1)">
+              <XIcon aria-hidden="true" />
+            </button>
           </div>
-          <button type="button" class="btn-link" @click="form.charges.push({ description: '', amount: 0 })">+ Add charge</button>
+          <button type="button" class="btn-link" @click="form.charges.push({ description: '', amount: 0 })">
+            <PlusIcon aria-hidden="true" /> Add charge
+          </button>
 
           <div class="totals">
             <div>Subtotal <b>{{ peso(subtotal) }}</b></div>
@@ -109,13 +117,20 @@
             <input v-model="it.vendor" type="text" placeholder="Vendor, e.g. Figma" />
             <input v-model="it.description" type="text" placeholder="What it was for" />
             <input v-model.number="it.amount" type="number" min="0" step="0.01" placeholder="Amount" />
-            <button type="button" class="x" @click="form.items.splice(i, 1)">×</button>
+            <button type="button" class="x" :aria-label="'Remove line ' + (i + 1)" @click="form.items.splice(i, 1)">
+              <XIcon aria-hidden="true" />
+            </button>
           </div>
-          <button type="button" class="btn-link" @click="form.items.push({ vendor: '', description: '', amount: 0 })">+ Add line</button>
+          <button type="button" class="btn-link" @click="form.items.push({ vendor: '', description: '', amount: 0 })">
+            <PlusIcon aria-hidden="true" /> Add line
+          </button>
           <div class="totals"><div class="grand">Total <b>{{ peso(expenseTotal) }}</b></div></div>
         </template>
 
-        <div v-if="activeRes.error" class="error-msg">{{ errorText }}</div>
+        <div v-if="activeRes.error" class="error-msg">
+          <AlertCircleIcon aria-hidden="true" />
+          <span>{{ errorText }}</span>
+        </div>
       </div>
     </template>
     <template #actions>
@@ -130,6 +145,9 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, createResource, call } from 'frappe-ui'
 import { formatLocalDate, parseLocal } from '../utils/dateRange'
+import XIcon from '~icons/lucide/x'
+import PlusIcon from '~icons/lucide/plus'
+import AlertCircleIcon from '~icons/lucide/alert-circle'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -331,27 +349,47 @@ function submit() {
 </script>
 
 <style scoped>
-.form-grid { display: flex; flex-direction: column; gap: 12px; }
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 13px; color: var(--color-gray-600); font-weight: 500; }
-input, select { border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 8px 10px; font-size: 14px; background: var(--color-white); }
-input:focus, select:focus { outline: none; border-color: var(--color-indigo-500); }
-input:disabled, select:disabled { background: var(--color-gray-100); color: var(--color-gray-500); }
-.section { font-size: 12px; font-weight: 600; color: var(--color-gray-500); text-transform: uppercase; margin-top: 4px; }
-.line { display: grid; gap: 8px; align-items: center; }
-.line.items { grid-template-columns: 1fr 70px 110px 110px 24px; }
-.line.charges { grid-template-columns: 1fr 120px 24px; }
-.amt { font-size: 13px; text-align: right; }
-.x { background: none; border: none; color: var(--color-red-600); font-size: 18px; cursor: pointer; }
-.btn-link { background: none; border: none; color: var(--color-amber-700); font-size: 13px; cursor: pointer; width: fit-content; padding: 0; }
-.totals { display: flex; gap: 20px; justify-content: flex-end; font-size: 13px; color: var(--color-gray-600); border-top: 1px solid var(--color-gray-200); padding-top: 8px; }
-.totals .grand { color: var(--color-gray-900); font-size: 15px; }
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.error-msg { color: var(--color-red-600); font-size: 13px; }
+.form-grid { display: flex; flex-direction: column; gap: var(--space-3); }
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field label { font-size: var(--fs-sm); color: var(--color-gray-600); font-weight: 500; }
+input, select { border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); font-size: var(--fs-sm); background: var(--color-white); color: var(--color-gray-900); font-family: inherit; }
+input:focus, select:focus { border-color: var(--color-amber-700); }
+input:disabled, select:disabled { background: var(--color-gray-100); color: var(--color-gray-600); }
+.section { font-size: var(--fs-xs); font-weight: 600; color: var(--color-gray-600); text-transform: uppercase; margin-top: var(--space-1); }
+.line { display: grid; gap: var(--space-2); align-items: center; }
+.line.items { grid-template-columns: 1fr 70px 110px 110px 28px; }
+.line.charges { grid-template-columns: 1fr 120px 28px; }
+.amt { font-size: var(--fs-sm); text-align: right; font-variant-numeric: tabular-nums; }
+.x {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; color: var(--color-gray-500);
+  cursor: pointer; padding: var(--space-1); border-radius: var(--radius-sm);
+}
+.x svg { width: 16px; height: 16px; }
+.x:hover { background: var(--color-red-100); color: var(--color-red-600); }
+.btn-link {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: none; border: none; color: var(--color-amber-700);
+  font-size: var(--fs-sm); cursor: pointer; width: fit-content; padding: 0; font-family: inherit; font-weight: 500;
+}
+.btn-link svg { width: 14px; height: 14px; }
+.btn-link:hover { color: var(--color-amber-800); text-decoration: underline; }
+.totals { display: flex; gap: var(--space-5); justify-content: flex-end; font-size: var(--fs-sm); color: var(--color-gray-600); border-top: 1px solid var(--color-gray-200); padding-top: var(--space-2); }
+.totals .grand { color: var(--color-gray-900); font-size: var(--fs-md); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.error-msg {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  color: var(--color-red-600); font-size: var(--fs-sm);
+}
+.error-msg svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
 .btn-primary { width: 100%; }
-.terms-box { background: var(--color-amber-50); border: 1px solid var(--color-amber-200); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--color-amber-800); }
+.terms-box { background: var(--color-amber-50); border: 1px solid var(--color-amber-200); border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--fs-xs); color: var(--color-amber-800); }
 .terms-title { font-weight: 600; }
-.terms-body { margin-top: 4px; white-space: pre-wrap; color: #78350f; }
-.line.exp { grid-template-columns: 1fr 1.2fr 110px 24px; }
-.due-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; }
+.terms-body { margin-top: var(--space-1); white-space: pre-wrap; color: var(--color-amber-800); }
+.line.exp { grid-template-columns: 1fr 1.2fr 110px 28px; }
+.due-row { display: grid; grid-template-columns: 120px 1fr; gap: var(--space-2); }
+@media (max-width: 640px) {
+  .line.items, .line.exp { grid-template-columns: 1fr 64px 90px 90px 28px; }
+  .two { grid-template-columns: 1fr; }
+}
 </style>
