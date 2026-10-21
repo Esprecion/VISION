@@ -1,6 +1,9 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { session } from '@/data/session'
+import MenuIcon from '~icons/lucide/menu'
+import XIcon from '~icons/lucide/x'
 
 const modules = [
   { to: '/business-dev', label: 'Business Development', role: 'CBO' },
@@ -17,14 +20,41 @@ const items = computed(() =>
 const roleLabel = computed(() =>
   session.isAdmin ? 'Admin' : (['CBO', 'CFO', 'COO'].find((r) => session.roles.includes(r)) || '')
 )
+
+const open = ref(false)
+const route = useRoute()
+watch(() => route.fullPath, () => { open.value = false })
+
 function logout() {
   session.logout.submit()
 }
 </script>
 
 <template>
-  <aside class="sidebar">
-    <div class="sidebar-brand">VISION</div>
+  <button
+    type="button"
+    class="sidebar-toggle"
+    :aria-expanded="open"
+    aria-label="Open navigation"
+    @click="open = true"
+  >
+    <MenuIcon class="sidebar-toggle__icon" aria-hidden="true" />
+  </button>
+
+  <div v-if="open" class="sidebar-backdrop" @click="open = false" />
+
+  <aside class="sidebar" :class="{ 'sidebar--open': open }">
+    <div class="sidebar-head">
+      <span class="sidebar-brand">VISION</span>
+      <button
+        type="button"
+        class="sidebar-close"
+        aria-label="Close navigation"
+        @click="open = false"
+      >
+        <XIcon class="sidebar-close__icon" aria-hidden="true" />
+      </button>
+    </div>
     <nav class="sidebar-nav">
       <router-link to="/dashboard" class="nav-item" active-class="nav-item-active">
         Dashboard
@@ -52,34 +82,64 @@ function logout() {
 
 <style scoped>
 .sidebar {
-  width: 220px;
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  flex-shrink: 0;
   background: var(--color-white);
   border-right: 1px solid var(--color-gray-200);
-  padding: 1.5rem 1rem;
+  padding: var(--space-6) var(--space-4);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
 }
 .sidebar-brand {
   color: var(--color-amber-700);
-  font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 2rem;
-  padding: 0 0.5rem;
+  font-size: var(--fs-md);
+  letter-spacing: 0.02em;
+  padding: 0 var(--space-2);
+}
+.sidebar-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-gray-600);
+  cursor: pointer;
+}
+.sidebar-close:hover {
+  background: var(--color-gray-100);
+  color: var(--color-gray-900);
+}
+.sidebar-close__icon {
+  width: 18px;
+  height: 18px;
 }
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 .nav-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--color-gray-500);
-  font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 6px;
+  gap: var(--space-2);
+  color: var(--color-gray-600);
+  font-size: var(--fs-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   text-decoration: none;
 }
 .nav-item:hover {
@@ -88,21 +148,102 @@ function logout() {
 }
 .nav-item-active {
   background: var(--color-amber-100);
-  color: var(--color-amber-700);
+  color: var(--color-amber-800);
   font-weight: 500;
 }
 .badge {
-  font-size: 0.65rem;
-  color: var(--color-gray-400);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   background: var(--color-gray-100);
-  padding: 0.1rem 0.4rem;
-  border-radius: 999px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
 }
-.sidebar { display: flex; flex-direction: column; }
-.sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-gray-200); }
-.who { padding: 0 0.5rem 0.75rem; }
-.who-name { font-size: 0.8rem; color: var(--color-gray-900); word-break: break-all; }
-.who-role { font-size: 0.7rem; color: var(--color-gray-500); margin-top: 2px; }
-.logout { width: 100%; border: 1px solid var(--color-gray-200); background: var(--color-white); border-radius: 6px; padding: 0.5rem; font-size: 0.85rem; color: var(--color-gray-900); cursor: pointer; font-family: inherit; }
-.logout:hover { background: var(--color-gray-100); }
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-gray-200);
+}
+.who {
+  padding: 0 var(--space-2) var(--space-3);
+}
+.who-name {
+  font-size: var(--fs-sm);
+  color: var(--color-gray-900);
+  word-break: break-all;
+}
+.who-role {
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
+  margin-top: 2px;
+}
+.logout {
+  width: 100%;
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-white);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: var(--fs-sm);
+  color: var(--color-gray-900);
+  cursor: pointer;
+  font-family: inherit;
+}
+.logout:hover {
+  background: var(--color-gray-100);
+}
+.sidebar-toggle {
+  display: none;
+}
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: var(--space-3);
+    left: var(--space-3);
+    z-index: 40;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--color-gray-200);
+    background: var(--color-white);
+    border-radius: var(--radius-sm);
+    color: var(--color-gray-700);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+  }
+  .sidebar-toggle__icon {
+    width: 20px;
+    height: 20px;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 85vw);
+    height: 100%;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-md);
+  }
+  .sidebar--open {
+    transform: translateX(0);
+  }
+  .sidebar-close {
+    display: inline-flex;
+  }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: rgba(17, 24, 39, 0.4);
+  }
+}
 </style>

@@ -116,7 +116,6 @@
       :prefill-client-name="suggestClientName"
       @created="showToast('Contract created')"
     />
-    <ToastContainer />
   </div>
 </template>
 
@@ -130,7 +129,6 @@ import AddDealDialog from '@/components/AddDealDialog.vue'
 import DealDetailDialog from '@/components/DealDetailDialog.vue'
 import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
 import ContractFormDialog from '@/components/ContractFormDialog.vue'
-import ToastContainer from '@/components/ToastContainer.vue'
 import { useToast } from '@/composables/useToast'
 
 const { showToast } = useToast()

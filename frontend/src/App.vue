@@ -4,18 +4,20 @@
     <main class="app-main">
       <router-view />
     </main>
+    <ToastContainer />
   </div>
 </template>
 
 <script setup>
 import Sidebar from '@/components/Sidebar.vue'
+import ToastContainer from '@/components/ToastContainer.vue'
 </script>
 
 <style scoped>
 .app-shell {
   display: flex;
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--color-gray-50);
 }
 .app-main {
   flex: 1;

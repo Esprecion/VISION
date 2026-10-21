@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import { createListResource, call } from 'frappe-ui'
 import ContractFormDialog from '@/components/ContractFormDialog.vue'
 import ContractDetailDialog from '@/components/ContractDetailDialog.vue'
-import ToastContainer from '@/components/ToastContainer.vue'
 import { useToast } from '@/composables/useToast'
 
 const { showToast } = useToast()
@@ -142,7 +141,6 @@ function peso(n) {
       :contract-name="selectedContractName"
       @updated="contractsResource.reload()"
     />
-    <ToastContainer />
   </div>
 </template>
 

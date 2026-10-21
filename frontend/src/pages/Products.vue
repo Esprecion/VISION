@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
-import ToastContainer from '@/components/ToastContainer.vue'
 import { useToast } from '@/composables/useToast'
 
 const { showToast } = useToast()
@@ -71,7 +70,6 @@ const filteredProducts = computed(() => {
     </div>
 
     <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
-    <ToastContainer />
   </div>
 </template>
 

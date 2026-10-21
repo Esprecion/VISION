@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
-import ToastContainer from '@/components/ToastContainer.vue'
 import { useToast } from '@/composables/useToast'
 
 const { showToast } = useToast()
@@ -76,7 +75,6 @@ const filteredClients = computed(() => {
     </div>
 
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
-    <ToastContainer />
   </div>
 </template>
 

@@ -7,16 +7,14 @@ defineProps<{
 </script>
 
 <template>
-  <div>
+  <div class="department-layout">
     <TopTabs :tabs="tabs" />
-    <div class="department-content">
-      <router-view :key="$route.fullPath" />
-    </div>
+    <router-view :key="$route.fullPath" />
   </div>
 </template>
 
 <style scoped>
-.department-content {
-  padding: 1.5rem;
+.department-layout {
+  min-width: 0;
 }
 </style>
