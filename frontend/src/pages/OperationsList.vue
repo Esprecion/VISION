@@ -220,7 +220,6 @@ async function doDelete() {
 .search-wrap svg { width: 16px; height: 16px; color: var(--color-gray-500); flex: none; }
 .search { border: none; padding: var(--space-2) var(--space-3) var(--space-2) 0; font-size: var(--fs-sm); width: 200px; font-family: inherit; color: var(--color-gray-900); background: transparent; }
 .search::placeholder { color: var(--color-gray-500); }
-.search:focus { outline: none; }
 .search-wrap:focus-within { border-color: var(--color-amber-700); }
 .btn-new {
   display: inline-flex; align-items: center; gap: var(--space-1);
