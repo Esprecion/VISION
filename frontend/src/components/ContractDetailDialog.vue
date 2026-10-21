@@ -1,7 +1,10 @@
 <template>
   <Dialog v-model="show" :options="{ title: 'Contract Detail', size: 'xl' }">
     <template #body-content>
-      <div v-if="loading" class="loading-state">Loading...</div>
+      <div v-if="loading" class="loading-state">
+        <AppSkeleton variant="text" :rows="3" />
+        <AppSkeleton variant="table" :rows="3" :cols="4" />
+      </div>
       <div v-else-if="doc" class="contract-detail">
         <div class="cd-header">
           <div>
@@ -23,56 +26,69 @@
 
         <div v-if="dealInfo" class="dd-section">
           <div class="section-label">Won Deal Reference</div>
-          <table class="items-table">
-            <thead>
-              <tr><th>Product</th><th>Qty</th><th>Price</th><th>Amount</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in dealInfo.items" :key="item.name">
-                <td>{{ item.product }}</td>
-                <td>{{ item.quantity }}</td>
-                <td>{{ peso(item.price) }}</td>
-                <td>{{ peso(item.amount) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="items-table">
+              <thead>
+                <tr><th>Product</th><th>Qty</th><th>Price</th><th>Amount</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in dealInfo.items" :key="item.name">
+                  <td>{{ item.product }}</td>
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ peso(item.price) }}</td>
+                  <td>{{ peso(item.amount) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <div class="deal-total">Deal Value: {{ peso(dealInfo.value) }}</div>
         </div>
 
         <div class="dd-section">
           <div class="section-label">Payment Milestones</div>
           <div v-if="!editing">
-            <table class="items-table">
-              <thead>
-                <tr><th>Milestone</th><th>Amount</th><th>Paid</th><th>Invoice</th></tr>
-              </thead>
-              <tbody>
-                <tr v-for="(m, i) in doc.payment_milestones" :key="i">
-                  <td>{{ m.milestone_name }}</td>
-                  <td>{{ peso(m.amount) }}</td>
-                  <td>{{ m.is_paid ? 'Yes' : 'No' }}</td>
-                  <td>
-                    <template v-if="invoiceFor(m)">{{ invoiceFor(m).name }}</template>
-                    <button v-else-if="canInvoice && !m.is_paid" class="btn-secondary" @click="startInvoice(m)">Create Invoice</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="table-scroll">
+              <table class="items-table">
+                <thead>
+                  <tr><th>Milestone</th><th>Amount</th><th>Paid</th><th>Invoice</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(m, i) in doc.payment_milestones" :key="i">
+                    <td>{{ m.milestone_name }}</td>
+                    <td>{{ peso(m.amount) }}</td>
+                    <td>{{ m.is_paid ? 'Yes' : 'No' }}</td>
+                    <td>
+                      <template v-if="invoiceFor(m)">{{ invoiceFor(m).name }}</template>
+                      <button v-else-if="canInvoice && !m.is_paid" class="btn-secondary" @click="startInvoice(m)">Create Invoice</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <div class="deal-total">Milestones total: {{ peso(viewTotal) }}</div>
-            <div v-if="viewMismatch" class="warn">Does not match the deal value of {{ peso(dealVal) }} (difference {{ peso(Math.abs(viewTotal - dealVal)) }}). Click Edit to correct it.</div>
+            <div v-if="viewMismatch" class="warn">
+              <AlertCircleIcon class="warn-icon" aria-hidden="true" />
+              Does not match the deal value of {{ peso(dealVal) }} (difference {{ peso(Math.abs(viewTotal - dealVal)) }}). Click Edit to correct it.
+            </div>
           </div>
           <div v-else class="milestone-rows">
             <div v-for="(m, i) in form.payment_milestones" :key="i" class="milestone-row">
               <input v-model="m.milestone_name" type="text" placeholder="Milestone name" class="ms-name" />
               <input v-model.number="m.amount" type="number" placeholder="Amount" class="ms-amount" />
               <label class="paid-check"><input type="checkbox" v-model="m.is_paid" /> Paid</label>
-              <button class="remove-row" @click="form.payment_milestones.splice(i, 1)">×</button>
+              <button class="remove-row" aria-label="Remove milestone" @click="form.payment_milestones.splice(i, 1)">
+                <XIcon aria-hidden="true" />
+              </button>
             </div>
             <button class="btn-secondary add-row" @click="form.payment_milestones.push({ milestone_name: '', amount: 0, is_paid: 0 })">
-              + Add milestone
+              <PlusIcon class="btn-icon" aria-hidden="true" />
+              Add milestone
             </button>
             <div class="deal-total">Total: {{ peso(editTotal) }}</div>
-            <div v-if="editMismatch" class="warn">Deal value is {{ peso(dealVal) }}; milestones are off by {{ peso(Math.abs(editTotal - dealVal)) }}.</div>
+            <div v-if="editMismatch" class="warn">
+              <AlertCircleIcon class="warn-icon" aria-hidden="true" />
+              Deal value is {{ peso(dealVal) }}; milestones are off by {{ peso(Math.abs(editTotal - dealVal)) }}.
+            </div>
           </div>
         </div>
 
@@ -116,10 +132,11 @@
 
         <div class="dd-section comments-section">
           <button class="dd-section-toggle" @click="showComments = !showComments">
-            Comments ({{ comments.length }}) {{ showComments ? '▴' : '▾' }}
+            Comments ({{ comments.length }})
+            <ChevronDownIcon class="dd-toggle-icon" :class="{ 'dd-toggle-icon--open': showComments }" aria-hidden="true" />
           </button>
           <div v-if="showComments" class="comments-body">
-            <div v-if="commentsLoading">Loading comments...</div>
+            <AppSkeleton v-if="commentsLoading" variant="text" :rows="2" />
             <template v-else>
               <div v-for="c in comments" :key="c.name" class="comment-item">
                 <div class="comment-meta">{{ c.comment_by || c.owner }} · {{ formatRelative(c.creation) }}</div>
@@ -149,6 +166,11 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, call } from 'frappe-ui'
 import FinanceFormDialog from './FinanceFormDialog.vue'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import ChevronDownIcon from '~icons/lucide/chevron-down'
+import PlusIcon from '~icons/lucide/plus'
+import XIcon from '~icons/lucide/x'
+import AlertCircleIcon from '~icons/lucide/alert-circle'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -334,47 +356,95 @@ function peso(n) {
 </script>
 
 <style scoped>
-.loading-state { padding: 24px; color: var(--color-gray-500); }
-.contract-detail { display: flex; flex-direction: column; gap: 16px; }
-.cd-header { display: flex; justify-content: space-between; align-items: flex-start; }
-.cd-title { font-size: 18px; font-weight: 700; color: var(--color-gray-900); }
-.cd-sub { font-size: 13px; color: var(--color-gray-500); margin-top: 2px; }
-.cd-header-actions { display: flex; align-items: center; gap: 8px; }
-.dd-section { border-top: 1px solid var(--color-gray-200); padding-top: 14px; }
-.section-label { font-size: 12px; font-weight: 600; color: var(--color-gray-500); text-transform: uppercase; margin-bottom: 8px; }
-.items-table { width: 100%; border-collapse: collapse; }
-.items-table th, .items-table td { text-align: left; padding: 6px 8px; font-size: 13px; border-bottom: 1px solid var(--color-gray-100); }
-.items-table th { color: var(--color-gray-500); font-weight: 600; }
-.deal-total { margin-top: 8px; font-weight: 600; font-size: 14px; color: var(--color-gray-900); }
-.milestone-rows { display: flex; flex-direction: column; gap: 8px; }
-.milestone-row { display: grid; grid-template-columns: 1fr 110px 80px 24px; gap: 8px; align-items: center; }
-.ms-name, .ms-amount { border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
-.paid-check { font-size: 12px; color: var(--color-gray-600); display: flex; align-items: center; gap: 4px; }
-.remove-row { background: none; border: none; color: var(--color-red-600); font-size: 18px; cursor: pointer; }
-.add-row { width: fit-content; margin-top: 4px; }
-.dates-row { display: flex; gap: 24px; font-size: 13px; color: var(--color-gray-900); }
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 12px; color: var(--color-gray-500); }
-.field input { border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 7px 9px; font-size: 13px; }
-.edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.loading-state { display: flex; flex-direction: column; gap: var(--space-4); }
+.contract-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+.cd-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap; }
+.cd-title { font-size: var(--fs-lg); font-weight: 700; color: var(--color-gray-900); }
+.cd-sub { font-size: var(--fs-sm); color: var(--color-gray-600); margin-top: var(--space-1); }
+.cd-header-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.dd-section { border-top: 1px solid var(--color-gray-200); padding-top: var(--space-4); }
+.section-label { font-size: var(--fs-xs); font-weight: 600; color: var(--color-gray-600); text-transform: uppercase; margin-bottom: var(--space-2); letter-spacing: 0.03em; }
+.table-scroll { overflow-x: auto; }
+.items-table { width: 100%; border-collapse: collapse; min-width: 420px; }
+.items-table th, .items-table td { text-align: left; padding: var(--space-2); font-size: var(--fs-sm); border-bottom: 1px solid var(--color-gray-100); white-space: nowrap; }
+.items-table th { color: var(--color-gray-600); font-weight: 600; }
+.deal-total { margin-top: var(--space-2); font-weight: 600; font-size: var(--fs-sm); color: var(--color-gray-900); font-variant-numeric: tabular-nums; }
+.milestone-rows { display: flex; flex-direction: column; gap: var(--space-2); }
+.milestone-row { display: grid; grid-template-columns: 1fr 110px 80px 28px; gap: var(--space-2); align-items: center; }
+.ms-name, .ms-amount {
+  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm);
+  padding: var(--space-2); font-size: var(--fs-sm); font-family: inherit;
+  color: var(--color-gray-900); min-width: 0;
+}
+.ms-name:focus, .ms-amount:focus { border-color: var(--color-amber-700); }
+.paid-check { font-size: var(--fs-xs); color: var(--color-gray-600); display: flex; align-items: center; gap: var(--space-1); cursor: pointer; }
+.remove-row {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; color: var(--color-gray-500); cursor: pointer;
+  padding: var(--space-1); border-radius: var(--radius-sm);
+}
+.remove-row svg { width: 14px; height: 14px; }
+.remove-row:hover { color: var(--color-red-600); background: var(--color-red-100); }
+.btn-icon { width: 14px; height: 14px; flex-shrink: 0; }
+.add-row { width: fit-content; margin-top: var(--space-1); }
+.dates-row { display: flex; gap: var(--space-6); font-size: var(--fs-sm); color: var(--color-gray-900); flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field label { font-size: var(--fs-xs); color: var(--color-gray-600); font-weight: 500; }
+.field input, .field textarea {
+  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm);
+  padding: var(--space-2); font-size: var(--fs-sm); font-family: inherit;
+  color: var(--color-gray-900); background: var(--color-white);
+}
+.field input:focus, .field textarea:focus { border-color: var(--color-amber-700); }
+.edit-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
 
-.btn-primary { padding: 8px 16px; font-size: 13px; }
-.status-select { border: 1px solid var(--color-gray-200); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.status-draft { background: var(--color-gray-100); color: var(--color-gray-500); }
+.btn-primary { padding: var(--space-2) var(--space-4); font-size: var(--fs-sm); }
+.status-select {
+  border: 1px solid var(--color-gray-200); border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3); font-size: var(--fs-xs);
+  font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.status-draft { background: var(--color-gray-100); color: var(--color-gray-600); }
 .status-negotiation { background: var(--color-amber-100); color: var(--color-amber-700); }
 .status-finalized { background: var(--color-blue-100); color: var(--color-blue-700); }
 .status-sent { background: var(--color-emerald-100); color: var(--color-emerald-800); }
-.comments-section { }
-.dd-section-toggle { background: none; border: none; cursor: pointer; font-weight: 600; color: var(--color-gray-900); font-size: 14px; padding: 0; }
-.comments-body { margin-top: 12px; }
-.comment-item { padding: 10px 0; border-bottom: 1px solid var(--color-gray-100); }
-.comment-meta { font-size: 12px; color: var(--color-gray-500); margin-bottom: 4px; }
-.comment-content { font-size: 14px; color: var(--color-gray-900); white-space: pre-wrap; }
-.no-comments { color: var(--color-gray-500); font-size: 14px; padding: 8px 0; }
-.comment-input-row { display: flex; gap: 8px; margin-top: 12px; }
-.comment-input-row textarea { flex: 1; border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 8px; font-family: inherit; resize: vertical; }
-.comment-input-row button { background: var(--color-amber-700); color: white; border: none; border-radius: 6px; padding: 0 16px; cursor: pointer; }
-.terms-text { white-space: pre-wrap; font-size: 13px; color: var(--color-gray-600); margin-top: 6px; }
-.field textarea { border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 7px 9px; font-size: 13px; font-family: inherit; }
-.warn { margin-top: 6px; font-size: 12px; color: var(--color-red-700); }
+.dd-section-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: none; border: none; cursor: pointer; font-weight: 600;
+  color: var(--color-gray-900); font-size: var(--fs-sm); padding: 0; font-family: inherit;
+}
+.dd-toggle-icon {
+  width: 14px; height: 14px; color: var(--color-gray-500);
+  transition: transform 150ms ease;
+}
+.dd-toggle-icon--open { transform: rotate(180deg); }
+.comments-body { margin-top: var(--space-3); }
+.comment-item { padding: var(--space-3) 0; border-bottom: 1px solid var(--color-gray-100); }
+.comment-meta { font-size: var(--fs-xs); color: var(--color-gray-600); margin-bottom: var(--space-1); }
+.comment-content { font-size: var(--fs-sm); color: var(--color-gray-900); white-space: pre-wrap; }
+.no-comments { color: var(--color-gray-600); font-size: var(--fs-sm); padding: var(--space-2) 0; }
+.comment-input-row { display: flex; gap: var(--space-2); margin-top: var(--space-3); align-items: flex-start; }
+.comment-input-row textarea {
+  flex: 1; border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm);
+  padding: var(--space-2); font-family: inherit; resize: vertical; font-size: var(--fs-sm);
+  color: var(--color-gray-900);
+}
+.comment-input-row textarea:focus { border-color: var(--color-amber-700); }
+.comment-input-row button {
+  background: var(--color-amber-700); color: white; border: none;
+  border-radius: var(--radius-sm); padding: var(--space-2) var(--space-4);
+  cursor: pointer; font-family: inherit; font-size: var(--fs-sm); font-weight: 500;
+}
+.comment-input-row button:hover:not(:disabled) { background: var(--color-amber-800); }
+.comment-input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+.terms-text { white-space: pre-wrap; font-size: var(--fs-sm); color: var(--color-gray-700); margin-top: var(--space-2); }
+.warn {
+  display: flex; align-items: flex-start; gap: var(--space-1);
+  margin-top: var(--space-2); font-size: var(--fs-xs); color: var(--color-red-700);
+}
+.warn-icon { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
+@media (max-width: 640px) {
+  .milestone-row { grid-template-columns: 1fr 110px; }
+  .milestone-row .remove-row { justify-self: start; }
+}
 </style>

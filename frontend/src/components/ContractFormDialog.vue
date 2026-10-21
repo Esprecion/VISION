@@ -43,11 +43,14 @@
             <div v-for="(m, i) in milestones" :key="i" class="milestone-row">
               <input v-model="m.milestone_name" type="text" placeholder="e.g. Downpayment" class="ms-name" />
               <input v-model.number="m.amount" type="number" placeholder="Amount" class="ms-amount" />
-              <button class="remove-row" @click="milestones.splice(i, 1)">×</button>
+              <button class="remove-row" aria-label="Remove milestone" @click="milestones.splice(i, 1)">
+                <XIcon aria-hidden="true" />
+              </button>
             </div>
           </div>
           <button class="btn-secondary add-row" @click="milestones.push({ milestone_name: '', amount: 0 })">
-            + Add milestone
+            <PlusIcon class="btn-icon" aria-hidden="true" />
+            Add milestone
           </button>
           <div class="total-row">Total: {{ peso(totalValue) }}</div>
           <div v-if="dealValue > 0" class="balance" :class="{ ok: matches, bad: !matches }">
@@ -62,6 +65,7 @@
         </div>
 
         <div v-if="createContract.error" class="error-msg">
+          <AlertCircleIcon class="btn-icon" aria-hidden="true" />
           {{ createContract.error.messages?.[0] || 'Something went wrong' }}
         </div>
       </div>
@@ -81,6 +85,9 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, Autocomplete, createResource, createListResource, call } from 'frappe-ui'
+import XIcon from '~icons/lucide/x'
+import PlusIcon from '~icons/lucide/plus'
+import AlertCircleIcon from '~icons/lucide/alert-circle'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -226,85 +233,130 @@ function peso(n) {
 .form-grid {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-4);
+}
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .field label {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-gray-600);
   font-weight: 500;
 }
-.field input {
+.field input,
+.field textarea {
   border: 1px solid var(--color-gray-300);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--color-gray-900);
+  background: var(--color-white);
+}
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--color-amber-700);
 }
 .field input:disabled {
   background: var(--color-gray-100);
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
 }
 .field-row {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
 .field-row .field {
   flex: 1;
+  min-width: 160px;
 }
 .hint {
-  font-size: 12px;
-  color: var(--color-gray-400);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
 }
 .milestone-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 .milestone-row {
   display: grid;
-  grid-template-columns: 1fr 120px 24px;
-  gap: 8px;
+  grid-template-columns: 1fr 120px 28px;
+  gap: var(--space-2);
   align-items: center;
 }
 .ms-name,
 .ms-amount {
   border: 1px solid var(--color-gray-300);
-  border-radius: 6px;
-  padding: 7px 9px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--color-gray-900);
+  min-width: 0;
+}
+.ms-name:focus,
+.ms-amount:focus {
+  border-color: var(--color-amber-700);
 }
 .remove-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  color: var(--color-red-600);
-  font-size: 18px;
+  color: var(--color-gray-500);
   cursor: pointer;
-  line-height: 1;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.remove-row svg {
+  width: 14px;
+  height: 14px;
+}
+.remove-row:hover {
+  color: var(--color-red-600);
+  background: var(--color-red-100);
 }
 .add-row {
   width: fit-content;
 }
 .total-row {
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-gray-900);
+  font-variant-numeric: tabular-nums;
 }
 
 .error-msg {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--color-red-600);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 .btn-primary { width: 100%; }
-.value-box { background: var(--color-amber-50); border: 1px solid var(--color-amber-200); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--color-amber-800); }
-.tpl { border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 6px 8px; font-size: 13px; width: fit-content; margin-bottom: 8px; background: var(--color-white); }
-.balance { font-size: 13px; margin-top: 4px; }
-.balance.ok { color: #047857; }
+.value-box {
+  background: var(--color-amber-50); border: 1px solid var(--color-amber-200);
+  border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--fs-sm);
+  color: var(--color-amber-800);
+}
+.tpl {
+  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm);
+  padding: var(--space-2); font-size: var(--fs-sm); width: fit-content;
+  margin-bottom: var(--space-2); background: var(--color-white); font-family: inherit;
+  color: var(--color-gray-900);
+}
+.balance { font-size: var(--fs-sm); margin-top: var(--space-1); font-variant-numeric: tabular-nums; }
+.balance.ok { color: var(--color-emerald-800); }
 .balance.bad { color: var(--color-red-700); }
-.field textarea { border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 8px 10px; font-size: 14px; font-family: inherit; }
 </style>

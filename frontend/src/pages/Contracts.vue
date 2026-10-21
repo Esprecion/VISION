@@ -4,6 +4,12 @@ import { createListResource, call } from 'frappe-ui'
 import ContractFormDialog from '@/components/ContractFormDialog.vue'
 import ContractDetailDialog from '@/components/ContractDetailDialog.vue'
 import { useToast } from '@/composables/useToast'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import PlusIcon from '~icons/lucide/plus'
+import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
 const showContractDialog = ref(false)
@@ -78,6 +84,10 @@ const filteredContracts = computed(() => {
   )
 })
 
+function clearSearch() {
+  search.value = ''
+}
+
 function peso(n) {
   return '₱' + Number(n || 0).toLocaleString('en-PH')
 }
@@ -85,54 +95,90 @@ function peso(n) {
 
 <template>
   <div class="contracts-page">
-    <header class="contracts-header">
-      <h1>Business Development · Contracts</h1>
-      <button class="btn-secondary" @click="showContractDialog = true">+ Add Contract</button>
-    </header>
+    <PageHeader title="Business Development · Contracts">
+      <template #actions>
+        <button class="btn-secondary" @click="showContractDialog = true">
+          <PlusIcon class="btn-icon" aria-hidden="true" />
+          Add Contract
+        </button>
+      </template>
+    </PageHeader>
 
-    <input
-      v-model="search"
-      class="search-input"
-      type="text"
-      placeholder="Search by client or deal..."
-    />
+    <div class="search-wrap">
+      <SearchIcon class="search-icon" aria-hidden="true" />
+      <input
+        v-model="search"
+        class="search-input"
+        type="search"
+        placeholder="Search by client or deal..."
+      />
+    </div>
 
     <div class="table-wrap">
-      <table class="contracts-table">
-        <thead>
-          <tr>
-            <th>Deal</th>
-            <th>Client</th>
-            <th>Value</th>
-            <th>Status</th>
-            <th>Start</th>
-            <th>End</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in filteredContracts" :key="c.name" class="clickable-row" @click="openContractDetail(c.name)">
-            <td class="strong">{{ dealTitle(c.deal) }}</td>
-            <td>{{ c.client }}</td>
-            <td>{{ peso(c.value) }}</td>
-            <td>
-              <select
-                :value="c.status"
-                class="status-select"
-                :class="statusClass(c.status)"
-                @click.stop
-                @change="updateStatus(c, $event.target.value)"
-              >
-                <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
-              </select>
-            </td>
-            <td>{{ c.start_date || '—' }}</td>
-            <td>{{ c.end_date || '—' }}</td>
-          </tr>
-          <tr v-if="!contractsResource.loading && filteredContracts.length === 0">
-            <td colspan="6" class="empty-row">No contracts found.</td>
-          </tr>
-        </tbody>
-      </table>
+      <AppSkeleton v-if="contractsResource.loading && !contractsResource.data" variant="table" :rows="5" :cols="6" />
+      <ErrorState
+        v-else-if="contractsResource.error && !contractsResource.data"
+        title="Couldn't load contracts"
+        :message="contractsResource.error?.messages?.[0] || contractsResource.error?.message || ''"
+        :on-retry="() => contractsResource.reload()"
+      />
+      <EmptyState
+        v-else-if="!contractsResource.data?.length"
+        title="No contracts yet"
+        description="Won deals can be turned into contracts with payment milestones."
+      >
+        <template #action>
+          <button class="btn-secondary" @click="showContractDialog = true">
+            <PlusIcon class="btn-icon" aria-hidden="true" />
+            Add Contract
+          </button>
+        </template>
+      </EmptyState>
+      <EmptyState
+        v-else-if="filteredContracts.length === 0"
+        :icon="SearchIcon"
+        title="No matching contracts"
+        description="No contracts match your search. Try a different client or deal name."
+      >
+        <template #action>
+          <button class="btn-secondary" @click="clearSearch">Clear search</button>
+        </template>
+      </EmptyState>
+      <div v-else class="table-scroll">
+        <table class="contracts-table">
+          <thead>
+            <tr>
+              <th>Deal</th>
+              <th>Client</th>
+              <th>Value</th>
+              <th>Status</th>
+              <th>Start</th>
+              <th>End</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in filteredContracts" :key="c.name" class="clickable-row" @click="openContractDetail(c.name)">
+              <td class="strong">{{ dealTitle(c.deal) }}</td>
+              <td>{{ c.client }}</td>
+              <td class="num">{{ peso(c.value) }}</td>
+              <td>
+                <select
+                  :value="c.status"
+                  class="status-select"
+                  :class="statusClass(c.status)"
+                  aria-label="Contract status"
+                  @click.stop
+                  @change="updateStatus(c, $event.target.value)"
+                >
+                  <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+                </select>
+              </td>
+              <td>{{ c.start_date || '—' }}</td>
+              <td>{{ c.end_date || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <ContractFormDialog v-model="showContractDialog" @created="onContractCreated" />
@@ -148,38 +194,49 @@ function peso(n) {
 .contracts-page {
   background: var(--color-gray-50);
   min-height: 100vh;
-  padding: 32px;
-  color: var(--color-gray-900);
-  font-family: 'Inter', sans-serif;
-}
-.contracts-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.contracts-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  padding: var(--page-pad);
   color: var(--color-gray-900);
 }
-.btn-secondary { border-radius: 8px; padding: 8px 14px; }
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.search-wrap {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--color-gray-500);
+  pointer-events: none;
+}
 .search-input {
   width: 100%;
   max-width: 360px;
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
+  font-size: var(--fs-sm);
+  margin-bottom: var(--space-4);
   background: var(--color-white);
+  font-family: inherit;
+  color: var(--color-gray-900);
+  box-sizing: border-box;
 }
 .table-wrap {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
 }
 .contracts-table {
   width: 100%;
@@ -188,14 +245,15 @@ function peso(n) {
 .contracts-table th,
 .contracts-table td {
   text-align: left;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
   border-bottom: 1px solid var(--color-gray-200);
+  white-space: nowrap;
 }
 .contracts-table th {
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   background: var(--color-gray-50);
 }
@@ -205,6 +263,9 @@ function peso(n) {
 .strong {
   font-weight: 600;
 }
+.num {
+  font-variant-numeric: tabular-nums;
+}
 .clickable-row {
   cursor: pointer;
 }
@@ -213,15 +274,16 @@ function peso(n) {
 }
 .status-select {
   border: 1px solid var(--color-gray-200);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--fs-xs);
   font-weight: 600;
   cursor: pointer;
+  font-family: inherit;
 }
 .status-draft {
   background: var(--color-gray-100);
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
 }
 .status-negotiation {
   background: var(--color-amber-100);
@@ -235,9 +297,9 @@ function peso(n) {
   background: var(--color-emerald-100);
   color: var(--color-emerald-800);
 }
-.empty-row {
-  text-align: center;
-  color: var(--color-gray-500);
-  padding: 24px;
+@media (max-width: 640px) {
+  .search-input {
+    max-width: none;
+  }
 }
 </style>
