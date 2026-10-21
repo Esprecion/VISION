@@ -3,6 +3,12 @@ import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import { useToast } from '@/composables/useToast'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import PlusIcon from '~icons/lucide/plus'
+import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
 const showProductDialog = ref(false)
@@ -31,42 +37,81 @@ const filteredProducts = computed(() => {
       (p.type || '').toLowerCase().includes(q)
   )
 })
+
+function clearSearch() {
+  search.value = ''
+}
 </script>
 
 <template>
   <div class="products-page">
-    <header class="products-header">
-      <h1>Business Development · Products</h1>
-      <button class="btn-secondary" @click="showProductDialog = true">+ Add Product</button>
-    </header>
+    <PageHeader title="Business Development · Products">
+      <template #actions>
+        <button class="btn-secondary" @click="showProductDialog = true">
+          <PlusIcon class="btn-icon" aria-hidden="true" />
+          Add Product
+        </button>
+      </template>
+    </PageHeader>
 
-    <input
-      v-model="search"
-      class="search-input"
-      type="text"
-      placeholder="Search by name or type..."
-    />
+    <div class="search-wrap">
+      <SearchIcon class="search-icon" aria-hidden="true" />
+      <input
+        v-model="search"
+        class="search-input"
+        type="search"
+        placeholder="Search by name or type..."
+      />
+    </div>
 
     <div class="table-wrap">
-      <table class="products-table">
-        <thead>
-          <tr>
-            <th>Product Name</th>
-            <th>Type</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in filteredProducts" :key="p.name">
-            <td class="strong">{{ p.product_name }}</td>
-            <td><span class="type-badge">{{ p.type || '—' }}</span></td>
-            <td>{{ p.description || '—' }}</td>
-          </tr>
-          <tr v-if="!productsResource.loading && filteredProducts.length === 0">
-            <td colspan="3" class="empty-row">No products found.</td>
-          </tr>
-        </tbody>
-      </table>
+      <AppSkeleton v-if="productsResource.loading && !productsResource.data" variant="table" :rows="6" :cols="3" />
+      <ErrorState
+        v-else-if="productsResource.error && !productsResource.data"
+        title="Couldn't load products"
+        :message="productsResource.error?.messages?.[0] || productsResource.error?.message || ''"
+        :on-retry="() => productsResource.reload()"
+      />
+      <EmptyState
+        v-else-if="!productsResource.data?.length"
+        title="No products yet"
+        description="Add your first product so deals can reference it in line items."
+      >
+        <template #action>
+          <button class="btn-secondary" @click="showProductDialog = true">
+            <PlusIcon class="btn-icon" aria-hidden="true" />
+            Add Product
+          </button>
+        </template>
+      </EmptyState>
+      <EmptyState
+        v-else-if="filteredProducts.length === 0"
+        :icon="SearchIcon"
+        title="No matching products"
+        description="No products match your search. Try a different name or type."
+      >
+        <template #action>
+          <button class="btn-secondary" @click="clearSearch">Clear search</button>
+        </template>
+      </EmptyState>
+      <div v-else class="table-scroll">
+        <table class="products-table">
+          <thead>
+            <tr>
+              <th>Product Name</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in filteredProducts" :key="p.name">
+              <td class="strong">{{ p.product_name }}</td>
+              <td><span class="type-badge">{{ p.type || '—' }}</span></td>
+              <td class="description-cell">{{ p.description || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
@@ -77,38 +122,49 @@ const filteredProducts = computed(() => {
 .products-page {
   background: var(--color-gray-50);
   min-height: 100vh;
-  padding: 32px;
-  color: var(--color-gray-900);
-  font-family: 'Inter', sans-serif;
-}
-.products-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.products-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  padding: var(--page-pad);
   color: var(--color-gray-900);
 }
-.btn-secondary { border-radius: 8px; padding: 8px 14px; }
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.search-wrap {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--color-gray-500);
+  pointer-events: none;
+}
 .search-input {
   width: 100%;
   max-width: 360px;
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
+  font-size: var(--fs-sm);
+  margin-bottom: var(--space-4);
   background: var(--color-white);
+  font-family: inherit;
+  color: var(--color-gray-900);
+  box-sizing: border-box;
 }
 .table-wrap {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
 }
 .products-table {
   width: 100%;
@@ -117,16 +173,17 @@ const filteredProducts = computed(() => {
 .products-table th,
 .products-table td {
   text-align: left;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
   border-bottom: 1px solid var(--color-gray-200);
 }
 .products-table th {
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   background: var(--color-gray-50);
+  white-space: nowrap;
 }
 .products-table tr:last-child td {
   border-bottom: none;
@@ -134,17 +191,22 @@ const filteredProducts = computed(() => {
 .strong {
   font-weight: 600;
 }
+.description-cell {
+  min-width: 260px;
+}
 .type-badge {
+  display: inline-block;
   background: var(--color-amber-100);
   color: var(--color-amber-700);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
   font-weight: 600;
+  white-space: nowrap;
 }
-.empty-row {
-  text-align: center;
-  color: var(--color-gray-500);
-  padding: 24px;
+@media (max-width: 640px) {
+  .search-input {
+    max-width: none;
+  }
 }
 </style>
