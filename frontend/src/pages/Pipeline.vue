@@ -1,27 +1,42 @@
 <template>
   <div class="pipeline">
-    <header class="pipeline-header">
-      <h1>Business Development · Pipeline</h1>
-      <div class="header-actions">
+    <PageHeader title="Business Development · Pipeline">
+      <template #actions>
         <div class="period-picker">
-          <input type="date" class="date-input" v-model="fromInput" :max="toInput" />
+          <input type="date" class="date-input" v-model="fromInput" :max="toInput" aria-label="From date" />
           <span class="range-label">to</span>
-          <input type="date" class="date-input" v-model="toInput" :min="fromInput" />
+          <input type="date" class="date-input" v-model="toInput" :min="fromInput" aria-label="To date" />
           <button class="btn-secondary" @click="setRange(quarterRange(0))">This quarter</button>
           <button class="btn-secondary" @click="setRange(quarterRange(-1))">Last quarter</button>
           <button class="btn-secondary" @click="setRange(yearRange())">This year</button>
-          </div>
-        <span class="range-label">{{ rangeLabel }}</span>
+        </div>
         <div class="manage-dropdown">
-          <button class="btn-secondary" @click.stop="showManageMenu = !showManageMenu">⚙ Manage ▾</button>
+          <button
+            class="btn-secondary manage-trigger"
+            :aria-expanded="showManageMenu"
+            @click.stop="showManageMenu = !showManageMenu"
+          >
+            <SettingsIcon class="btn-icon" aria-hidden="true" />
+            Manage
+            <ChevronDownIcon class="btn-icon btn-chevron" :class="{ 'btn-chevron--open': showManageMenu }" aria-hidden="true" />
+          </button>
           <div v-if="showManageMenu" class="manage-menu">
-            <button @click="showClientDialog = true; showManageMenu = false">+ Add Client</button>
-            <button @click="showProductDialog = true; showManageMenu = false">+ Add Product</button>
-            <button @click="showManageStages = true; showManageMenu = false">Manage Stages</button>
+            <button @click="showClientDialog = true; showManageMenu = false">
+              <PlusIcon class="btn-icon" aria-hidden="true" />
+              Add Client
+            </button>
+            <button @click="showProductDialog = true; showManageMenu = false">
+              <PlusIcon class="btn-icon" aria-hidden="true" />
+              Add Product
+            </button>
+            <button @click="showManageStages = true; showManageMenu = false">
+              <SettingsIcon class="btn-icon" aria-hidden="true" />
+              Manage Stages
+            </button>
           </div>
         </div>
-      </div>
-    </header>
+      </template>
+    </PageHeader>
 
     <div class="summary-row">
       <div class="summary-item hero">
@@ -38,71 +53,113 @@
       </div>
     </div>
 
-    <input
-      v-model="searchQuery"
-      class="search-input"
-      type="text"
-      placeholder="Search deals by title or client..."
-    />
+    <div class="search-wrap">
+      <SearchIcon class="search-icon" aria-hidden="true" />
+      <input
+        v-model="searchQuery"
+        class="search-input"
+        type="search"
+        placeholder="Search deals by title or client..."
+      />
+    </div>
 
     <div class="board-wrap">
-    <div class="board" ref="boardEl">
-      <div
-        v-for="stage in stages"
-        :key="stage.id"
-        class="column"
-        :class="{ 'drag-over': dragOverStage === stage.id }"
-        @dragover.prevent="dragOverStage = stage.id"
-        @dragleave="dragOverStage = null"
-        @drop="onDrop(stage.id)"
+      <ErrorState
+        v-if="boardError"
+        title="Couldn't load the pipeline"
+        :message="dealsResource.error?.messages?.[0] || dealsResource.error?.message || ''"
+        :on-retry="retryBoard"
+      />
+      <EmptyState
+        v-else-if="!boardLoading && dealsCount === 0"
+        title="No deals yet"
+        description="Add your first deal to a stage to start building the pipeline."
       >
-        <div class="col-head">
-          <div class="col-title-row">
-            <span class="dot" :style="{ background: stage.color }"></span>
-            <span class="col-title">{{ stage.name }}</span>
-            <span class="col-count">{{ dealsByStage(stage.id).length }}</span>
+        <template #action>
+          <AppButton :disabled="!stages.length" @click="addFirstDeal">
+            <template #prefix><PlusIcon aria-hidden="true" /></template>
+            Add deal
+          </AppButton>
+        </template>
+      </EmptyState>
+      <EmptyState
+        v-else-if="searchActive"
+        :icon="SearchIcon"
+        title="No matching deals"
+        description="No deals match your search. Try a different title or client name."
+      >
+        <template #action>
+          <AppButton @click="clearSearch">Clear search</AppButton>
+        </template>
+      </EmptyState>
+      <div v-else class="board" ref="boardEl">
+        <div
+          v-for="stage in stages"
+          :key="stage.id"
+          class="column"
+          :class="{ 'drag-over': dragOverStage === stage.id }"
+          @dragover.prevent="dragOverStage = stage.id"
+          @dragleave="dragOverStage = null"
+          @drop="onDrop(stage.id)"
+        >
+          <div class="col-head">
+            <div class="col-title-row">
+              <span class="dot" :style="{ background: stage.color }"></span>
+              <span class="col-title">{{ stage.name }}</span>
+              <span class="col-count">{{ dealsByStage(stage.id).length }}</span>
+            </div>
+            <div class="col-total">
+              {{ stageTotal(stage.id) }}
+              <span v-if="stage.isLocked" class="period-note">in this period</span>
+            </div>
           </div>
-          <div class="col-total">
-            {{ stageTotal(stage.id) }}
-            <span v-if="stage.isLocked" class="period-note">in this period</span>
-          </div>
-        </div>
 
-        <div class="cards">
-          <div
-            v-for="deal in dealsByStage(stage.id)"
-            :key="deal.name"
-            class="card"
-            :style="{ '--stage-color': stage.color }"
-            draggable="true"
-            @dragstart="draggedDealName = deal.name"
-            @click="openDealDetail(deal.name)"
-          >
-            <div class="org">{{ deal.deal_title }}</div>
-            <div class="value">{{ peso(deal.value) }}</div>
-            <div class="card-foot">
-              <div class="owner">{{ deal.client }}</div>
+          <div class="cards">
+            <template v-if="boardLoading">
+              <AppSkeleton variant="card" class="deal-skeleton" />
+              <AppSkeleton variant="card" class="deal-skeleton" />
+            </template>
+            <template v-else>
               <div
-                v-if="daysInStage(deal.name, deal.stage) !== null"
-                class="days-badge"
-                :class="stageSeverityClass(daysInStage(deal.name, deal.stage))"
+                v-for="deal in dealsByStage(stage.id)"
+                :key="deal.name"
+                class="card"
+                :style="{ '--stage-color': stage.color }"
+                draggable="true"
+                @dragstart="draggedDealName = deal.name"
+                @click="openDealDetail(deal.name)"
               >
-                {{ daysInStage(deal.name, deal.stage) }}d in stage
+                <div class="org">{{ deal.deal_title }}</div>
+                <div class="value">{{ peso(deal.value) }}</div>
+                <div class="card-foot">
+                  <div class="owner">{{ deal.client }}</div>
+                  <div
+                    v-if="daysInStage(deal.name, deal.stage) !== null"
+                    class="days-badge"
+                    :class="stageSeverityClass(daysInStage(deal.name, deal.stage))"
+                  >
+                    {{ daysInStage(deal.name, deal.stage) }}d in stage
+                  </div>
+                </div>
+                <div class="card-dates">
+                  <span>Created {{ formatShortDate(deal.creation) }}</span>
+                  <span v-if="closedDate(deal.name, deal.stage)">
+                    · Closed {{ closedDate(deal.name, deal.stage) }}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div class="card-dates">
-              <span>Created {{ formatShortDate(deal.creation) }}</span>
-              <span v-if="closedDate(deal.name, deal.stage)">
-                · Closed {{ closedDate(deal.name, deal.stage) }}
-              </span>
-            </div>
+            </template>
           </div>
-        </div>
 
-        <button class="add-card-btn" @click="openAddDeal(stage.id)">+ Add deal</button>
+          <button v-if="!boardLoading" class="add-card-btn" @click="openAddDeal(stage.id)">
+            <PlusIcon class="btn-icon" aria-hidden="true" />
+            Add deal
+          </button>
+        </div>
       </div>
-    </div>
-      <div v-if="showScrollHint" class="scroll-hint">→</div>
+      <div v-if="showScrollHint" class="scroll-hint">
+        <ArrowRightIcon aria-hidden="true" />
+      </div>
     </div>
 
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
@@ -130,6 +187,16 @@ import DealDetailDialog from '@/components/DealDetailDialog.vue'
 import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
 import ContractFormDialog from '@/components/ContractFormDialog.vue'
 import { useToast } from '@/composables/useToast'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import SettingsIcon from '~icons/lucide/settings'
+import ChevronDownIcon from '~icons/lucide/chevron-down'
+import PlusIcon from '~icons/lucide/plus'
+import SearchIcon from '~icons/lucide/search'
+import ArrowRightIcon from '~icons/lucide/arrow-right'
 
 const { showToast } = useToast()
 const showClientDialog = ref(false)
@@ -208,6 +275,28 @@ const stageLogsResource = createListResource({
   auto: true,
 })
 
+const boardLoading = computed(
+  () =>
+    (stagesResource.loading && !stagesResource.data) ||
+    (dealsResource.loading && !dealsResource.data)
+)
+const boardError = computed(() => dealsResource.error && !dealsResource.data)
+const dealsCount = computed(() => (dealsResource.data || []).length)
+
+function retryBoard() {
+  stagesResource.reload()
+  dealsResource.reload()
+  stageLogsResource.reload()
+}
+
+function addFirstDeal() {
+  if (stages.value.length) openAddDeal(stages.value[0].id)
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+}
+
 function daysInStage(dealName, currentStage) {
   const logs = stageLogsResource.data || []
   const latest = logs.find((l) => l.deal === dealName && l.to_stage === currentStage)
@@ -254,6 +343,11 @@ const draggedDealName = ref(null)
 const dragOverStage = ref(null)
 
 const searchQuery = ref('')
+
+const searchActive = computed(() => {
+  if (!searchQuery.value.trim()) return false
+  return stages.value.every((s) => dealsByStage(s.id).length === 0)
+})
 
 function dealsByStage(stageId) {
   let list = (dealsResource.data || []).filter((d) => d.stage === stageId)
@@ -306,7 +400,7 @@ function onDrop(stageId) {
         onSuccess: () => {
           stageLogsResource.reload()
           if (stageId === 'Won') {
-            showToast(`"${deal.deal_title}" marked Won 🎉`, 'success', {
+            showToast(`"${deal.deal_title}" marked Won`, 'success', {
               label: 'Create Contract',
               onClick: () => {
                 suggestDealName.value = deal.name
@@ -328,7 +422,6 @@ function onDrop(stageId) {
 const totalValue = computed(() =>
   (dealsResource.data || []).reduce((s, d) => s + (d.value || 0), 0)
 )
-const today = new Date()
 const initialRange = quarterRange(0)
 const fromInput = ref(initialRange.from)
 const toInput = ref(initialRange.to)
@@ -369,77 +462,64 @@ function peso(n) {
 .pipeline {
   background: var(--color-gray-50);
   min-height: 100vh;
-  padding: 32px;
-  color: var(--color-gray-900);
-  font-family: 'Inter', sans-serif;
-}
-.pipeline-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.pipeline-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  padding: var(--page-pad);
   color: var(--color-gray-900);
 }
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
-.btn-secondary { border-radius: 8px; padding: 7px 14px; }
-.btn-secondary:hover {
+.period-picker .btn-secondary:hover:not(:disabled) {
   border-color: var(--color-amber-700);
-  color: var(--color-amber-700);
 }
-.dash-link {
-  color: var(--color-gray-500);
-  text-decoration: none;
-  font-size: 13px;
+.btn-chevron {
+  transition: transform 150ms ease;
 }
-.dash-link:hover {
-  color: var(--color-amber-700);
+.btn-chevron--open {
+  transform: rotate(180deg);
+}
+.manage-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 .summary-row {
   display: flex;
-  gap: 28px;
-  margin-bottom: 20px;
+  gap: var(--space-6);
+  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 .summary-item .label {
-  font-size: 12px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   font-weight: 500;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 .summary-item .value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 22px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--color-gray-900);
 }
 .summary-item.hero .value {
   color: var(--color-gray-900);
-  font-size: 28px;
+  font-size: var(--fs-xl);
 }
 .board {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   overflow-x: auto;
 }
 .column {
   width: 260px;
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 .column.drag-over {
@@ -449,8 +529,8 @@ function peso(n) {
 .col-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
 }
 .dot {
   width: 8px;
@@ -459,159 +539,191 @@ function peso(n) {
   flex-shrink: 0;
 }
 .col-title {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   flex: 1;
   color: var(--color-gray-900);
 }
 .col-count {
-  font-size: 11px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   background: var(--color-gray-100);
-  border-radius: 999px;
-  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  padding: 1px var(--space-2);
 }
 .col-total {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   font-variant-numeric: tabular-nums;
 }
 .cards {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 30px;
+}
+.deal-skeleton {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
 }
 .card {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-left: 3px solid var(--stage-color, var(--color-amber-700));
-  border-radius: 10px;
-  padding: 12px 13px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   cursor: grab;
 }
 .card:hover {
   background: var(--color-gray-50);
 }
 .card .org {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
   color: var(--color-gray-900);
 }
 .card .value {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 15px;
+  font-size: var(--fs-md);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   color: var(--color-gray-900);
 }
 .card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
 }
 .card .owner {
-  font-size: 11px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
 }
 .add-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
   background: transparent;
   border: 1px dashed var(--color-gray-300);
-  border-radius: 10px;
-  color: var(--color-gray-400);
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  color: var(--color-gray-600);
+  font-size: var(--fs-xs);
   font-weight: 500;
-  padding: 9px;
+  padding: var(--space-2);
   cursor: pointer;
   text-align: left;
+  font-family: inherit;
 }
 .add-card-btn:hover {
-  color: var(--color-gray-500);
-  border-color: var(--color-gray-400);
+  color: var(--color-amber-700);
+  border-color: var(--color-amber-700);
 }
 .card-dates {
-  font-size: 10px;
-  color: var(--color-gray-400);
-  margin-top: 4px;
+  font-size: var(--fs-xs);
+  color: var(--color-gray-500);
+  margin-top: var(--space-1);
 }
 .manage-dropdown {
   position: relative;
 }
 .manage-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1));
   right: 0;
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
-  min-width: 160px;
+  min-width: 180px;
   z-index: 20;
   overflow: hidden;
 }
 .manage-menu button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   background: none;
   border: none;
   text-align: left;
-  padding: 10px 14px;
-  font-size: 13px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
   color: var(--color-gray-900);
   cursor: pointer;
+  font-family: inherit;
 }
 .manage-menu button:hover {
   background: var(--color-gray-50);
 }
 .period-note {
-  font-size: 10px;
-  color: var(--color-gray-400);
-  margin-left: 4px;
+  font-size: var(--fs-xs);
+  color: var(--color-gray-500);
+  margin-left: var(--space-1);
 }
 .period-picker {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
-.period-picker select {
+.period-picker input {
   border: 1px solid var(--color-gray-200);
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: 6px var(--space-2);
+  font-size: var(--fs-sm);
   background: var(--color-white);
   color: var(--color-gray-900);
+  font-family: inherit;
 }
 .range-label {
-  color: var(--color-gray-400);
-  font-size: 12px;
+  color: var(--color-gray-600);
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 .days-badge {
-  font-size: 11px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   background: var(--color-gray-100);
-  padding: 2px 6px;
-  border-radius: 999px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
 }
 .days-badge.severity-warning {
   background: var(--color-amber-100);
   color: var(--color-amber-700);
 }
 .days-badge.severity-danger {
-  background: #fee2e2;
+  background: var(--color-red-100);
   color: var(--color-red-600);
+}
+.search-wrap {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--color-gray-500);
+  pointer-events: none;
 }
 .search-input {
   width: 100%;
   max-width: 360px;
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
+  font-size: var(--fs-sm);
   background: var(--color-white);
+  font-family: inherit;
+  color: var(--color-gray-900);
+  box-sizing: border-box;
 }
 .board-wrap {
   position: relative;
@@ -621,9 +733,21 @@ function peso(n) {
   right: 0;
   top: 45%;
   background: linear-gradient(to right, transparent, var(--color-gray-50) 60%);
-  padding: 8px 10px 8px 24px;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
   color: var(--color-amber-700);
   font-weight: 700;
   pointer-events: none;
+}
+.scroll-hint svg {
+  width: 20px;
+  height: 20px;
+}
+@media (max-width: 640px) {
+  .summary-row {
+    gap: var(--space-4);
+  }
+  .search-input {
+    max-width: none;
+  }
 }
 </style>

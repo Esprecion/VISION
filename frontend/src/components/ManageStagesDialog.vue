@@ -20,29 +20,35 @@
             <template v-if="!stage.is_locked">
               <template v-if="pendingDeleteName === stage.name">
                 <span class="confirm-text">Delete?</span>
-                <button class="icon-btn confirm-yes" title="Confirm delete" @click="doDelete(stage)">✓</button>
-                <button class="icon-btn" title="Cancel" @click="cancelDelete">✕</button>
+                <button class="icon-btn confirm-yes" title="Confirm delete" aria-label="Confirm delete" @click="doDelete(stage)">
+                  <CheckIcon aria-hidden="true" />
+                </button>
+                <button class="icon-btn" title="Cancel" aria-label="Cancel delete" @click="cancelDelete">
+                  <XIcon aria-hidden="true" />
+                </button>
               </template>
               <template v-else>
                 <button
                   v-if="editingName !== stage.name"
                   class="icon-btn"
                   title="Rename"
+                  aria-label="Rename stage"
                   @click="startRename(stage)"
                 >
-                  ✎
+                  <PencilIcon aria-hidden="true" />
                 </button>
                 <button
                   v-else
-                  class="icon-btn"
+                  class="icon-btn confirm-yes"
                   title="Save"
+                  aria-label="Save rename"
                   :disabled="renaming"
                   @click="confirmRename(stage)"
                 >
-                  ✓
+                  <CheckIcon aria-hidden="true" />
                 </button>
-                <button class="icon-btn danger" title="Delete" @click="startDelete(stage)">
-                  ✕
+                <button class="icon-btn danger" title="Delete" aria-label="Delete stage" @click="startDelete(stage)">
+                  <XIcon aria-hidden="true" />
                 </button>
               </template>
             </template>
@@ -64,7 +70,8 @@
           ></button>
         </div>
         <button class="btn-secondary" :disabled="!newStageName.trim() || adding" @click="addStage">
-          + Add
+          <PlusIcon class="btn-icon" aria-hidden="true" />
+          Add
         </button>
       </div>
 
@@ -76,6 +83,10 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, createResource, createListResource, call } from 'frappe-ui'
+import CheckIcon from '~icons/lucide/check'
+import XIcon from '~icons/lucide/x'
+import PencilIcon from '~icons/lucide/pencil'
+import PlusIcon from '~icons/lucide/plus'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'updated'])
@@ -214,17 +225,18 @@ async function addStage() {
 .stages-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 .stage-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
+.btn-icon { width: 14px; height: 14px; flex-shrink: 0; }
 .dot {
   width: 10px;
   height: 10px;
@@ -233,82 +245,118 @@ async function addStage() {
 }
 .stage-label {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--color-gray-900);
 }
 .rename-input {
   flex: 1;
-  border: 1px solid var(--color-indigo-500);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 14px;
+  border: 1px solid var(--color-amber-700);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--color-gray-900);
 }
 .locked-badge {
-  font-size: 11px;
-  color: var(--color-gray-500);
+  font-size: var(--fs-xs);
+  color: var(--color-gray-600);
   background: var(--color-gray-100);
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
 }
 .row-actions {
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: var(--color-gray-100);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   width: 26px;
   height: 26px;
   cursor: pointer;
-  font-size: 13px;
+  color: var(--color-gray-600);
+}
+.icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.icon-btn:hover {
+  background: var(--color-gray-200);
+  color: var(--color-gray-900);
 }
 .icon-btn.danger {
   color: var(--color-red-600);
 }
+.icon-btn.danger:hover {
+  background: var(--color-red-100);
+  color: var(--color-red-700);
+}
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .confirm-text {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--color-red-600);
-  margin-right: 2px;
+  margin-right: var(--space-1);
 }
 .icon-btn.confirm-yes {
-  color: #059669;
+  color: var(--color-green-600);
+}
+.icon-btn.confirm-yes:hover {
+  background: var(--color-green-600);
+  color: var(--color-white);
 }
 .add-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
   border-top: 1px solid var(--color-gray-200);
-  padding-top: 12px;
+  padding-top: var(--space-3);
+  flex-wrap: wrap;
 }
 .add-row input[type='text'] {
   flex: 1;
+  min-width: 160px;
   border: 1px solid var(--color-gray-300);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--color-gray-900);
+}
+.add-row input[type='text']:focus {
+  border-color: var(--color-amber-700);
 }
 .color-swatches {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   align-items: center;
+  flex-wrap: wrap;
 }
 .swatch {
   width: 22px;
   height: 22px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: 2px solid transparent;
   cursor: pointer;
   padding: 0;
 }
 .swatch.selected {
   border-color: var(--color-gray-900);
+  box-shadow: 0 0 0 2px var(--color-white), 0 0 0 3px var(--color-gray-900);
 }
-.btn-secondary { padding: 8px 14px; white-space: nowrap; }
 
 .error-msg {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--color-red-600);
-  font-size: 13px;
-  margin-top: 10px;
+  font-size: var(--fs-sm);
+  margin-top: var(--space-3);
 }
 </style>

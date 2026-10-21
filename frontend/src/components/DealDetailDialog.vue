@@ -1,7 +1,17 @@
 <template>
   <Dialog v-model="show" :options="{ title: dialogTitle, size: 'xl' }">
     <template #body-content>
-      <div class="deal-detail" v-if="doc">
+      <div v-if="dealLoading" class="dd-loading">
+        <AppSkeleton variant="text" :rows="3" />
+        <AppSkeleton variant="table" :rows="3" :cols="4" />
+      </div>
+      <ErrorState
+        v-else-if="dealError"
+        title="Couldn't load this deal"
+        :message="dealError"
+        :on-retry="loadDeal"
+      />
+      <div class="deal-detail" v-else-if="doc">
         <div class="dd-header">
           <span class="dd-stage-badge">{{ doc.stage }}</span>
           <button v-if="!editing" class="dd-btn-secondary" @click="startEdit">Edit</button>
@@ -27,14 +37,16 @@
 
           <div class="dd-items">
             <div class="dd-items-header"><span>Line Items</span></div>
-            <div class="dd-item-row dd-item-row-head">
-              <span>Product</span><span>Qty</span><span>Price</span><span>Amount</span>
-            </div>
-            <div v-for="item in form.items" :key="item._key" class="dd-item-row dd-item-row-view">
-              <span>{{ productDisplayName(item.product) }}</span>
-              <span>{{ item.quantity }}</span>
-              <span>{{ formatCurrency(item.price) }}</span>
-              <span>{{ formatCurrency(item.quantity * item.price) }}</span>
+            <div class="dd-items-scroll">
+              <div class="dd-item-row dd-item-row-head">
+                <span>Product</span><span>Qty</span><span>Price</span><span>Amount</span>
+              </div>
+              <div v-for="item in form.items" :key="item._key" class="dd-item-row dd-item-row-view">
+                <span>{{ productDisplayName(item.product) }}</span>
+                <span>{{ item.quantity }}</span>
+                <span>{{ formatCurrency(item.price) }}</span>
+                <span>{{ formatCurrency(item.quantity * item.price) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -69,30 +81,34 @@
           <div class="dd-items">
             <div class="dd-items-header">
               <span>Line Items</span>
-              <button class="dd-link-btn" @click="addItemRow">+ Add line</button>
+              <button class="dd-link-btn" @click="addItemRow"><PlusIcon class="dd-icon" aria-hidden="true" /> Add line</button>
             </div>
-            <div class="dd-item-row dd-item-row-head">
-              <span>Product</span><span>Qty</span><span>Price</span><span>Amount</span><span></span>
-            </div>
-            <div v-for="(item, idx) in form.items" :key="item._key" class="dd-item-row">
-              <div class="product-cell">
-                <Autocomplete
-                  :options="productOptions"
-                  :model-value="item.product"
-                  @update:modelValue="(val) => (item.product = val?.value ?? val ?? '')"
-                  placeholder="Product"
-                />
+            <div class="dd-items-scroll">
+              <div class="dd-item-row dd-item-row-head">
+                <span>Product</span><span>Qty</span><span>Price</span><span>Amount</span><span></span>
               </div>
-              <input type="number" min="1" v-model.number="item.quantity" class="dd-input dd-qty" />
-              <input
-                type="number"
-                min="0"
-                v-model.number="item.price"
-                class="dd-input dd-price"
-                @input="clampPrice(item)"
-              />
-              <span class="dd-amount">{{ formatCurrency(item.quantity * item.price) }}</span>
-              <button class="dd-remove-btn" @click="removeItemRow(idx)">×</button>
+              <div v-for="(item, idx) in form.items" :key="item._key" class="dd-item-row">
+                <div class="product-cell">
+                  <Autocomplete
+                    :options="productOptions"
+                    :model-value="item.product"
+                    @update:modelValue="(val) => (item.product = val?.value ?? val ?? '')"
+                    placeholder="Product"
+                  />
+                </div>
+                <input type="number" min="1" v-model.number="item.quantity" class="dd-input dd-qty" />
+                <input
+                  type="number"
+                  min="0"
+                  v-model.number="item.price"
+                  class="dd-input dd-price"
+                  @input="clampPrice(item)"
+                />
+                <span class="dd-amount">{{ formatCurrency(item.quantity * item.price) }}</span>
+                <button class="dd-remove-btn" aria-label="Remove line" @click="removeItemRow(idx)">
+                  <XIcon aria-hidden="true" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -107,7 +123,8 @@
         <!-- Comments -->
         <div class="dd-section">
           <button class="dd-section-toggle" @click="showComments = !showComments">
-            Comments ({{ comments.length }}) {{ showComments ? '▴' : '▾' }}
+            Comments ({{ comments.length }})
+            <ChevronDownIcon class="dd-toggle-icon" :class="{ 'dd-toggle-icon--open': showComments }" aria-hidden="true" />
           </button>
           <div v-if="showComments" class="dd-section-body">
             <div class="dd-comment-form">
@@ -139,7 +156,8 @@
         <!-- History -->
         <div class="dd-section">
           <button class="dd-section-toggle" @click="showHistory = !showHistory">
-            History ({{ filteredHistory.length }}) {{ showHistory ? '▴' : '▾' }}
+            History ({{ filteredHistory.length }})
+            <ChevronDownIcon class="dd-toggle-icon" :class="{ 'dd-toggle-icon--open': showHistory }" aria-hidden="true" />
           </button>
           <div v-if="showHistory" class="dd-section-body">
             <div v-if="filteredHistory.length === 0" class="dd-empty">No changes recorded.</div>
@@ -162,6 +180,11 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, Autocomplete, createListResource, call } from 'frappe-ui'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import ChevronDownIcon from '~icons/lucide/chevron-down'
+import PlusIcon from '~icons/lucide/plus'
+import XIcon from '~icons/lucide/x'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -175,6 +198,8 @@ const show = computed({
 })
 
 const doc = ref(null)
+const dealLoading = ref(false)
+const dealError = ref('')
 const editing = ref(false)
 const form = reactive({
   deal_title: '',
@@ -301,18 +326,27 @@ function cancelEdit() {
 
 async function loadDeal() {
   if (!props.dealName) return
-  const d = await call('frappe.client.get', { doctype: 'Deal', name: props.dealName })
-  doc.value = d
-  form.deal_title = d.deal_title
-  form.client = d.client
-  form.expected_close_date = d.expected_close_date
-  form.items = (d.items || []).map((i) => ({
-    product: i.product,
-    quantity: i.quantity,
-    price: i.price,
-    _key: i.name || Math.random().toString(36).slice(2),
-  }))
-  loadedSnapshot = snapshotForm()
+  dealLoading.value = true
+  dealError.value = ''
+  try {
+    const d = await call('frappe.client.get', { doctype: 'Deal', name: props.dealName })
+    doc.value = d
+    form.deal_title = d.deal_title
+    form.client = d.client
+    form.expected_close_date = d.expected_close_date
+    form.items = (d.items || []).map((i) => ({
+      product: i.product,
+      quantity: i.quantity,
+      price: i.price,
+      _key: i.name || Math.random().toString(36).slice(2),
+    }))
+    loadedSnapshot = snapshotForm()
+  } catch (e) {
+    doc.value = null
+    dealError.value = e?.messages?.[0] || e?.message || 'Something went wrong'
+  } finally {
+    dealLoading.value = false
+  }
 }
 
 async function loadComments() {
@@ -428,74 +462,105 @@ watch(show, async (v) => {
     editing.value = false
     showComments.value = false
     showHistory.value = false
+    doc.value = null
+    dealError.value = ''
     clientsResource.reload()
     productsResource.reload()
     await loadDeal()
-    await Promise.all([loadComments(), loadHistory()])
+    if (doc.value) await Promise.all([loadComments(), loadHistory()])
   }
 })
 </script>
 
 <style scoped>
-.deal-detail { display: flex; flex-direction: column; gap: 16px; }
-.dd-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.deal-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+.dd-loading { display: flex; flex-direction: column; gap: var(--space-4); }
+.dd-icon { width: 14px; height: 14px; vertical-align: -2px; }
+.dd-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .dd-stage-badge {
-  background: var(--color-amber-100); color: var(--color-amber-700); font-size: 12px; font-weight: 600;
-  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  background: var(--color-amber-100); color: var(--color-amber-700); font-size: var(--fs-xs); font-weight: 600;
+  padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); white-space: nowrap;
 }
-.dd-view-title { font-size: 18px; font-weight: 600; color: var(--color-gray-900); margin: 0 0 4px; }
-.dd-view-value { font-size: 14px; color: var(--color-gray-900); padding: 4px 0; }
-.dd-field-title { margin-bottom: 4px; }
-.dd-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.dd-field label { display: block; font-size: 12px; color: var(--color-gray-500); margin-bottom: 4px; }
+.dd-view-title { font-size: var(--fs-md); font-weight: 600; color: var(--color-gray-900); margin: 0 0 var(--space-1); }
+.dd-view-value { font-size: var(--fs-sm); color: var(--color-gray-900); padding: var(--space-1) 0; }
+.dd-field-title { margin-bottom: var(--space-1); }
+.dd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.dd-field label { display: block; font-size: var(--fs-xs); color: var(--color-gray-600); margin-bottom: var(--space-1); font-weight: 500; }
 .dd-input {
-  width: 100%; border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 8px;
-  font-size: 14px; color: var(--color-gray-900);
+  width: 100%; border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm); padding: var(--space-2);
+  font-size: var(--fs-sm); color: var(--color-gray-900); font-family: inherit; background: var(--color-white);
 }
-.dd-value-readout { font-size: 15px; font-weight: 600; color: var(--color-gray-900); padding: 6px 0; }
+.dd-input:focus { border-color: var(--color-amber-700); }
+.dd-value-readout { font-size: var(--fs-md); font-weight: 600; color: var(--color-gray-900); padding: var(--space-2) 0; }
 .dd-items-header {
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 13px; font-weight: 600; color: var(--color-gray-500); margin-bottom: 6px;
+  font-size: var(--fs-sm); font-weight: 600; color: var(--color-gray-600); margin-bottom: var(--space-2);
 }
-.dd-link-btn { background: none; border: none; color: var(--color-amber-700); font-size: 13px; cursor: pointer; }
+.dd-link-btn {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: none; border: none; color: var(--color-amber-700); font-size: var(--fs-sm);
+  cursor: pointer; font-family: inherit; font-weight: 500; padding: 0;
+}
+.dd-link-btn:hover { text-decoration: underline; }
+.dd-items-scroll { overflow-x: auto; }
 .dd-item-row {
-  display: grid; grid-template-columns: 210px 56px 84px 84px 20px;
-  gap: 8px; align-items: center; margin-bottom: 6px;
+  display: grid; grid-template-columns: 210px 56px 84px 84px 24px;
+  gap: var(--space-2); align-items: center; margin-bottom: var(--space-2);
 }
-.dd-item-row-view { grid-template-columns: 210px 56px 84px 84px; font-size: 13px; color: var(--color-gray-900); }
-.dd-item-row-head { font-size: 11px; color: var(--color-gray-500); font-weight: 600; }
+.dd-item-row-view { grid-template-columns: 210px 56px 84px 84px; font-size: var(--fs-sm); color: var(--color-gray-900); }
+.dd-item-row-head { font-size: var(--fs-xs); color: var(--color-gray-600); font-weight: 600; }
 .product-cell { width: 210px; overflow: hidden; }
 .dd-qty, .dd-price { width: 100%; }
-.dd-amount { font-size: 13px; color: var(--color-gray-900); }
-.dd-remove-btn { background: none; border: none; color: var(--color-gray-400); cursor: pointer; font-size: 16px; }
+.dd-amount { font-size: var(--fs-sm); color: var(--color-gray-900); }
+.dd-remove-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; color: var(--color-gray-500); cursor: pointer;
+  padding: var(--space-1); border-radius: var(--radius-sm);
+}
+.dd-remove-btn svg { width: 14px; height: 14px; }
+.dd-remove-btn:hover { color: var(--color-red-600); background: var(--color-red-100); }
 .dd-actions {
-  display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 0;
+  display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) 0;
   border-top: 1px solid var(--color-gray-200); border-bottom: 1px solid var(--color-gray-200);
 }
 .dd-btn-primary {
-  background: var(--color-amber-700); color: var(--color-white); border: none; border-radius: 6px;
-  padding: 6px 14px; font-size: 13px; cursor: pointer;
+  background: var(--color-amber-700); color: var(--color-white); border: none; border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4); font-size: var(--fs-sm); cursor: pointer; font-family: inherit; font-weight: 500;
 }
+.dd-btn-primary:hover:not(:disabled) { background: var(--color-amber-800); }
 .dd-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 .dd-btn-secondary {
-  background: var(--color-white); color: var(--color-gray-500); border: 1px solid var(--color-gray-200); border-radius: 6px;
-  padding: 6px 14px; font-size: 13px; cursor: pointer;
+  background: var(--color-white); color: var(--color-gray-700); border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-sm); padding: var(--space-2) var(--space-4); font-size: var(--fs-sm);
+  cursor: pointer; font-family: inherit; font-weight: 500;
 }
+.dd-btn-secondary:hover { border-color: var(--color-gray-300); color: var(--color-gray-900); }
 .dd-section-toggle {
-  background: none; border: none; font-size: 13px; font-weight: 600;
-  color: var(--color-gray-900); cursor: pointer; padding: 4px 0;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: none; border: none; font-size: var(--fs-sm); font-weight: 600;
+  color: var(--color-gray-900); cursor: pointer; padding: var(--space-1) 0; font-family: inherit;
 }
-.dd-section-body { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
-.dd-comment-form { display: flex; gap: 8px; align-items: flex-start; }
+.dd-toggle-icon {
+  width: 14px; height: 14px; color: var(--color-gray-500);
+  transition: transform 150ms ease;
+}
+.dd-toggle-icon--open { transform: rotate(180deg); }
+.dd-section-body { margin-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-3); }
+.dd-comment-form { display: flex; gap: var(--space-2); align-items: flex-start; }
 .dd-textarea {
-  flex: 1; border: 1px solid var(--color-gray-200); border-radius: 6px; padding: 6px 8px; font-size: 13px;
+  flex: 1; border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm); padding: var(--space-2);
+  font-size: var(--fs-sm); font-family: inherit; color: var(--color-gray-900); resize: vertical;
 }
-.dd-comment { border-left: 2px solid var(--color-amber-100); padding-left: 10px; }
-.dd-comment-meta { display: flex; gap: 8px; align-items: baseline; font-size: 12px; }
-.dd-comment-content { font-size: 13px; color: var(--color-gray-900); margin-top: 2px; }
-.dd-history-line { font-size: 12px; color: var(--color-gray-700); margin-bottom: 4px; }
+.dd-textarea:focus { border-color: var(--color-amber-700); }
+.dd-comment { border-left: 2px solid var(--color-amber-100); padding-left: var(--space-3); }
+.dd-comment-meta { display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--fs-xs); }
+.dd-comment-content { font-size: var(--fs-sm); color: var(--color-gray-900); margin-top: var(--space-1); }
+.dd-history-line { font-size: var(--fs-xs); color: var(--color-gray-700); margin-bottom: var(--space-1); }
 .dd-old { color: var(--color-amber-700); text-decoration: line-through; }
 .dd-new { color: var(--color-gray-900); font-weight: 600; }
-.dd-timestamp { font-size: 11px; color: var(--color-gray-400); }
-.dd-empty { font-size: 12px; color: var(--color-gray-400); }
+.dd-timestamp { font-size: var(--fs-xs); color: var(--color-gray-500); }
+.dd-empty { font-size: var(--fs-xs); color: var(--color-gray-600); }
+@media (max-width: 640px) {
+  .dd-grid { grid-template-columns: 1fr; }
+}
 </style>

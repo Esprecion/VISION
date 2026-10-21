@@ -13,7 +13,8 @@
           <div class="label-row">
             <label>Client *</label>
             <button class="btn-link" @click="newClient = !newClient">
-              {{ newClient ? 'Pick existing client' : '+ New client' }}
+              <template v-if="newClient">Pick existing client</template>
+              <template v-else><PlusIcon class="btn-icon" aria-hidden="true" /> New client</template>
             </button>
           </div>
           <Autocomplete
@@ -66,7 +67,8 @@
                     </select>
                   </div>
                   <button class="btn-link small" @click="item.isNew = !item.isNew">
-                    {{ item.isNew ? 'Pick existing' : '+ New product' }}
+                    <template v-if="item.isNew">Pick existing</template>
+                    <template v-else><PlusIcon class="btn-icon btn-icon--sm" aria-hidden="true" /> New product</template>
                   </button>
                 </div>
                 <input v-model.number="item.quantity" type="number" min="0" />
@@ -78,11 +80,13 @@
                 >
                   {{ displayAmount(peso(rowAmount(item)), expandedRows[idx]) }}
                 </button>
-                <button class="remove-row" @click="removeItem(idx)">×</button>
+                <button class="remove-row" aria-label="Remove line" @click="removeItem(idx)">
+                  <XIcon aria-hidden="true" />
+                </button>
               </div>
             </div>
           </div>
-          <button class="btn-link" @click="addItem">+ Add line</button>
+          <button class="btn-link" @click="addItem"><PlusIcon class="btn-icon" aria-hidden="true" /> Add line</button>
         </div>
 
         <div class="total-row">
@@ -97,6 +101,7 @@
         </div>
 
         <div v-if="createDeal.error" class="error-msg">
+          <AlertCircleIcon class="btn-icon" aria-hidden="true" />
           {{ createDeal.error.messages?.[0] || 'Something went wrong' }}
         </div>
       </div>
@@ -116,6 +121,9 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, Autocomplete, createResource, createListResource } from 'frappe-ui'
+import PlusIcon from '~icons/lucide/plus'
+import XIcon from '~icons/lucide/x'
+import AlertCircleIcon from '~icons/lucide/alert-circle'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -272,65 +280,76 @@ function peso(n) {
 </script>
 
 <style scoped>
-.form-grid { display: flex; flex-direction: column; gap: 14px; }
+.form-grid { display: flex; flex-direction: column; gap: var(--space-4); }
 .stage-badge {
-  font-size: 13px; color: var(--color-gray-500); background: var(--color-amber-100);
-  border-radius: 6px; padding: 6px 10px; width: fit-content;
+  font-size: var(--fs-sm); color: var(--color-amber-700); background: var(--color-amber-100);
+  border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); width: fit-content;
 }
-.stage-badge strong { color: var(--color-amber-700); }
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 13px; color: var(--color-gray-600); font-weight: 500; }
+.stage-badge strong { color: var(--color-amber-800); }
+.btn-icon { width: 14px; height: 14px; flex-shrink: 0; vertical-align: -2px; }
+.btn-icon--sm { width: 12px; height: 12px; }
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field label { font-size: var(--fs-sm); color: var(--color-gray-600); font-weight: 500; }
 .field input {
-  border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 8px 10px;
-  font-size: 14px; font-family: inherit;
+  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm); font-family: inherit; color: var(--color-gray-900);
 }
-.field input:focus { outline: none; border-color: var(--color-indigo-500); }
-.label-row { display: flex; justify-content: space-between; align-items: center; }
-.new-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.field input:focus { border-color: var(--color-amber-700); }
+.label-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.new-box { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .new-box input, .new-product input, .new-product select {
-  border: 1px solid var(--color-gray-300); border-radius: 6px; padding: 6px 8px;
-  font-size: 13px; font-family: inherit; width: 100%; box-sizing: border-box;
+  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm); padding: var(--space-2);
+  font-size: var(--fs-sm); font-family: inherit; width: 100%; box-sizing: border-box;
+  color: var(--color-gray-900); background: var(--color-white);
 }
-.new-product { display: flex; flex-direction: column; gap: 4px; }
-.items-table-wrap { overflow-x: auto; margin-top: 4px; }
-.items-table { display: flex; flex-direction: column; gap: 6px; min-width: 480px; }
+.new-product { display: flex; flex-direction: column; gap: var(--space-1); }
+.items-table-wrap { overflow-x: auto; margin-top: var(--space-1); }
+.items-table { display: flex; flex-direction: column; gap: var(--space-2); min-width: 480px; }
 .items-head, .items-row {
-  display: grid; grid-template-columns: 210px 56px 84px 84px 20px;
-  gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 210px 56px 84px 84px 24px;
+  gap: var(--space-2); align-items: center;
 }
-.items-head { font-size: 11px; color: var(--color-gray-400); font-weight: 500; text-transform: uppercase; }
+.items-head { font-size: var(--fs-xs); color: var(--color-gray-600); font-weight: 500; text-transform: uppercase; }
 .product-cell { width: 210px; overflow: hidden; }
 .items-row input {
   width: 100%; box-sizing: border-box; border: 1px solid var(--color-gray-300);
-  border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit;
+  border-radius: var(--radius-sm); padding: var(--space-2); font-size: var(--fs-sm); font-family: inherit;
+  color: var(--color-gray-900);
 }
 .row-amount {
-  background: transparent; border: none; font-size: 13px; font-weight: 600;
+  background: transparent; border: none; font-size: var(--fs-sm); font-weight: 600;
   color: var(--color-gray-900); padding: 0; text-align: left; cursor: pointer;
-  white-space: nowrap; overflow: hidden; max-width: 100%;
+  white-space: nowrap; overflow: hidden; max-width: 100%; font-family: inherit;
 }
 .row-amount:hover { color: var(--color-amber-700); }
 .remove-row {
-  background: transparent; border: none; color: var(--color-gray-400);
-  font-size: 16px; cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: var(--color-gray-500);
+  cursor: pointer; padding: var(--space-1); border-radius: var(--radius-sm);
 }
-.remove-row:hover { color: var(--color-red-600); }
+.remove-row svg { width: 14px; height: 14px; }
+.remove-row:hover { color: var(--color-red-600); background: var(--color-red-100); }
 .btn-link {
-  background: transparent; border: none; color: var(--color-indigo-500); font-size: 13px;
-  font-weight: 500; cursor: pointer; padding: 0; text-align: left; width: fit-content;
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  background: transparent; border: none; color: var(--color-amber-700); font-size: var(--fs-sm);
+  font-weight: 500; cursor: pointer; padding: 0; text-align: left; width: fit-content; font-family: inherit;
 }
-.btn-link.small { font-size: 11px; }
+.btn-link:hover { text-decoration: underline; }
+.btn-link.small { font-size: var(--fs-xs); }
 .total-row {
   display: flex; justify-content: space-between; align-items: center;
-  border-top: 1px solid var(--color-gray-200); padding-top: 10px; font-size: 15px; gap: 12px;
+  border-top: 1px solid var(--color-gray-200); padding-top: var(--space-3); font-size: var(--fs-md); gap: var(--space-3);
 }
 .total-row span { flex-shrink: 0; }
 .total-value {
   background: transparent; border: none; cursor: pointer;
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--color-amber-700);
+  font-weight: 700; color: var(--color-amber-700); font-family: inherit;
   padding: 0; overflow: hidden; white-space: nowrap; max-width: 100%; text-align: right;
 }
 .total-value:hover { text-decoration: underline; }
-.error-msg { color: var(--color-red-600); font-size: 13px; }
+.error-msg { display: flex; align-items: center; gap: var(--space-1); color: var(--color-red-600); font-size: var(--fs-sm); }
 .btn-primary { width: 100%; }
+@media (max-width: 640px) {
+  .new-box { grid-template-columns: 1fr; }
+}
 </style>
