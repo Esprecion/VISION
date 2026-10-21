@@ -3,6 +3,12 @@ import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import { useToast } from '@/composables/useToast'
+import PageHeader from '@/components/ui/PageHeader.vue'
+import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import PlusIcon from '~icons/lucide/plus'
+import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
 const showClientDialog = ref(false)
@@ -32,46 +38,85 @@ const filteredClients = computed(() => {
       (c.territory || '').toLowerCase().includes(q)
   )
 })
+
+function clearSearch() {
+  search.value = ''
+}
 </script>
 
 <template>
   <div class="clients-page">
-    <header class="clients-header">
-      <h1>Business Development · Clients</h1>
-      <button class="btn-secondary" @click="showClientDialog = true">+ Add Client</button>
-    </header>
+    <PageHeader title="Business Development · Clients">
+      <template #actions>
+        <button class="btn-secondary" @click="showClientDialog = true">
+          <PlusIcon class="btn-icon" aria-hidden="true" />
+          Add Client
+        </button>
+      </template>
+    </PageHeader>
 
-    <input
-      v-model="search"
-      class="search-input"
-      type="text"
-      placeholder="Search by name, contact, or territory..."
-    />
+    <div class="search-wrap">
+      <SearchIcon class="search-icon" aria-hidden="true" />
+      <input
+        v-model="search"
+        class="search-input"
+        type="search"
+        placeholder="Search by name, contact, or territory..."
+      />
+    </div>
 
     <div class="table-wrap">
-      <table class="clients-table">
-        <thead>
-          <tr>
-            <th>Client Name</th>
-            <th>Contact Person</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Territory</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in filteredClients" :key="c.name">
-            <td class="strong">{{ c.client_name }}</td>
-            <td>{{ c.contact_person || '—' }}</td>
-            <td>{{ c.contact_email || '—' }}</td>
-            <td>{{ c.contact_phone || '—' }}</td>
-            <td>{{ c.territory || '—' }}</td>
-          </tr>
-          <tr v-if="!clientsResource.loading && filteredClients.length === 0">
-            <td colspan="5" class="empty-row">No clients found.</td>
-          </tr>
-        </tbody>
-      </table>
+      <AppSkeleton v-if="clientsResource.loading && !clientsResource.data" variant="table" :rows="6" :cols="5" />
+      <ErrorState
+        v-else-if="clientsResource.error && !clientsResource.data"
+        title="Couldn't load clients"
+        :message="clientsResource.error?.messages?.[0] || clientsResource.error?.message || ''"
+        :on-retry="() => clientsResource.reload()"
+      />
+      <EmptyState
+        v-else-if="!clientsResource.data?.length"
+        title="No clients yet"
+        description="Add your first client to start tracking contacts and territory."
+      >
+        <template #action>
+          <button class="btn-secondary" @click="showClientDialog = true">
+            <PlusIcon class="btn-icon" aria-hidden="true" />
+            Add Client
+          </button>
+        </template>
+      </EmptyState>
+      <EmptyState
+        v-else-if="filteredClients.length === 0"
+        :icon="SearchIcon"
+        title="No matching clients"
+        description="No clients match your search. Try a different name, contact, or territory."
+      >
+        <template #action>
+          <button class="btn-secondary" @click="clearSearch">Clear search</button>
+        </template>
+      </EmptyState>
+      <div v-else class="table-scroll">
+        <table class="clients-table">
+          <thead>
+            <tr>
+              <th>Client Name</th>
+              <th>Contact Person</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Territory</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in filteredClients" :key="c.name">
+              <td class="strong">{{ c.client_name }}</td>
+              <td>{{ c.contact_person || '—' }}</td>
+              <td>{{ c.contact_email || '—' }}</td>
+              <td>{{ c.contact_phone || '—' }}</td>
+              <td>{{ c.territory || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
@@ -82,38 +127,49 @@ const filteredClients = computed(() => {
 .clients-page {
   background: var(--color-gray-50);
   min-height: 100vh;
-  padding: 32px;
-  color: var(--color-gray-900);
-  font-family: 'Inter', sans-serif;
-}
-.clients-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.clients-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  padding: var(--page-pad);
   color: var(--color-gray-900);
 }
-.btn-secondary { border-radius: 8px; padding: 8px 14px; }
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.search-wrap {
+  position: relative;
+  margin-bottom: var(--space-4);
+}
+.search-icon {
+  position: absolute;
+  left: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--color-gray-500);
+  pointer-events: none;
+}
 .search-input {
   width: 100%;
   max-width: 360px;
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  margin-bottom: 16px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
+  font-size: var(--fs-sm);
+  margin-bottom: var(--space-4);
   background: var(--color-white);
+  font-family: inherit;
+  color: var(--color-gray-900);
+  box-sizing: border-box;
 }
 .table-wrap {
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
 }
 .clients-table {
   width: 100%;
@@ -122,14 +178,15 @@ const filteredClients = computed(() => {
 .clients-table th,
 .clients-table td {
   text-align: left;
-  padding: 10px 16px;
-  font-size: 14px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
   border-bottom: 1px solid var(--color-gray-200);
+  white-space: nowrap;
 }
 .clients-table th {
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   text-transform: uppercase;
   background: var(--color-gray-50);
 }
@@ -139,9 +196,9 @@ const filteredClients = computed(() => {
 .strong {
   font-weight: 600;
 }
-.empty-row {
-  text-align: center;
-  color: var(--color-gray-500);
-  padding: 24px;
+@media (max-width: 640px) {
+  .search-input {
+    max-width: none;
+  }
 }
 </style>

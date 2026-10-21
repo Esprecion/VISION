@@ -27,6 +27,7 @@
           <input v-model="form.territory" type="text" placeholder="e.g. Metro Manila" />
         </div>
         <div v-if="createClient.error" class="error-msg">
+          <AlertCircleIcon class="btn-icon" aria-hidden="true" />
           {{ createClient.error.messages?.[0] || 'Something went wrong' }}
         </div>
       </div>
@@ -42,6 +43,7 @@
 <script setup>
 import { ref, reactive, watch } from 'vue'
 import { Dialog, createResource } from 'frappe-ui'
+import AlertCircleIcon from '~icons/lucide/alert-circle'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -89,31 +91,40 @@ function submit() {
 .form-grid {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .field label {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--color-gray-600);
   font-weight: 500;
 }
 .field input {
   border: 1px solid var(--color-gray-300);
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+  font-family: inherit;
+  color: var(--color-gray-900);
 }
 .field input:focus {
-  outline: none;
-  border-color: var(--color-indigo-500);
+  border-color: var(--color-amber-700);
 }
 .error-msg {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--color-red-600);
-  font-size: 13px;
+  font-size: var(--fs-sm);
+}
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 .btn-primary { width: 100%; }
 </style>
