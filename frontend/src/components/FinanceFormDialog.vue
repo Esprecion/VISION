@@ -3,30 +3,26 @@
     <template #body-content>
       <div class="form-grid">
         <template v-if="isInvoice">
-          <div class="field">
-            <label>Client *</label>
-            <select v-model="form.client" :disabled="!!prefill?.client">
-              <option value="">Select client</option>
-              <option v-if="form.client && !(clients.data || []).some((c) => c.name === form.client)" :value="form.client">{{ form.client }}</option>
-              <option v-for="c in clients.data || []" :key="c.name" :value="c.name">{{ c.client_name || c.name }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Contract (deal and client)</label>
-            <select v-model="form.contract" :disabled="!!prefill?.contract">
-              <option value="">None</option>
-              <option v-if="form.contract && !(contracts.data || []).some((c) => c.name === form.contract)" :value="form.contract">{{ form.contract }}</option>
-              <option v-for="c in contracts.data || []" :key="c.name" :value="c.name">{{ contractLabel(c) }}</option>
-            </select>
-          </div>
-          <div v-if="form.contract" class="field">
-            <label>Milestone</label>
-            <select :value="form.milestone" :disabled="!!prefill?.milestone" @change="pickMilestone($event.target.value)">
-              <option value="">Select milestone</option>
-              <option v-if="form.milestone && !milestoneOptions.some((m) => m.milestone_name === form.milestone)" :value="form.milestone">{{ form.milestone }}</option>
-              <option v-for="m in milestoneOptions" :key="m.milestone_name" :value="m.milestone_name">{{ m.milestone_name }} ({{ peso(m.amount) }})</option>
-            </select>
-          </div>
+          <AppSelect
+            label="Client *"
+            v-model="form.client"
+            :disabled="!!prefill?.client"
+            :options="[{ label: 'Select client', value: '' }, ...(form.client && !(clients.data || []).some((c) => c.name === form.client) ? [{ label: form.client, value: form.client }] : []), ...((clients.data || []).map(c => ({ label: c.client_name || c.name, value: c.name })))]"
+          />
+          <AppSelect
+            label="Contract (deal and client)"
+            v-model="form.contract"
+            :disabled="!!prefill?.contract"
+            :options="[{ label: 'None', value: '' }, ...(form.contract && !(contracts.data || []).some((c) => c.name === form.contract) ? [{ label: form.contract, value: form.contract }] : []), ...((contracts.data || []).map(c => ({ label: contractLabel(c), value: c.name })))]"
+          />
+          <AppSelect
+            v-if="form.contract"
+            label="Milestone"
+            :model-value="form.milestone"
+            :disabled="!!prefill?.milestone"
+            @update:model-value="pickMilestone($event)"
+            :options="[{ label: 'Select milestone', value: '' }, ...(form.milestone && !milestoneOptions.some((m) => m.milestone_name === form.milestone) ? [{ label: form.milestone, value: form.milestone }] : []), ...milestoneOptions.map(m => ({ label: m.milestone_name + ' (' + peso(m.amount) + ')', value: m.milestone_name }))]"
+          />
 
           <div v-if="contractTerms.text" class="terms-box">
             <div class="terms-title">Contract terms and conditions</div>
@@ -35,29 +31,27 @@
 
           <div class="section">Products / services</div>
           <div v-for="(it, i) in form.items" :key="'i' + i" class="line items">
-            <input v-model="it.item_name" type="text" placeholder="Item" />
-            <input v-model.number="it.quantity" type="number" min="0" step="any" placeholder="Qty" />
-            <input v-model.number="it.rate" type="number" min="0" step="0.01" placeholder="Rate" />
+            <AppTextInput v-model="it.item_name" placeholder="Item" />
+            <AppTextInput v-model.number="it.quantity" type="number" min="0" step="any" placeholder="Qty" />
+            <AppTextInput v-model.number="it.rate" type="number" min="0" step="0.01" placeholder="Rate" />
             <span class="amt">{{ peso((Number(it.quantity) || 0) * (Number(it.rate) || 0)) }}</span>
-            <button type="button" class="x" :aria-label="'Remove item ' + (i + 1)" @click="form.items.splice(i, 1)">
-              <XIcon aria-hidden="true" />
-            </button>
+            <AppButton variant="ghost" size="sm" :icon="XIcon" @click="form.items.splice(i, 1)" :aria-label="'Remove item ' + (i + 1)" />
           </div>
-          <button type="button" class="btn-link" @click="form.items.push({ item_name: '', quantity: 1, rate: 0 })">
-            <PlusIcon aria-hidden="true" /> Add item
-          </button>
+          <AppButton variant="ghost" size="sm" @click="form.items.push({ item_name: '', quantity: 1, rate: 0 })">
+            <template #prefix><PlusIcon aria-hidden="true" /></template>
+            Add item
+          </AppButton>
 
           <div class="section">Additional charges</div>
           <div v-for="(c, i) in form.charges" :key="'c' + i" class="line charges">
-            <input v-model="c.description" type="text" placeholder="e.g. Rush fee, Hosting setup" />
-            <input v-model.number="c.amount" type="number" step="0.01" placeholder="Amount" />
-            <button type="button" class="x" :aria-label="'Remove charge ' + (i + 1)" @click="form.charges.splice(i, 1)">
-              <XIcon aria-hidden="true" />
-            </button>
+            <AppTextInput v-model="c.description" placeholder="e.g. Rush fee, Hosting setup" />
+            <AppTextInput v-model.number="c.amount" type="number" step="0.01" placeholder="Amount" />
+            <AppButton variant="ghost" size="sm" :icon="XIcon" @click="form.charges.splice(i, 1)" :aria-label="'Remove charge ' + (i + 1)" />
           </div>
-          <button type="button" class="btn-link" @click="form.charges.push({ description: '', amount: 0 })">
-            <PlusIcon aria-hidden="true" /> Add charge
-          </button>
+          <AppButton variant="ghost" size="sm" @click="form.charges.push({ description: '', amount: 0 })">
+            <template #prefix><PlusIcon aria-hidden="true" /></template>
+            Add charge
+          </AppButton>
 
           <div class="totals">
             <div>Subtotal <b>{{ peso(subtotal) }}</b></div>
@@ -66,64 +60,46 @@
           </div>
 
           <div class="two">
-            <div class="field">
-              <label>Issue Date *</label>
-              <input v-model="form.issue_date" type="date" />
-            </div>
+            <AppTextInput label="Issue Date *" type="date" v-model="form.issue_date" />
             <div class="field">
               <label>Due Date *</label>
               <div class="due-row">
-                <select v-model="netDays" @change="applyDue()">
-                  <option value="15">Net 15</option>
-                  <option value="30">Net 30</option>
-                  <option value="45">Net 45</option>
-                  <option value="60">Net 60</option>
-                  <option value="">Custom date</option>
-                </select>
-                <input v-model="form.due_date" type="date" :min="form.issue_date" @input="netDays = ''" />
+                <AppSelect
+                  v-model="netDays"
+                  @update:model-value="applyDue()"
+                  :options="[{ label: 'Net 15', value: '15' }, { label: 'Net 30', value: '30' }, { label: 'Net 45', value: '45' }, { label: 'Net 60', value: '60' }, { label: 'Custom date', value: '' }]"
+                />
+                <AppTextInput type="date" v-model="form.due_date" :min="form.issue_date" @input="netDays = ''" />
               </div>
             </div>
           </div>
-          <div class="field">
-            <label>Status</label>
-            <select v-model="form.status">
-              <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-            </select>
-          </div>
+          <AppSelect label="Status" v-model="form.status" :options="statuses.map(s => ({ label: s, value: s }))" />
         </template>
 
         <template v-else>
-          <div class="field">
-            <label>Category *</label>
-            <select v-model="form.category">
-              <option value="">Select category</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Date *</label>
-            <input v-model="form.expense_date" type="date" />
-          </div>
-          <div class="field">
-            <label>Project *</label>
-            <select v-model="form.project">
-              <option value="">Select project</option>
-              <option v-for="p in projects.data || []" :key="p.name" :value="p.name">{{ projectLabel(p) }}</option>
-            </select>
-          </div>
+          <AppSelect
+            label="Category *"
+            v-model="form.category"
+            :options="[{ label: 'Select category', value: '' }, ...categories.map(c => ({ label: c, value: c }))]"
+          />
+          <AppTextInput label="Date *" type="date" v-model="form.expense_date" />
+          <AppSelect
+            label="Project *"
+            v-model="form.project"
+            :options="[{ label: 'Select project', value: '' }, ...((projects.data || []).map(p => ({ label: projectLabel(p), value: p.name })))]"
+          />
 
           <div class="section">Cost breakdown (vendor / platform)</div>
           <div v-for="(it, i) in form.items" :key="'e' + i" class="line exp">
-            <input v-model="it.vendor" type="text" placeholder="Vendor, e.g. Figma" />
-            <input v-model="it.description" type="text" placeholder="What it was for" />
-            <input v-model.number="it.amount" type="number" min="0" step="0.01" placeholder="Amount" />
-            <button type="button" class="x" :aria-label="'Remove line ' + (i + 1)" @click="form.items.splice(i, 1)">
-              <XIcon aria-hidden="true" />
-            </button>
+            <AppTextInput v-model="it.vendor" placeholder="Vendor, e.g. Figma" />
+            <AppTextInput v-model="it.description" placeholder="What it was for" />
+            <AppTextInput v-model.number="it.amount" type="number" min="0" step="0.01" placeholder="Amount" />
+            <AppButton variant="ghost" size="sm" :icon="XIcon" @click="form.items.splice(i, 1)" :aria-label="'Remove line ' + (i + 1)" />
           </div>
-          <button type="button" class="btn-link" @click="form.items.push({ vendor: '', description: '', amount: 0 })">
-            <PlusIcon aria-hidden="true" /> Add line
-          </button>
+          <AppButton variant="ghost" size="sm" @click="form.items.push({ vendor: '', description: '', amount: 0 })">
+            <template #prefix><PlusIcon aria-hidden="true" /></template>
+            Add line
+          </AppButton>
           <div class="totals"><div class="grand">Total <b>{{ peso(expenseTotal) }}</b></div></div>
         </template>
 
@@ -134,9 +110,9 @@
       </div>
     </template>
     <template #actions>
-      <button class="btn-primary" :disabled="!valid || activeRes.loading" @click="submit">
-        {{ activeRes.loading ? 'Saving...' : (editName ? 'Update ' : 'Save ') + kind }}
-      </button>
+      <AppButton variant="solid" theme="gray" class="w-full" :disabled="!valid" :loading="activeRes.loading" @click="submit">
+        {{ editName ? 'Update ' : 'Save ' }}{{ kind }}
+      </AppButton>
     </template>
   </Dialog>
 </template>
@@ -148,6 +124,9 @@ import { formatLocalDate, parseLocal } from '../utils/dateRange'
 import XIcon from '~icons/lucide/x'
 import PlusIcon from '~icons/lucide/plus'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -352,28 +331,11 @@ function submit() {
 .form-grid { display: flex; flex-direction: column; gap: var(--space-3); }
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field label { font-size: var(--fs-sm); color: var(--color-gray-600); font-weight: 500; }
-input, select { border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); font-size: var(--fs-sm); background: var(--color-white); color: var(--color-gray-900); font-family: inherit; }
-input:focus, select:focus { border-color: var(--color-amber-700); }
-input:disabled, select:disabled { background: var(--color-gray-100); color: var(--color-gray-600); }
 .section { font-size: var(--fs-xs); font-weight: 600; color: var(--color-gray-600); text-transform: uppercase; margin-top: var(--space-1); }
 .line { display: grid; gap: var(--space-2); align-items: center; }
 .line.items { grid-template-columns: 1fr 70px 110px 110px 28px; }
 .line.charges { grid-template-columns: 1fr 120px 28px; }
 .amt { font-size: var(--fs-sm); text-align: right; font-variant-numeric: tabular-nums; }
-.x {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: none; border: none; color: var(--color-gray-500);
-  cursor: pointer; padding: var(--space-1); border-radius: var(--radius-sm);
-}
-.x svg { width: 16px; height: 16px; }
-.x:hover { background: var(--color-red-100); color: var(--color-red-600); }
-.btn-link {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  background: none; border: none; color: var(--color-amber-700);
-  font-size: var(--fs-sm); cursor: pointer; width: fit-content; padding: 0; font-family: inherit; font-weight: 500;
-}
-.btn-link svg { width: 14px; height: 14px; }
-.btn-link:hover { color: var(--color-amber-800); text-decoration: underline; }
 .totals { display: flex; gap: var(--space-5); justify-content: flex-end; font-size: var(--fs-sm); color: var(--color-gray-600); border-top: 1px solid var(--color-gray-200); padding-top: var(--space-2); }
 .totals .grand { color: var(--color-gray-900); font-size: var(--fs-md); }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
@@ -382,7 +344,7 @@ input:disabled, select:disabled { background: var(--color-gray-100); color: var(
   color: var(--color-red-600); font-size: var(--fs-sm);
 }
 .error-msg svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
-.btn-primary { width: 100%; }
+.w-full { width: 100%; }
 .terms-box { background: var(--color-amber-50); border: 1px solid var(--color-amber-200); border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--fs-xs); color: var(--color-amber-800); }
 .terms-title { font-weight: 600; }
 .terms-body { margin-top: var(--space-1); white-space: pre-wrap; color: var(--color-amber-800); }
