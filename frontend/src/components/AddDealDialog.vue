@@ -4,18 +4,16 @@
       <div class="form-grid">
         <div class="stage-badge">Adding to: <strong>{{ stage }}</strong></div>
 
-        <div class="field">
-          <label>Deal Title *</label>
-          <input v-model="form.deal_title" type="text" placeholder="e.g. Clinic Rollout - Phase 1" />
-        </div>
+        <AppTextInput label="Deal Title *" v-model="form.deal_title" placeholder="e.g. Clinic Rollout - Phase 1" />
 
         <div class="field">
           <div class="label-row">
             <label>Client *</label>
-            <button class="btn-link" @click="newClient = !newClient">
+            <AppButton variant="ghost" size="sm" @click="newClient = !newClient">
+              <template #prefix><PlusIcon v-if="!newClient" aria-hidden="true" /></template>
               <template v-if="newClient">Pick existing client</template>
-              <template v-else><PlusIcon class="btn-icon" aria-hidden="true" /> New client</template>
-            </button>
+              <template v-else>New client</template>
+            </AppButton>
           </div>
           <Autocomplete
             v-if="!newClient"
@@ -25,19 +23,16 @@
             placeholder="Search clients..."
           />
           <div v-else class="new-box">
-            <input v-model="clientForm.client_name" type="text" placeholder="Client name *" />
-            <input v-model="clientForm.contact_person" type="text" placeholder="Contact person" />
-            <input v-model="clientForm.contact_email" type="email" placeholder="Contact email" />
-            <input v-model="clientForm.contact_phone" type="text" placeholder="Contact phone" />
-            <input v-model="clientForm.territory" type="text" placeholder="Territory" />
-            <input v-model="clientForm.address" type="text" placeholder="Address" />
+            <AppTextInput v-model="clientForm.client_name" placeholder="Client name *" />
+            <AppTextInput v-model="clientForm.contact_person" placeholder="Contact person" />
+            <AppTextInput v-model="clientForm.contact_email" type="email" placeholder="Contact email" />
+            <AppTextInput v-model="clientForm.contact_phone" placeholder="Contact phone" />
+            <AppTextInput v-model="clientForm.territory" placeholder="Territory" />
+            <AppTextInput v-model="clientForm.address" placeholder="Address" />
           </div>
         </div>
 
-        <div class="field">
-          <label>Expected Close Date</label>
-          <input v-model="form.expected_close_date" type="date" />
-        </div>
+        <AppTextInput label="Expected Close Date" type="date" v-model="form.expected_close_date" />
 
         <div class="field">
           <label>Line Items</label>
@@ -60,19 +55,17 @@
                     placeholder="Select product"
                   />
                   <div v-else class="new-product">
-                    <input v-model="item.newName" type="text" placeholder="New product name *" />
-                    <select v-model="item.newType">
-                      <option value="">Type *</option>
-                      <option v-for="t in productTypes" :key="t" :value="t">{{ t }}</option>
-                    </select>
+                    <AppTextInput v-model="item.newName" placeholder="New product name *" />
+                    <AppSelect v-model="item.newType" :options="[{ label: 'Type *', value: '' }, ...productTypes.map(t => ({ label: t, value: t }))]" />
                   </div>
-                  <button class="btn-link small" @click="item.isNew = !item.isNew">
+                  <AppButton variant="ghost" size="sm" @click="item.isNew = !item.isNew">
+                    <template #prefix><PlusIcon v-if="!item.isNew" aria-hidden="true" /></template>
                     <template v-if="item.isNew">Pick existing</template>
-                    <template v-else><PlusIcon class="btn-icon btn-icon--sm" aria-hidden="true" /> New product</template>
-                  </button>
+                    <template v-else>New product</template>
+                  </AppButton>
                 </div>
-                <input v-model.number="item.quantity" type="number" min="0" />
-                <input v-model.number="item.price" type="number" min="0" step="0.01" @input="clampPrice(item)" />
+                <AppTextInput v-model.number="item.quantity" type="number" min="0" />
+                <AppTextInput v-model.number="item.price" type="number" min="0" step="0.01" @input="clampPrice(item)" />
                 <button
                   class="row-amount"
                   :title="peso(rowAmount(item))"
@@ -80,13 +73,14 @@
                 >
                   {{ displayAmount(peso(rowAmount(item)), expandedRows[idx]) }}
                 </button>
-                <button class="remove-row" aria-label="Remove line" @click="removeItem(idx)">
-                  <XIcon aria-hidden="true" />
-                </button>
+                <AppButton variant="ghost" size="sm" :icon="XIcon" @click="removeItem(idx)" aria-label="Remove line" />
               </div>
             </div>
           </div>
-          <button class="btn-link" @click="addItem"><PlusIcon class="btn-icon" aria-hidden="true" /> Add line</button>
+          <AppButton variant="ghost" size="sm" @click="addItem">
+            <template #prefix><PlusIcon aria-hidden="true" /></template>
+            Add line
+          </AppButton>
         </div>
 
         <div class="total-row">
@@ -107,13 +101,9 @@
       </div>
     </template>
     <template #actions>
-      <button
-        class="btn-primary"
-        :disabled="!canSubmit || createDeal.loading"
-        @click="submit"
-      >
-        {{ createDeal.loading ? 'Saving...' : 'Save Deal' }}
-      </button>
+      <AppButton variant="solid" theme="gray" class="w-full" :disabled="!canSubmit" :loading="createDeal.loading" @click="submit">
+        Save Deal
+      </AppButton>
     </template>
   </Dialog>
 </template>
@@ -124,6 +114,9 @@ import { Dialog, Autocomplete, createResource, createListResource } from 'frappe
 import PlusIcon from '~icons/lucide/plus'
 import XIcon from '~icons/lucide/x'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -286,22 +279,10 @@ function peso(n) {
   border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); width: fit-content;
 }
 .stage-badge strong { color: var(--color-amber-800); }
-.btn-icon { width: 14px; height: 14px; flex-shrink: 0; vertical-align: -2px; }
-.btn-icon--sm { width: 12px; height: 12px; }
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field label { font-size: var(--fs-sm); color: var(--color-gray-600); font-weight: 500; }
-.field input {
-  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3);
-  font-size: var(--fs-sm); font-family: inherit; color: var(--color-gray-900);
-}
-.field input:focus { border-color: var(--color-amber-700); }
 .label-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
 .new-box { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
-.new-box input, .new-product input, .new-product select {
-  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm); padding: var(--space-2);
-  font-size: var(--fs-sm); font-family: inherit; width: 100%; box-sizing: border-box;
-  color: var(--color-gray-900); background: var(--color-white);
-}
 .new-product { display: flex; flex-direction: column; gap: var(--space-1); }
 .items-table-wrap { overflow-x: auto; margin-top: var(--space-1); }
 .items-table { display: flex; flex-direction: column; gap: var(--space-2); min-width: 480px; }
@@ -311,31 +292,12 @@ function peso(n) {
 }
 .items-head { font-size: var(--fs-xs); color: var(--color-gray-600); font-weight: 500; text-transform: uppercase; }
 .product-cell { width: 210px; overflow: hidden; }
-.items-row input {
-  width: 100%; box-sizing: border-box; border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm); padding: var(--space-2); font-size: var(--fs-sm); font-family: inherit;
-  color: var(--color-gray-900);
-}
 .row-amount {
   background: transparent; border: none; font-size: var(--fs-sm); font-weight: 600;
   color: var(--color-gray-900); padding: 0; text-align: left; cursor: pointer;
   white-space: nowrap; overflow: hidden; max-width: 100%; font-family: inherit;
 }
 .row-amount:hover { color: var(--color-amber-700); }
-.remove-row {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: none; color: var(--color-gray-500);
-  cursor: pointer; padding: var(--space-1); border-radius: var(--radius-sm);
-}
-.remove-row svg { width: 14px; height: 14px; }
-.remove-row:hover { color: var(--color-red-600); background: var(--color-red-100); }
-.btn-link {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  background: transparent; border: none; color: var(--color-amber-700); font-size: var(--fs-sm);
-  font-weight: 500; cursor: pointer; padding: 0; text-align: left; width: fit-content; font-family: inherit;
-}
-.btn-link:hover { text-decoration: underline; }
-.btn-link.small { font-size: var(--fs-xs); }
 .total-row {
   display: flex; justify-content: space-between; align-items: center;
   border-top: 1px solid var(--color-gray-200); padding-top: var(--space-3); font-size: var(--fs-md); gap: var(--space-3);
@@ -348,7 +310,7 @@ function peso(n) {
 }
 .total-value:hover { text-decoration: underline; }
 .error-msg { display: flex; align-items: center; gap: var(--space-1); color: var(--color-red-600); font-size: var(--fs-sm); }
-.btn-primary { width: 100%; }
+.w-full { width: 100%; }
 @media (max-width: 640px) {
   .new-box { grid-template-columns: 1fr; }
 }
