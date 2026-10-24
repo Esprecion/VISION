@@ -2,30 +2,12 @@
   <Dialog v-model="show" :options="{ title: 'Add Client' }">
     <template #body-content>
       <div class="form-grid">
-        <div class="field">
-          <label>Client Name *</label>
-          <input v-model="form.client_name" type="text" placeholder="e.g. Acme Corp" />
-        </div>
-        <div class="field">
-          <label>Address</label>
-          <input v-model="form.address" type="text" />
-        </div>
-        <div class="field">
-          <label>Contact Person</label>
-          <input v-model="form.contact_person" type="text" />
-        </div>
-        <div class="field">
-          <label>Contact Email</label>
-          <input v-model="form.contact_email" type="email" />
-        </div>
-        <div class="field">
-          <label>Contact Phone</label>
-          <input v-model="form.contact_phone" type="text" />
-        </div>
-        <div class="field">
-          <label>Territory</label>
-          <input v-model="form.territory" type="text" placeholder="e.g. Metro Manila" />
-        </div>
+        <AppTextInput v-model="form.client_name" label="Client Name" required placeholder="e.g. Acme Corp" />
+        <AppTextInput v-model="form.address" label="Address" />
+        <AppTextInput v-model="form.contact_person" label="Contact Person" />
+        <AppTextInput v-model="form.contact_email" type="email" label="Contact Email" />
+        <AppTextInput v-model="form.contact_phone" label="Contact Phone" />
+        <AppTextInput v-model="form.territory" label="Territory" placeholder="e.g. Metro Manila" />
         <div v-if="createClient.error" class="error-msg">
           <AlertCircleIcon class="btn-icon" aria-hidden="true" />
           {{ createClient.error.messages?.[0] || 'Something went wrong' }}
@@ -33,9 +15,15 @@
       </div>
     </template>
     <template #actions>
-      <button class="btn-primary" :disabled="!form.client_name || createClient.loading" @click="submit">
-        {{ createClient.loading ? 'Saving...' : 'Save Client' }}
-      </button>
+      <AppButton
+        variant="solid"
+        theme="gray"
+        :disabled="!form.client_name || createClient.loading"
+        :loading="createClient.loading"
+        @click="submit"
+      >
+        Save Client
+      </AppButton>
     </template>
   </Dialog>
 </template>
@@ -44,6 +32,8 @@
 import { ref, reactive, watch } from 'vue'
 import { Dialog, createResource } from 'frappe-ui'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -93,27 +83,6 @@ function submit() {
   flex-direction: column;
   gap: var(--space-3);
 }
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.field label {
-  font-size: var(--fs-sm);
-  color: var(--color-gray-600);
-  font-weight: 500;
-}
-.field input {
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--fs-sm);
-  font-family: inherit;
-  color: var(--color-gray-900);
-}
-.field input:focus {
-  border-color: var(--color-amber-700);
-}
 .error-msg {
   display: flex;
   align-items: center;
@@ -126,5 +95,4 @@ function submit() {
   height: 14px;
   flex-shrink: 0;
 }
-.btn-primary { width: 100%; }
 </style>
