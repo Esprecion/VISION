@@ -133,7 +133,7 @@ const dueLabel = (d) => {
 
 // ---------- Expense by category ----------
 const expenseRows = computed(() => rowsOf(expenseRep)) // [category, vendor, amount]
-const PALETTE = ['var(--color-indigo-500)', 'var(--color-emerald-500)', 'var(--color-amber-500)', 'var(--color-red-500)', 'var(--color-blue-500)', '#a855f7', '#84cc16', 'var(--color-orange-500)']
+const PALETTE = ['var(--color-indigo-500)', 'var(--color-emerald-500)', 'var(--color-amber-500)', 'var(--color-red-500)', 'var(--color-blue-500)', 'var(--color-purple-600)', 'var(--color-lime-500)', 'var(--color-orange-500)']
 const expenseGroups = computed(() => {
   const m = new Map()
   for (const r of expenseRows.value) {

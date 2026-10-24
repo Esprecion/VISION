@@ -219,7 +219,7 @@ async function confirmDeleteAction() {
 }
 
 // --- Add ---
-const colorPresets = ['var(--color-blue-500)', 'var(--color-emerald-500)', 'var(--color-amber-500)', '#9d7bff', 'var(--color-green-600)', 'var(--color-red-500)', '#f472b6', 'var(--color-gray-500)']
+const colorPresets = ['var(--color-blue-500)', 'var(--color-emerald-500)', 'var(--color-amber-500)', 'var(--color-purple-500)', 'var(--color-green-600)', 'var(--color-red-500)', 'var(--color-pink-500)', 'var(--color-gray-500)']
 const newStageName = ref('')
 const newStageColor = ref(colorPresets[0])
 const adding = ref(false)
