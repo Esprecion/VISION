@@ -14,7 +14,7 @@
       <div class="deal-detail" v-else-if="doc">
         <div class="dd-header">
           <span class="dd-stage-badge">{{ doc.stage }}</span>
-          <button v-if="!editing" class="dd-btn-secondary" @click="startEdit">Edit</button>
+          <AppButton v-if="!editing" variant="outline" size="sm" @click="startEdit">Edit</AppButton>
         </div>
 
         <!-- VIEW MODE -->
@@ -53,10 +53,7 @@
 
         <!-- EDIT MODE -->
         <div v-else class="dd-edit">
-          <div class="dd-field dd-field-title">
-            <label>Title</label>
-            <input class="dd-input" v-model="form.deal_title" placeholder="Deal title" />
-          </div>
+          <AppTextInput label="Title" v-model="form.deal_title" placeholder="Deal title" />
 
           <div class="dd-grid">
             <div class="dd-field">
@@ -68,10 +65,7 @@
                 placeholder="Select client"
               />
             </div>
-            <div class="dd-field">
-              <label>Expected Close Date</label>
-              <input type="date" v-model="form.expected_close_date" class="dd-input" />
-            </div>
+            <AppTextInput label="Expected Close Date" type="date" v-model="form.expected_close_date" />
             <div class="dd-field">
               <label>Total Value</label>
               <div class="dd-value-readout">{{ formattedTotal }}</div>
@@ -81,7 +75,10 @@
           <div class="dd-items">
             <div class="dd-items-header">
               <span>Line Items</span>
-              <button class="dd-link-btn" @click="addItemRow"><PlusIcon class="dd-icon" aria-hidden="true" /> Add line</button>
+              <AppButton variant="ghost" size="sm" @click="addItemRow">
+                <template #prefix><PlusIcon aria-hidden="true" /></template>
+                Add line
+              </AppButton>
             </div>
             <div class="dd-items-scroll">
               <div class="dd-item-row dd-item-row-head">
@@ -96,27 +93,17 @@
                     placeholder="Product"
                   />
                 </div>
-                <input type="number" min="1" v-model.number="item.quantity" class="dd-input dd-qty" />
-                <input
-                  type="number"
-                  min="0"
-                  v-model.number="item.price"
-                  class="dd-input dd-price"
-                  @input="clampPrice(item)"
-                />
+                <AppTextInput type="number" min="1" v-model.number="item.quantity" />
+                <AppTextInput type="number" min="0" v-model.number="item.price" @input="clampPrice(item)" />
                 <span class="dd-amount">{{ formatCurrency(item.quantity * item.price) }}</span>
-                <button class="dd-remove-btn" aria-label="Remove line" @click="removeItemRow(idx)">
-                  <XIcon aria-hidden="true" />
-                </button>
+                <AppButton variant="ghost" size="sm" :icon="XIcon" @click="removeItemRow(idx)" aria-label="Remove line" />
               </div>
             </div>
           </div>
 
           <div class="dd-actions">
-            <button class="dd-btn-secondary" @click="cancelEdit">Cancel</button>
-            <button class="dd-btn-primary" :disabled="saving || !isDirty" @click="saveChanges">
-              {{ saving ? 'Saving…' : 'Save Changes' }}
-            </button>
+            <AppButton variant="outline" size="sm" @click="cancelEdit">Cancel</AppButton>
+            <AppButton variant="solid" theme="gray" size="sm" :disabled="!isDirty" :loading="saving" @click="saveChanges">Save Changes</AppButton>
           </div>
         </div>
 
@@ -134,13 +121,7 @@
                 rows="2"
                 class="dd-textarea"
               ></textarea>
-              <button
-                class="dd-btn-primary"
-                :disabled="!newComment.trim() || postingComment"
-                @click="postComment"
-              >
-                {{ postingComment ? 'Posting…' : 'Post' }}
-              </button>
+              <AppButton variant="solid" theme="gray" size="sm" :disabled="!newComment.trim()" :loading="postingComment" @click="postComment">Post</AppButton>
             </div>
             <div v-if="comments.length === 0" class="dd-empty">No comments yet.</div>
             <div v-for="c in comments" :key="c.name" class="dd-comment">
@@ -182,6 +163,8 @@ import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, Autocomplete, createListResource, call } from 'frappe-ui'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
 import PlusIcon from '~icons/lucide/plus'
 import XIcon from '~icons/lucide/x'
@@ -483,25 +466,13 @@ watch(show, async (v) => {
 }
 .dd-view-title { font-size: var(--fs-md); font-weight: 600; color: var(--color-gray-900); margin: 0 0 var(--space-1); }
 .dd-view-value { font-size: var(--fs-sm); color: var(--color-gray-900); padding: var(--space-1) 0; }
-.dd-field-title { margin-bottom: var(--space-1); }
 .dd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
 .dd-field label { display: block; font-size: var(--fs-xs); color: var(--color-gray-600); margin-bottom: var(--space-1); font-weight: 500; }
-.dd-input {
-  width: 100%; border: 1px solid var(--color-gray-200); border-radius: var(--radius-sm); padding: var(--space-2);
-  font-size: var(--fs-sm); color: var(--color-gray-900); font-family: inherit; background: var(--color-white);
-}
-.dd-input:focus { border-color: var(--color-amber-700); }
 .dd-value-readout { font-size: var(--fs-md); font-weight: 600; color: var(--color-gray-900); padding: var(--space-2) 0; }
 .dd-items-header {
   display: flex; justify-content: space-between; align-items: center;
   font-size: var(--fs-sm); font-weight: 600; color: var(--color-gray-600); margin-bottom: var(--space-2);
 }
-.dd-link-btn {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  background: none; border: none; color: var(--color-amber-700); font-size: var(--fs-sm);
-  cursor: pointer; font-family: inherit; font-weight: 500; padding: 0;
-}
-.dd-link-btn:hover { text-decoration: underline; }
 .dd-items-scroll { overflow-x: auto; }
 .dd-item-row {
   display: grid; grid-template-columns: 210px 56px 84px 84px 24px;
@@ -510,31 +481,11 @@ watch(show, async (v) => {
 .dd-item-row-view { grid-template-columns: 210px 56px 84px 84px; font-size: var(--fs-sm); color: var(--color-gray-900); }
 .dd-item-row-head { font-size: var(--fs-xs); color: var(--color-gray-600); font-weight: 600; }
 .product-cell { width: 210px; overflow: hidden; }
-.dd-qty, .dd-price { width: 100%; }
 .dd-amount { font-size: var(--fs-sm); color: var(--color-gray-900); }
-.dd-remove-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: none; border: none; color: var(--color-gray-500); cursor: pointer;
-  padding: var(--space-1); border-radius: var(--radius-sm);
-}
-.dd-remove-btn svg { width: 14px; height: 14px; }
-.dd-remove-btn:hover { color: var(--color-red-600); background: var(--color-red-100); }
 .dd-actions {
   display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) 0;
   border-top: 1px solid var(--color-gray-200); border-bottom: 1px solid var(--color-gray-200);
 }
-.dd-btn-primary {
-  background: var(--color-amber-700); color: var(--color-white); border: none; border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-4); font-size: var(--fs-sm); cursor: pointer; font-family: inherit; font-weight: 500;
-}
-.dd-btn-primary:hover:not(:disabled) { background: var(--color-amber-800); }
-.dd-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.dd-btn-secondary {
-  background: var(--color-white); color: var(--color-gray-700); border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-sm); padding: var(--space-2) var(--space-4); font-size: var(--fs-sm);
-  cursor: pointer; font-family: inherit; font-weight: 500;
-}
-.dd-btn-secondary:hover { border-color: var(--color-gray-300); color: var(--color-gray-900); }
 .dd-section-toggle {
   display: inline-flex; align-items: center; gap: var(--space-1);
   background: none; border: none; font-size: var(--fs-sm); font-weight: 600;
