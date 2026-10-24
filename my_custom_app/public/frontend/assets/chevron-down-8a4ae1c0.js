@@ -1,0 +1,2 @@
+import{m as o,o as n,c as r,h as t}from"./index-8840d471.js";const s={viewBox:"0 0 24 24",width:"1.2em",height:"1.2em"};function l(a,e){return n(),r("svg",s,e[0]||(e[0]=[t("path",{fill:"none",stroke:"currentColor","stroke-linecap":"round","stroke-linejoin":"round","stroke-width":"2",d:"m6 9l6 6l6-6"},null,-1)]))}const i=o({name:"lucide-chevron-down",render:l});export{i as C};
+//# sourceMappingURL=chevron-down-8a4ae1c0.js.map

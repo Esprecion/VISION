@@ -1,0 +1,2 @@
+import{m as o,o as r,c as t,h as n}from"./index-8840d471.js";const i={viewBox:"0 0 24 24",width:"1.2em",height:"1.2em"};function s(a,e){return r(),t("svg",i,e[0]||(e[0]=[n("path",{fill:"none",stroke:"currentColor","stroke-linecap":"round","stroke-linejoin":"round","stroke-width":"2",d:"M5 12h14m-7-7l7 7l-7 7"},null,-1)]))}const c=o({name:"lucide-arrow-right",render:s});export{c as A};
+//# sourceMappingURL=arrow-right-c6a3f681.js.map
