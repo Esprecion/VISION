@@ -1,2 +1,0 @@
-import{P as o,E as a}from"./EmptyState-aa015d69.js";import{_ as s,c as t,a as e,o as r}from"./index-8840d471.js";const _={class:"dashboard"},c={__name:"Dashboard",setup(d){return(n,i)=>(r(),t("div",_,[e(o,{title:"Dashboard"}),e(a,{title:"Coming soon",description:"Cross-department overview — coming once more modules exist."})]))}},l=s(c,[["__scopeId","data-v-fe97216c"]]);export{l as default};
-//# sourceMappingURL=Dashboard-45bc4e57.js.map
