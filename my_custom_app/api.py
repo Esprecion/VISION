@@ -173,3 +173,12 @@ def can_create(doctype):
 @frappe.whitelist()
 def get_perms(doctype):
 	return {p: bool(frappe.has_permission(doctype, p)) for p in ("create", "write", "delete")}
+
+
+@frappe.whitelist()
+def get_module_write_perms():
+	return {
+		"Deal": bool(frappe.has_permission("Deal", "write")),
+		"Invoice": bool(frappe.has_permission("Invoice", "write")),
+		"Project": bool(frappe.has_permission("Project", "write")),
+	}

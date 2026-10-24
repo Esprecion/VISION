@@ -13,7 +13,7 @@ const modules = [
 const items = computed(() =>
   modules.map((m) => ({
     ...m,
-    editable: session.isAdmin || (m.doctype ? session.canWrite(m.doctype) : false),
+    editable: session.canWrite(m.doctype),
   }))
 )
 const roleLabel = computed(() =>

@@ -4,6 +4,7 @@ import router from '@/router'
 
 export const sessionUser = ref<string | null>(getSessionUserFromCookie())
 export const userRoles = ref<string[]>([])
+export const moduleWritePerms = ref<Record<string, boolean>>({})
 
 const rolesCall = useCall({
   url: '/api/method/my_custom_app.api.get_my_roles',
@@ -16,13 +17,26 @@ const rolesCall = useCall({
   },
 })
 
+const permsCall = useCall({
+  url: '/api/method/my_custom_app.api.get_module_write_perms',
+  immediate: false,
+  onSuccess(data: any) {
+    moduleWritePerms.value = data?.message || data || {}
+  },
+  onError() {
+    moduleWritePerms.value = {}
+  },
+})
+
 watch(
   sessionUser,
   (user) => {
     if (user) {
       rolesCall.submit ? rolesCall.submit() : rolesCall.reload?.()
+      permsCall.submit ? permsCall.submit() : permsCall.reload?.()
     } else {
       userRoles.value = []
+      moduleWritePerms.value = {}
     }
   },
   { immediate: true }
@@ -56,10 +70,7 @@ export const session = reactive({
   isCFO: computed(() => userRoles.value.includes('CFO')),
   canWrite: (doctype: string) => {
     if (session.isAdmin) return true
-    const roles = userRoles.value
-    if (doctype === 'Deal' && roles.includes('CBO')) return true
-    if (doctype === 'Invoice' && roles.includes('CFO')) return true
-    return false
+    return !!moduleWritePerms.value?.[doctype]
   },
 })
 
