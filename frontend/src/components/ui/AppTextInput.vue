@@ -15,7 +15,7 @@
       :model-value="modelValue"
       :debounce="debounce"
       v-bind="$attrs"
-      @update:model-value="emit('update:modelValue', $event)"
+      @update:model-value="onUpdate"
     >
       <template v-if="$slots.prefix" #prefix><slot name="prefix" /></template>
       <template v-if="$slots.suffix" #suffix><slot name="suffix" /></template>
@@ -31,6 +31,7 @@ defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
+  modelModifiers: { type: Object, default: () => ({}) },
   label: { type: String, default: '' },
   type: { type: String, default: 'text' },
   placeholder: { type: String, default: '' },
@@ -43,6 +44,19 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 const inputId = useId()
+
+function onUpdate(val) {
+  if (props.modelModifiers?.number) {
+    if (val === '' || val === null || val === undefined) {
+      emit('update:modelValue', '')
+      return
+    }
+    const num = Number(val)
+    emit('update:modelValue', isNaN(num) ? val : num)
+    return
+  }
+  emit('update:modelValue', val)
+}
 </script>
 
 <style scoped>
