@@ -1,6 +1,23 @@
 <template>
-  <div style="padding: 1.5rem; color: var(--color-gray-900); font-family: 'Inter', sans-serif;">
-    <h1 style="font-family: 'Space Grotesk', sans-serif; color: var(--color-amber-700);">Dashboard</h1>
-    <p style="color: var(--color-gray-500);">Cross-department overview — coming once more modules exist.</p>
+  <div class="dashboard">
+    <PageHeader title="Dashboard" />
+    <EmptyState
+      title="Coming soon"
+      description="Cross-department overview — coming once more modules exist."
+    />
   </div>
 </template>
+
+<script setup>
+import PageHeader from '@/components/ui/PageHeader.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+</script>
+
+<style scoped>
+.dashboard {
+  background: var(--color-gray-50);
+  min-height: 100vh;
+  padding: var(--page-pad);
+  color: var(--color-gray-900);
+}
+</style>

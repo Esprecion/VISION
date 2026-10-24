@@ -5,11 +5,10 @@
         <div v-for="stage in sortedStages" :key="stage.name" class="stage-row">
           <span class="dot" :style="{ background: stage.color || 'var(--color-gray-400)' }"></span>
 
-          <input
+          <AppTextInput
             v-if="editingName === stage.name"
             v-model="editValue"
-            class="rename-input"
-            type="text"
+            class="rename-input-wrap"
             @keyup.enter="confirmRename(stage)"
           />
           <span v-else class="stage-label">{{ stage.stage_name }}</span>
@@ -18,38 +17,40 @@
 
           <div class="row-actions">
             <template v-if="!stage.is_locked">
-              <template v-if="pendingDeleteName === stage.name">
-                <span class="confirm-text">Delete?</span>
-                <button class="icon-btn confirm-yes" title="Confirm delete" aria-label="Confirm delete" @click="doDelete(stage)">
-                  <CheckIcon aria-hidden="true" />
-                </button>
-                <button class="icon-btn" title="Cancel" aria-label="Cancel delete" @click="cancelDelete">
-                  <XIcon aria-hidden="true" />
-                </button>
+              <template v-if="editingName !== stage.name">
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  :icon="PencilIcon"
+                  @click="startRename(stage)"
+                  aria-label="Rename stage"
+                />
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  theme="red"
+                  :icon="XIcon"
+                  @click="startDelete(stage)"
+                  aria-label="Delete stage"
+                />
               </template>
               <template v-else>
-                <button
-                  v-if="editingName !== stage.name"
-                  class="icon-btn"
-                  title="Rename"
-                  aria-label="Rename stage"
-                  @click="startRename(stage)"
-                >
-                  <PencilIcon aria-hidden="true" />
-                </button>
-                <button
-                  v-else
-                  class="icon-btn confirm-yes"
-                  title="Save"
-                  aria-label="Save rename"
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  theme="green"
+                  :icon="CheckIcon"
                   :disabled="renaming"
                   @click="confirmRename(stage)"
-                >
-                  <CheckIcon aria-hidden="true" />
-                </button>
-                <button class="icon-btn danger" title="Delete" aria-label="Delete stage" @click="startDelete(stage)">
-                  <XIcon aria-hidden="true" />
-                </button>
+                  aria-label="Save rename"
+                />
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  :icon="XIcon"
+                  @click="editingName = null"
+                  aria-label="Cancel rename"
+                />
               </template>
             </template>
           </div>
@@ -57,7 +58,7 @@
       </div>
 
       <div class="add-row">
-        <input v-model="newStageName" type="text" placeholder="New stage name" />
+        <AppTextInput v-model="newStageName" placeholder="New stage name" class="add-input" />
         <div class="color-swatches">
           <button
             v-for="c in colorPresets"
@@ -69,15 +70,31 @@
             @click="newStageColor = c"
           ></button>
         </div>
-        <button class="btn-secondary" :disabled="!newStageName.trim() || adding" @click="addStage">
-          <PlusIcon class="btn-icon" aria-hidden="true" />
+        <AppButton
+          variant="outline"
+          size="md"
+          :disabled="!newStageName.trim() || adding"
+          :loading="adding"
+          @click="addStage"
+        >
+          <template #prefix><PlusIcon aria-hidden="true" /></template>
           Add
-        </button>
+        </AppButton>
       </div>
 
       <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
     </template>
   </Dialog>
+  <AppConfirmDialog
+    v-model="showDeleteConfirm"
+    title="Delete stage"
+    :message="pendingDelete ? 'Delete stage &quot;' + pendingDelete.stage_name + '&quot;? This cannot be undone.' : ''"
+    confirm-label="Delete"
+    destructive
+    :loading="deleting"
+    @confirm="confirmDeleteAction"
+    @cancel="cancelDelete"
+  />
 </template>
 
 <script setup>
@@ -87,6 +104,9 @@ import CheckIcon from '~icons/lucide/check'
 import XIcon from '~icons/lucide/x'
 import PencilIcon from '~icons/lucide/pencil'
 import PlusIcon from '~icons/lucide/plus'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'updated'])
@@ -154,7 +174,9 @@ async function confirmRename(stage) {
 }
 
 // --- Delete ---
-const pendingDeleteName = ref(null)
+const pendingDelete = ref(null)
+const showDeleteConfirm = ref(false)
+const deleting = ref(false)
 
 async function startDelete(stage) {
   errorMsg.value = ''
@@ -166,29 +188,38 @@ async function startDelete(stage) {
     errorMsg.value = `Can't delete "${stage.stage_name}" — ${inUse} deal(s) are still in this stage.`
     return
   }
-  pendingDeleteName.value = stage.name
+  pendingDelete.value = stage
+  showDeleteConfirm.value = true
 }
 
 function cancelDelete() {
-  pendingDeleteName.value = null
+  pendingDelete.value = null
+  showDeleteConfirm.value = false
 }
 
-async function doDelete(stage) {
+async function confirmDeleteAction() {
+  if (!pendingDelete.value) return
+  deleting.value = true
+  errorMsg.value = ''
   try {
     await call('frappe.client.delete', {
       doctype: 'Pipeline Stage',
-      name: stage.name,
+      name: pendingDelete.value.name,
     })
-    pendingDeleteName.value = null
+    showDeleteConfirm.value = false
+    pendingDelete.value = null
     await stagesResource.reload()
     emit('updated')
   } catch (e) {
     errorMsg.value = e?.messages?.[0] || 'Delete failed.'
+    showDeleteConfirm.value = false
+  } finally {
+    deleting.value = false
   }
 }
 
 // --- Add ---
-const colorPresets = ['#4c8dff', '#37c9a6', '#e0a93e', '#9d7bff', '#3fbf7f', '#e5636b', '#f472b6', '#6b7280']
+const colorPresets = ['var(--color-blue-500)', 'var(--color-emerald-500)', 'var(--color-amber-500)', '#9d7bff', 'var(--color-green-600)', 'var(--color-red-500)', '#f472b6', 'var(--color-gray-500)']
 const newStageName = ref('')
 const newStageColor = ref(colorPresets[0])
 const adding = ref(false)
@@ -236,7 +267,6 @@ async function addStage() {
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-md);
 }
-.btn-icon { width: 14px; height: 14px; flex-shrink: 0; }
 .dot {
   width: 10px;
   height: 10px;
@@ -248,14 +278,8 @@ async function addStage() {
   font-size: var(--fs-sm);
   color: var(--color-gray-900);
 }
-.rename-input {
+.rename-input-wrap {
   flex: 1;
-  border: 1px solid var(--color-amber-700);
-  border-radius: var(--radius-sm);
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--fs-sm);
-  font-family: inherit;
-  color: var(--color-gray-900);
 }
 .locked-badge {
   font-size: var(--fs-xs);
@@ -268,49 +292,6 @@ async function addStage() {
   display: flex;
   gap: var(--space-1);
 }
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: var(--color-gray-100);
-  border-radius: var(--radius-sm);
-  width: 26px;
-  height: 26px;
-  cursor: pointer;
-  color: var(--color-gray-600);
-}
-.icon-btn svg {
-  width: 14px;
-  height: 14px;
-}
-.icon-btn:hover {
-  background: var(--color-gray-200);
-  color: var(--color-gray-900);
-}
-.icon-btn.danger {
-  color: var(--color-red-600);
-}
-.icon-btn.danger:hover {
-  background: var(--color-red-100);
-  color: var(--color-red-700);
-}
-.icon-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.confirm-text {
-  font-size: var(--fs-xs);
-  color: var(--color-red-600);
-  margin-right: var(--space-1);
-}
-.icon-btn.confirm-yes {
-  color: var(--color-green-600);
-}
-.icon-btn.confirm-yes:hover {
-  background: var(--color-green-600);
-  color: var(--color-white);
-}
 .add-row {
   display: flex;
   gap: var(--space-2);
@@ -319,18 +300,9 @@ async function addStage() {
   padding-top: var(--space-3);
   flex-wrap: wrap;
 }
-.add-row input[type='text'] {
+.add-input {
   flex: 1;
   min-width: 160px;
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--fs-sm);
-  font-family: inherit;
-  color: var(--color-gray-900);
-}
-.add-row input[type='text']:focus {
-  border-color: var(--color-amber-700);
 }
 .color-swatches {
   display: flex;

@@ -100,11 +100,11 @@ const margin = (r) => {
 
 // ---------- A/R aging buckets ----------
 const BUCKETS = [
-  { key: 'current', label: 'Current', color: '#10b981', test: (d) => d <= 0 },
-  { key: 'b1', label: '1-30 days', color: '#f59e0b', test: (d) => d >= 1 && d <= 30 },
-  { key: 'b2', label: '31-60 days', color: '#f97316', test: (d) => d >= 31 && d <= 60 },
-  { key: 'b3', label: '61-90 days', color: '#ef4444', test: (d) => d >= 61 && d <= 90 },
-  { key: 'b4', label: '90+ days', color: '#991b1b', test: (d) => d > 90 },
+  { key: 'current', label: 'Current', color: 'var(--color-emerald-500)', test: (d) => d <= 0 },
+  { key: 'b1', label: '1-30 days', color: 'var(--color-amber-500)', test: (d) => d >= 1 && d <= 30 },
+  { key: 'b2', label: '31-60 days', color: 'var(--color-orange-500)', test: (d) => d >= 31 && d <= 60 },
+  { key: 'b3', label: '61-90 days', color: 'var(--color-red-500)', test: (d) => d >= 61 && d <= 90 },
+  { key: 'b4', label: '90+ days', color: 'var(--color-red-800)', test: (d) => d > 90 },
 ]
 const agingBuckets = computed(() =>
   BUCKETS.map((b) => {
@@ -133,7 +133,7 @@ const dueLabel = (d) => {
 
 // ---------- Expense by category ----------
 const expenseRows = computed(() => rowsOf(expenseRep)) // [category, vendor, amount]
-const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#84cc16', '#f97316']
+const PALETTE = ['var(--color-indigo-500)', 'var(--color-emerald-500)', 'var(--color-amber-500)', 'var(--color-red-500)', 'var(--color-blue-500)', '#a855f7', '#84cc16', 'var(--color-orange-500)']
 const expenseGroups = computed(() => {
   const m = new Map()
   for (const r of expenseRows.value) {

@@ -2,24 +2,9 @@
   <Dialog v-model="show" :options="{ title: 'Add Product' }">
     <template #body-content>
       <div class="form-grid">
-        <div class="field">
-          <label>Product Name *</label>
-          <input v-model="form.product_name" type="text" placeholder="e.g. Clinic Software License" />
-        </div>
-        <div class="field">
-          <label>Type *</label>
-          <select v-model="form.type">
-            <option value="">Select type</option>
-            <option value="Software">Software</option>
-            <option value="Hardware">Hardware</option>
-            <option value="Consulting">Consulting</option>
-            <option value="Support">Support</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Description</label>
-          <textarea v-model="form.description" rows="3"></textarea>
-        </div>
+        <AppTextInput v-model="form.product_name" label="Product Name" required placeholder="e.g. Clinic Software License" />
+        <AppSelect v-model="form.type" label="Type" required :options="typeOptions" placeholder="Select type" />
+        <AppTextInput v-model="form.description" label="Description" type="text" />
         <div v-if="createProduct.error" class="error-msg">
           <AlertCircleIcon class="btn-icon" aria-hidden="true" />
           {{ createProduct.error.messages?.[0] || 'Something went wrong' }}
@@ -27,13 +12,15 @@
       </div>
     </template>
     <template #actions>
-      <button
-        class="btn-primary"
+      <AppButton
+        variant="solid"
+        theme="gray"
         :disabled="!form.product_name || !form.type || createProduct.loading"
+        :loading="createProduct.loading"
         @click="submit"
       >
-        {{ createProduct.loading ? 'Saving...' : 'Save Product' }}
-      </button>
+        Save Product
+      </AppButton>
     </template>
   </Dialog>
 </template>
@@ -42,6 +29,9 @@
 import { ref, reactive, watch } from 'vue'
 import { Dialog, createResource } from 'frappe-ui'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -57,6 +47,13 @@ const form = reactive({
   type: '',
   description: '',
 })
+
+const typeOptions = [
+  { label: 'Software', value: 'Software' },
+  { label: 'Hardware', value: 'Hardware' },
+  { label: 'Consulting', value: 'Consulting' },
+  { label: 'Support', value: 'Support' },
+]
 
 const createProduct = createResource({
   url: 'frappe.client.insert',
@@ -88,32 +85,6 @@ function submit() {
   flex-direction: column;
   gap: var(--space-3);
 }
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.field label {
-  font-size: var(--fs-sm);
-  color: var(--color-gray-600);
-  font-weight: 500;
-}
-.field input,
-.field select,
-.field textarea {
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--fs-sm);
-  font-family: inherit;
-  color: var(--color-gray-900);
-  background: var(--color-white);
-}
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  border-color: var(--color-amber-700);
-}
 .error-msg {
   display: flex;
   align-items: center;
@@ -126,5 +97,4 @@ function submit() {
   height: 14px;
   flex-shrink: 0;
 }
-.btn-primary { width: 100%; }
 </style>
