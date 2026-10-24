@@ -13,45 +13,37 @@
           <div v-if="!dealOptions.length" class="hint">No Won deals available — all are either already under contract or none are Won yet.</div>
         </div>
 
-        <div v-if="form.client" class="field">
-          <label>Client</label>
-          <input :value="form.client" type="text" disabled />
-        </div>
+        <AppTextInput v-if="form.client" label="Client" :model-value="form.client" disabled />
 
         <div v-if="form.deal" class="value-box">
           Project value: <b>{{ dealValue > 0 ? peso(dealValue) : 'not set on this deal' }}</b>
         </div>
 
         <div class="field-row">
-          <div class="field">
-            <label>Start Date</label>
-            <input v-model="form.start_date" type="date" />
-          </div>
-          <div class="field">
-            <label>End Date</label>
-            <input v-model="form.end_date" type="date" />
-          </div>
+          <AppTextInput label="Start Date" type="date" v-model="form.start_date" />
+          <AppTextInput label="End Date" type="date" v-model="form.end_date" />
         </div>
 
         <div class="field">
           <label>Payment Milestones *</label>
-          <select v-if="dealValue > 0" v-model="templateChoice" class="tpl" @change="applyTemplate($event.target.value)">
-            <option value="">Fill from template...</option>
-            <option v-for="(t, i) in TEMPLATES" :key="t.label" :value="i">{{ t.label }}</option>
-          </select>
+          <AppSelect
+            v-if="dealValue > 0"
+            v-model="templateChoice"
+            :options="[{ label: 'Fill from template...', value: '' }, ...TEMPLATES.map((t, i) => ({ label: t.label, value: String(i) }))]"
+            @update:model-value="applyTemplate($event)"
+            class="tpl"
+          />
           <div class="milestone-rows">
             <div v-for="(m, i) in milestones" :key="i" class="milestone-row">
-              <input v-model="m.milestone_name" type="text" placeholder="e.g. Downpayment" class="ms-name" />
-              <input v-model.number="m.amount" type="number" placeholder="Amount" class="ms-amount" />
-              <button class="remove-row" aria-label="Remove milestone" @click="milestones.splice(i, 1)">
-                <XIcon aria-hidden="true" />
-              </button>
+              <AppTextInput v-model="m.milestone_name" placeholder="e.g. Downpayment" class="ms-name" />
+              <AppTextInput v-model.number="m.amount" type="number" placeholder="Amount" class="ms-amount" />
+              <AppButton variant="ghost" size="sm" :icon="XIcon" @click="milestones.splice(i, 1)" aria-label="Remove milestone" />
             </div>
           </div>
-          <button class="btn-secondary add-row" @click="milestones.push({ milestone_name: '', amount: 0 })">
-            <PlusIcon class="btn-icon" aria-hidden="true" />
+          <AppButton variant="outline" size="sm" class="add-row" @click="milestones.push({ milestone_name: '', amount: 0 })">
+            <template #prefix><PlusIcon aria-hidden="true" /></template>
             Add milestone
-          </button>
+          </AppButton>
           <div class="total-row">Total: {{ peso(totalValue) }}</div>
           <div v-if="dealValue > 0" class="balance" :class="{ ok: matches, bad: !matches }">
             Milestones {{ peso(totalValue) }} of {{ peso(dealValue) }}:
@@ -71,13 +63,9 @@
       </div>
     </template>
     <template #actions>
-      <button
-        class="btn-primary"
-        :disabled="!canSubmit || createContract.loading"
-        @click="submit"
-      >
-        {{ createContract.loading ? 'Saving...' : 'Save Contract' }}
-      </button>
+      <AppButton variant="solid" theme="gray" class="w-full" :disabled="!canSubmit" :loading="createContract.loading" @click="submit">
+        Save Contract
+      </AppButton>
     </template>
   </Dialog>
 </template>
@@ -88,6 +76,9 @@ import { Dialog, Autocomplete, createResource, createListResource, call } from '
 import XIcon from '~icons/lucide/x'
 import PlusIcon from '~icons/lucide/plus'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -235,11 +226,6 @@ function peso(n) {
   flex-direction: column;
   gap: var(--space-4);
 }
-.btn-icon {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
 .field {
   display: flex;
   flex-direction: column;
@@ -250,7 +236,6 @@ function peso(n) {
   color: var(--color-gray-600);
   font-weight: 500;
 }
-.field input,
 .field textarea {
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-sm);
@@ -260,20 +245,15 @@ function peso(n) {
   color: var(--color-gray-900);
   background: var(--color-white);
 }
-.field input:focus,
 .field textarea:focus {
   border-color: var(--color-amber-700);
-}
-.field input:disabled {
-  background: var(--color-gray-100);
-  color: var(--color-gray-600);
 }
 .field-row {
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
 }
-.field-row .field {
+.field-row > * {
   flex: 1;
   min-width: 160px;
 }
@@ -293,39 +273,6 @@ function peso(n) {
   gap: var(--space-2);
   align-items: center;
 }
-.ms-name,
-.ms-amount {
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2);
-  font-size: var(--fs-sm);
-  font-family: inherit;
-  color: var(--color-gray-900);
-  min-width: 0;
-}
-.ms-name:focus,
-.ms-amount:focus {
-  border-color: var(--color-amber-700);
-}
-.remove-row {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  color: var(--color-gray-500);
-  cursor: pointer;
-  padding: var(--space-1);
-  border-radius: var(--radius-sm);
-}
-.remove-row svg {
-  width: 14px;
-  height: 14px;
-}
-.remove-row:hover {
-  color: var(--color-red-600);
-  background: var(--color-red-100);
-}
 .add-row {
   width: fit-content;
 }
@@ -344,17 +291,15 @@ function peso(n) {
   color: var(--color-red-600);
   font-size: var(--fs-sm);
 }
-.btn-primary { width: 100%; }
+.w-full { width: 100%; }
 .value-box {
   background: var(--color-amber-50); border: 1px solid var(--color-amber-200);
   border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--fs-sm);
   color: var(--color-amber-800);
 }
 .tpl {
-  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm);
-  padding: var(--space-2); font-size: var(--fs-sm); width: fit-content;
-  margin-bottom: var(--space-2); background: var(--color-white); font-family: inherit;
-  color: var(--color-gray-900);
+  width: fit-content;
+  margin-bottom: var(--space-2);
 }
 .balance { font-size: var(--fs-sm); margin-top: var(--space-1); font-variant-numeric: tabular-nums; }
 .balance.ok { color: var(--color-emerald-800); }
