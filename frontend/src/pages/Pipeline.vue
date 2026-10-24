@@ -420,7 +420,7 @@ function onDrop(stageId) {
 }
 
 const totalValue = computed(() =>
-  (dealsResource.data || []).reduce((s, d) => s + (d.value || 0), 0)
+  stages.value.reduce((s, stage) => s + dealsByStage(stage.id).reduce((sum, d) => sum + (d.value || 0), 0), 0)
 )
 const initialRange = quarterRange(0)
 const fromInput = ref(initialRange.from)

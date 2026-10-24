@@ -6,15 +6,14 @@ import MenuIcon from '~icons/lucide/menu'
 import XIcon from '~icons/lucide/x'
 
 const modules = [
-  { to: '/business-dev', label: 'Business Development', role: 'CBO' },
-  { to: '/finance', label: 'Finance', role: 'CFO' },
+  { to: '/business-dev', label: 'Business Development', doctype: 'Deal' },
+  { to: '/finance', label: 'Finance', doctype: 'Invoice' },
 ]
 
 const items = computed(() =>
   modules.map((m) => ({
     ...m,
-    editable: session.isAdmin || (m.role === 'CBO' && session.isCBO) ||
-      (m.role === 'COO' && session.isCOO) || (m.role === 'CFO' && session.isCFO),
+    editable: session.isAdmin || (m.doctype ? session.canWrite(m.doctype) : false),
   }))
 )
 const roleLabel = computed(() =>

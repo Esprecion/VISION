@@ -54,6 +54,13 @@ export const session = reactive({
   isCBO: computed(() => userRoles.value.includes('CBO')),
   isCOO: computed(() => userRoles.value.includes('COO')),
   isCFO: computed(() => userRoles.value.includes('CFO')),
+  canWrite: (doctype: string) => {
+    if (session.isAdmin) return true
+    const roles = userRoles.value
+    if (doctype === 'Deal' && roles.includes('CBO')) return true
+    if (doctype === 'Invoice' && roles.includes('CFO')) return true
+    return false
+  },
 })
 
 function getSessionUserFromCookie(): string | null {
