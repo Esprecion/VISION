@@ -20,7 +20,7 @@
             >
               <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
             </select>
-            <button v-if="!editing" class="btn-secondary" @click="startEdit">Edit</button>
+            <AppButton v-if="!editing" variant="outline" size="sm" @click="startEdit">Edit</AppButton>
           </div>
         </div>
 
@@ -59,7 +59,7 @@
                     <td>{{ m.is_paid ? 'Yes' : 'No' }}</td>
                     <td>
                       <template v-if="invoiceFor(m)">{{ invoiceFor(m).name }}</template>
-                      <button v-else-if="canInvoice && !m.is_paid" class="btn-secondary" @click="startInvoice(m)">Create Invoice</button>
+                      <AppButton v-else-if="canInvoice && !m.is_paid" variant="outline" size="sm" @click="startInvoice(m)">Create Invoice</AppButton>
                     </td>
                   </tr>
                 </tbody>
@@ -73,17 +73,15 @@
           </div>
           <div v-else class="milestone-rows">
             <div v-for="(m, i) in form.payment_milestones" :key="i" class="milestone-row">
-              <input v-model="m.milestone_name" type="text" placeholder="Milestone name" class="ms-name" />
-              <input v-model.number="m.amount" type="number" placeholder="Amount" class="ms-amount" />
+              <AppTextInput v-model="m.milestone_name" placeholder="Milestone name" class="ms-name" />
+              <AppTextInput v-model.number="m.amount" type="number" placeholder="Amount" class="ms-amount" />
               <label class="paid-check"><input type="checkbox" v-model="m.is_paid" /> Paid</label>
-              <button class="remove-row" aria-label="Remove milestone" @click="form.payment_milestones.splice(i, 1)">
-                <XIcon aria-hidden="true" />
-              </button>
+              <AppButton variant="ghost" size="sm" :icon="XIcon" @click="form.payment_milestones.splice(i, 1)" aria-label="Remove milestone" />
             </div>
-            <button class="btn-secondary add-row" @click="form.payment_milestones.push({ milestone_name: '', amount: 0, is_paid: 0 })">
-              <PlusIcon class="btn-icon" aria-hidden="true" />
+            <AppButton variant="outline" size="sm" class="add-row" @click="form.payment_milestones.push({ milestone_name: '', amount: 0, is_paid: 0 })">
+              <template #prefix><PlusIcon aria-hidden="true" /></template>
               Add milestone
-            </button>
+            </AppButton>
             <div class="deal-total">Total: {{ peso(editTotal) }}</div>
             <div v-if="editMismatch" class="warn">
               <AlertCircleIcon class="warn-icon" aria-hidden="true" />
@@ -99,14 +97,8 @@
             <span>End: {{ doc.end_date || '—' }}</span>
           </div>
           <div v-else class="dates-row">
-            <div class="field">
-              <label>Start Date</label>
-              <input v-model="form.start_date" type="date" />
-            </div>
-            <div class="field">
-              <label>End Date</label>
-              <input v-model="form.end_date" type="date" />
-            </div>
+            <AppTextInput label="Start Date" type="date" v-model="form.start_date" />
+            <AppTextInput label="End Date" type="date" v-model="form.end_date" />
           </div>
         </div>
 
@@ -124,10 +116,8 @@
         </div>
 
         <div v-if="editing" class="edit-actions">
-          <button class="btn-secondary" @click="cancelEdit">Cancel</button>
-          <button class="btn-primary" :disabled="saving" @click="saveChanges">
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
+          <AppButton variant="outline" size="sm" @click="cancelEdit">Cancel</AppButton>
+          <AppButton variant="solid" theme="gray" size="sm" :loading="saving" @click="saveChanges">Save Changes</AppButton>
         </div>
 
         <div class="dd-section comments-section">
@@ -167,6 +157,8 @@ import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, call } from 'frappe-ui'
 import FinanceFormDialog from './FinanceFormDialog.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppButton from '@/components/ui/AppButton.vue'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
 import PlusIcon from '~icons/lucide/plus'
 import XIcon from '~icons/lucide/x'
@@ -371,34 +363,18 @@ function peso(n) {
 .deal-total { margin-top: var(--space-2); font-weight: 600; font-size: var(--fs-sm); color: var(--color-gray-900); font-variant-numeric: tabular-nums; }
 .milestone-rows { display: flex; flex-direction: column; gap: var(--space-2); }
 .milestone-row { display: grid; grid-template-columns: 1fr 110px 80px 28px; gap: var(--space-2); align-items: center; }
-.ms-name, .ms-amount {
-  border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm);
-  padding: var(--space-2); font-size: var(--fs-sm); font-family: inherit;
-  color: var(--color-gray-900); min-width: 0;
-}
-.ms-name:focus, .ms-amount:focus { border-color: var(--color-amber-700); }
 .paid-check { font-size: var(--fs-xs); color: var(--color-gray-600); display: flex; align-items: center; gap: var(--space-1); cursor: pointer; }
-.remove-row {
-  display: inline-flex; align-items: center; justify-content: center;
-  background: none; border: none; color: var(--color-gray-500); cursor: pointer;
-  padding: var(--space-1); border-radius: var(--radius-sm);
-}
-.remove-row svg { width: 14px; height: 14px; }
-.remove-row:hover { color: var(--color-red-600); background: var(--color-red-100); }
-.btn-icon { width: 14px; height: 14px; flex-shrink: 0; }
 .add-row { width: fit-content; margin-top: var(--space-1); }
 .dates-row { display: flex; gap: var(--space-6); font-size: var(--fs-sm); color: var(--color-gray-900); flex-wrap: wrap; }
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field label { font-size: var(--fs-xs); color: var(--color-gray-600); font-weight: 500; }
-.field input, .field textarea {
+.field textarea {
   border: 1px solid var(--color-gray-300); border-radius: var(--radius-sm);
   padding: var(--space-2); font-size: var(--fs-sm); font-family: inherit;
   color: var(--color-gray-900); background: var(--color-white);
 }
-.field input:focus, .field textarea:focus { border-color: var(--color-amber-700); }
+.field textarea:focus { border-color: var(--color-amber-700); }
 .edit-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
-
-.btn-primary { padding: var(--space-2) var(--space-4); font-size: var(--fs-sm); }
 .status-select {
   border: 1px solid var(--color-gray-200); border-radius: var(--radius-full);
   padding: var(--space-1) var(--space-3); font-size: var(--fs-xs);
