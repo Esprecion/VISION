@@ -1,8 +1,20 @@
+import re
+
 import frappe
 
-from my_custom_app.admin_roles import ALLOWED_ROLES, PROTECTED_USERS, SYSTEM_ADMIN_ROLE
+from my_custom_app.admin_roles import (
+	ALLOWED_ROLES,
+	PROTECTED_USERS,
+	SYSTEM_ADMIN_ROLE,
+	_placeholder_email,
+)
 
 PROTECTED_USER_NAMES = {user.lower() for user in PROTECTED_USERS}
+
+REQUIRED_DETAILS_MESSAGE = "Please complete all required user details."
+DUPLICATE_NAME_MESSAGE = "This account name is already taken."
+INVALID_ROLE_MESSAGE = "Please choose a valid role."
+CREATE_FAILED_MESSAGE = "Unable to create user. Please try again."
 
 
 @frappe.whitelist()
@@ -29,6 +41,144 @@ def get_user(account_name):
 	except Exception:
 		frappe.log_error(message=frappe.get_traceback(), title="Administration: get user")
 		frappe.throw("Unable to load user. Please try again.")
+
+
+@frappe.whitelist()
+def create_user(account_name=None, password=None, role=None):
+	"""Create an administration user with exactly one managed role."""
+	_require_system_admin()
+
+	account_name = (account_name or "").strip()
+	password = password or ""
+	role = (role or "").strip()
+
+	missing = []
+	if not account_name:
+		missing.append("account_name")
+	if not password:
+		missing.append("password")
+	if not role:
+		missing.append("role")
+	if missing:
+		return _error(missing[0], REQUIRED_DETAILS_MESSAGE, missing)
+
+	if role not in ALLOWED_ROLES or not frappe.db.exists("Role", role):
+		return _error("role", INVALID_ROLE_MESSAGE, ["role"])
+
+	if _account_name_taken(account_name):
+		return _error("account_name", DUPLICATE_NAME_MESSAGE, ["account_name"])
+
+	email = _placeholder_email(account_name)
+	password_message = _password_problem(account_name, email, password)
+	if password_message:
+		return _error("password", password_message, ["password"])
+
+	try:
+		doc = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": email,
+				"first_name": account_name,
+				"username": account_name,
+				"send_welcome_email": 0,
+				"enabled": 1,
+				"user_type": "System User",
+				"roles": [{"role": role}],
+				"new_password": password,
+			}
+		)
+		doc.insert(ignore_permissions=True)
+	except frappe.DuplicateEntryError:
+		return _error("account_name", DUPLICATE_NAME_MESSAGE, ["account_name"])
+	except frappe.ValidationError as error:
+		if _last_error_title().lower() == "password requirements not met":
+			return _error("password", _password_message(str(error)), ["password"])
+		return _error(None, _clean_message(str(error)) or CREATE_FAILED_MESSAGE)
+	except Exception as error:
+		frappe.log_error(
+			message=f"create_user failed ({type(error).__name__})",
+			title="Administration: create user",
+		)
+		return _error(None, CREATE_FAILED_MESSAGE)
+
+	return {
+		"ok": True,
+		"message": "User Created",
+		"user": {
+			"account_name": doc.username,
+			"role": role,
+			"has_extra_roles": False,
+		},
+	}
+
+
+def _error(field, message, fields=None):
+	return {
+		"ok": False,
+		"field": field,
+		"fields": list(fields) if fields else ([field] if field else []),
+		"message": message,
+	}
+
+
+def _account_name_taken(account_name):
+	if account_name.lower() in PROTECTED_USER_NAMES:
+		return True
+	return bool(frappe.db.exists("User", {"username": account_name}))
+
+
+def _password_problem(account_name, email, password):
+	try:
+		from frappe.core.doctype.user.user import test_password_strength
+
+		result = (
+			test_password_strength(
+				new_password=password,
+				user_data=(account_name, "", "", email, None),
+			)
+			or {}
+		)
+	except Exception:
+		return None
+
+	feedback = result.get("feedback") or {}
+	if feedback and not feedback.get("password_policy_validation_passed", False):
+		return _password_message(_password_feedback_text(feedback))
+	return None
+
+
+def _password_feedback_text(feedback):
+	parts = []
+	warning = _clean_message(feedback.get("warning") or "")
+	if warning:
+		parts.append(warning)
+	for suggestion in feedback.get("suggestions") or []:
+		text = _clean_message(suggestion)
+		if text:
+			parts.append(text)
+	return " ".join(parts)
+
+
+def _password_message(detail):
+	detail = _clean_message(detail)
+	if detail.lower().startswith("password requirements not met"):
+		return detail
+	if detail:
+		return f"Password requirements not met. {detail}"
+	return "Password requirements not met. Please choose a stronger password."
+
+
+def _clean_message(message):
+	text = re.sub(r"<[^>]*>", " ", str(message or ""))
+	return re.sub(r"\s+", " ", text).strip()
+
+
+def _last_error_title():
+	for message in reversed(getattr(frappe.local, "message_log", None) or []):
+		title = message.get("title") if isinstance(message, dict) else None
+		if title:
+			return title
+	return ""
 
 
 def _require_system_admin():
