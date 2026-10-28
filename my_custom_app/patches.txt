@@ -13,3 +13,4 @@ my_custom_app.patches.remove_infrastructure_category
 
 my_custom_app.patches.create_cbo_coo_cfo_roles
 my_custom_app.patches.add_expense_report
+my_custom_app.patches.create_administration_roles
