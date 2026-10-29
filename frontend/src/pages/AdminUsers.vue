@@ -5,6 +5,7 @@ import PageHeader from '@/components/ui/PageHeader.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import AppTextInput from '@/components/ui/AppTextInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import AppConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
@@ -22,6 +23,7 @@ const showForm = ref(false)
 const editingUser = ref(null)
 const showDeactivate = ref(false)
 const deactivateTarget = ref(null)
+const reactivatingAccount = ref('')
 
 const usersCall = useCall({
   url: '/api/method/my_custom_app.admin.list_users',
@@ -47,6 +49,11 @@ const rolesCall = useCall({
 
 const deactivateUser = createResource({
   url: '/api/method/my_custom_app.admin.deactivate_user',
+  method: 'POST',
+})
+
+const reactivateUser = createResource({
+  url: '/api/method/my_custom_app.admin.reactivate_user',
   method: 'POST',
 })
 
@@ -126,6 +133,31 @@ function confirmDeactivate() {
     }
   )
 }
+
+function confirmReactivate(user) {
+  if (!user || user.enabled || reactivateUser.loading) return
+
+  reactivatingAccount.value = user.account_name
+  reactivateUser.submit(
+    { account_name: user.account_name },
+    {
+      onSuccess(response) {
+        const result = response?.message || response
+        reactivatingAccount.value = ''
+        if (!result?.ok) {
+          showToast(result?.message || 'Unable to reactivate the user.', 'error')
+          return
+        }
+        showToast(`${user.account_name} was reactivated`)
+        usersCall.reload()
+      },
+      onError(error) {
+        reactivatingAccount.value = ''
+        showToast(error?.messages?.[0] || error?.message || 'Unable to reactivate the user.', 'error')
+      },
+    }
+  )
+}
 </script>
 
 <template>
@@ -145,8 +177,8 @@ function confirmDeactivate() {
     </PageHeader>
 
     <div class="search-wrap">
-      <SearchIcon class="search-icon" aria-hidden="true" />
-      <input
+      <SearchIcon aria-hidden="true" />
+      <AppTextInput
         v-model="search"
         class="search-input"
         type="search"
@@ -208,11 +240,13 @@ function confirmDeactivate() {
                     :label="role"
                     :color="roleColors[role] || 'neutral'"
                   />
-                  <AppBadge
+                  <span
                     v-if="user.has_extra_roles"
-                    label="Extra roles"
-                    color="neutral"
-                  />
+                    class="extra-roles-note"
+                    title="This account has roles outside the selected managed role."
+                  >
+                    Extra roles
+                  </span>
                 </div>
               </td>
               <td>
@@ -227,18 +261,79 @@ function confirmDeactivate() {
                     Edit
                   </AppButton>
                   <AppButton
+                    v-if="user.enabled"
                     variant="ghost"
                     size="sm"
-                    :disabled="!user.enabled"
+                    :disabled="deactivateUser.loading"
                     @click="askDeactivate(user)"
                   >
                     Deactivate
+                  </AppButton>
+                  <AppButton
+                    v-else
+                    variant="ghost"
+                    size="sm"
+                    :loading="reactivatingAccount === user.account_name"
+                    :disabled="reactivateUser.loading && reactivatingAccount !== user.account_name"
+                    @click="confirmReactivate(user)"
+                  >
+                    Reactivate
                   </AppButton>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="user-cards">
+        <article v-for="user in filteredUsers" :key="user.account_name" class="user-card">
+          <div class="user-card__head">
+            <span class="account-name">{{ user.account_name }}</span>
+            <AppBadge
+              :label="user.enabled ? 'Active' : 'Inactive'"
+              :color="user.enabled ? 'success' : 'neutral'"
+            />
+          </div>
+          <div class="role-list">
+            <AppBadge
+              v-for="role in roleList(user)"
+              :key="role"
+              :label="role"
+              :color="roleColors[role] || 'neutral'"
+            />
+            <span
+              v-if="user.has_extra_roles"
+              class="extra-roles-note"
+              title="This account has roles outside the selected managed role."
+            >
+              Extra roles
+            </span>
+          </div>
+          <div class="row-actions">
+            <AppButton variant="ghost" size="sm" @click="openEdit(user)">
+              Edit
+            </AppButton>
+            <AppButton
+              v-if="user.enabled"
+              variant="ghost"
+              size="sm"
+              :disabled="deactivateUser.loading"
+              @click="askDeactivate(user)"
+            >
+              Deactivate
+            </AppButton>
+            <AppButton
+              v-else
+              variant="ghost"
+              size="sm"
+              :loading="reactivatingAccount === user.account_name"
+              :disabled="reactivateUser.loading && reactivatingAccount !== user.account_name"
+              @click="confirmReactivate(user)"
+            >
+              Reactivate
+            </AppButton>
+          </div>
+        </article>
       </div>
     </div>
 
@@ -276,30 +371,27 @@ function confirmDeactivate() {
   flex-shrink: 0;
 }
 .search-wrap {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin-bottom: var(--space-4);
 }
-.search-icon {
-  position: absolute;
-  left: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
+.search-wrap svg {
   width: 16px;
   height: 16px;
   color: var(--color-gray-500);
-  pointer-events: none;
+  flex: none;
+}
+.search-wrap:focus-within svg {
+  color: var(--color-gray-700);
+}
+.search-wrap :deep(.app-field) {
+  flex: 1;
+  min-width: 0;
 }
 .search-input {
   width: 100%;
   max-width: 360px;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
-  font-size: var(--fs-sm);
-  background: var(--color-white);
-  font-family: inherit;
-  color: var(--color-gray-900);
-  box-sizing: border-box;
 }
 .table-wrap {
   background: var(--color-white);
@@ -338,7 +430,13 @@ function confirmDeactivate() {
 .role-list {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-1);
+}
+.extra-roles-note {
+  font-size: var(--fs-xs);
+  color: var(--color-gray-500);
+  white-space: nowrap;
 }
 .row-actions {
   display: flex;
@@ -348,9 +446,39 @@ function confirmDeactivate() {
 .actions-head {
   text-align: right;
 }
+.user-cards {
+  display: none;
+}
 @media (max-width: 640px) {
   .search-input {
     max-width: none;
+  }
+  .table-scroll {
+    display: none;
+  }
+  .user-cards {
+    display: flex;
+    flex-direction: column;
+  }
+  .user-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+  .user-card:last-child {
+    border-bottom: none;
+  }
+  .user-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .user-card .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
 </style>
