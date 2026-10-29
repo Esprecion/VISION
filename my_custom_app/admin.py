@@ -1,6 +1,7 @@
 import re
 
 import frappe
+from frappe.sessions import clear_sessions
 
 from my_custom_app.admin_roles import (
 	ALLOWED_ROLES,
@@ -17,11 +18,15 @@ INVALID_ROLE_MESSAGE = "Please choose a valid role."
 CREATE_FAILED_MESSAGE = "Unable to create user. Please try again."
 EDIT_FAILED_MESSAGE = "Unable to update user. Please try again."
 DEACTIVATE_FAILED_MESSAGE = "Unable to deactivate user. Please try again."
+REACTIVATE_FAILED_MESSAGE = "Unable to reactivate user. Please try again."
 USER_NOT_FOUND_MESSAGE = "User not found."
 PROTECTED_EDIT_MESSAGE = "This account cannot be edited."
 PROTECTED_DEACTIVATE_MESSAGE = "This account cannot be deactivated."
+PROTECTED_REACTIVATE_MESSAGE = "This account cannot be reactivated."
 SELF_DEACTIVATE_MESSAGE = "You cannot deactivate your own account."
+SELF_ROLE_MESSAGE = "You cannot change your own role."
 LAST_SYSTEM_ADMIN_MESSAGE = "You cannot deactivate the last active System Admin."
+LAST_SYSTEM_ADMIN_ROLE_MESSAGE = "You cannot change the role of the last active System Admin."
 
 
 @frappe.whitelist()
@@ -170,13 +175,23 @@ def edit_user(account_name=None, role=None, password=None):
 		if password_message:
 			return _error("password", password_message, ["password"])
 
+	target_is_system_admin = _has_role(user.name, SYSTEM_ADMIN_ROLE)
+	if target_is_system_admin and role != SYSTEM_ADMIN_ROLE:
+		if _is_current_user(user):
+			return _error(None, SELF_ROLE_MESSAGE)
+		if user.enabled and _active_system_admin_count() <= 1:
+			return _error(None, LAST_SYSTEM_ADMIN_ROLE_MESSAGE)
+
 	try:
 		doc = frappe.get_doc("User", user.name)
+		previous_managed_roles = [row.role for row in doc.roles if row.role in ALLOWED_ROLES]
 		extra_roles = [{"role": row.role} for row in doc.roles if row.role not in ALLOWED_ROLES]
 		doc.set("roles", [*extra_roles, {"role": role}])
 		if password:
 			doc.new_password = password
 		doc.save(ignore_permissions=True)
+		if previous_managed_roles != [role] or password:
+			clear_sessions(user=doc.name, force=True)
 	except frappe.ValidationError as error:
 		if _last_error_title().lower() == "password requirements not met":
 			return _error("password", _password_message(str(error)), ["password"])
@@ -232,6 +247,7 @@ def deactivate_user(account_name=None):
 		if doc.enabled:
 			doc.enabled = 0
 			doc.save(ignore_permissions=True)
+		clear_sessions(user=doc.name, force=True)
 	except Exception as error:
 		frappe.log_error(
 			message=f"deactivate_user failed ({type(error).__name__})",
@@ -250,6 +266,49 @@ def deactivate_user(account_name=None):
 			"roles": managed_roles,
 			"has_extra_roles": bool(extra_roles),
 			"enabled": False,
+		},
+	}
+
+
+@frappe.whitelist()
+def reactivate_user(account_name=None):
+	"""Enable a previously deactivated user without changing their role."""
+	_require_system_admin()
+
+	account_name = (account_name or "").strip()
+	if not account_name:
+		return _error("account_name", REQUIRED_DETAILS_MESSAGE, ["account_name"])
+
+	if account_name.lower() in PROTECTED_USER_NAMES:
+		return _error("account_name", PROTECTED_REACTIVATE_MESSAGE, ["account_name"])
+
+	user = _find_user(account_name)
+	if not user:
+		return _error("account_name", USER_NOT_FOUND_MESSAGE, ["account_name"])
+
+	try:
+		doc = frappe.get_doc("User", user.name)
+		if not doc.enabled:
+			doc.enabled = 1
+			doc.save(ignore_permissions=True)
+	except Exception as error:
+		frappe.log_error(
+			message=f"reactivate_user failed ({type(error).__name__})",
+			title="Administration: reactivate user",
+		)
+		return _error(None, REACTIVATE_FAILED_MESSAGE)
+
+	managed_roles = _managed_roles(doc.name)
+	extra_roles = [row.role for row in doc.roles if row.role not in ALLOWED_ROLES]
+	return {
+		"ok": True,
+		"message": "User Reactivated",
+		"user": {
+			"account_name": doc.username or doc.name,
+			"role": managed_roles[0] if managed_roles else "",
+			"roles": managed_roles,
+			"has_extra_roles": bool(extra_roles),
+			"enabled": True,
 		},
 	}
 
