@@ -6,19 +6,20 @@ import MenuIcon from '~icons/lucide/menu'
 import XIcon from '~icons/lucide/x'
 
 const modules = [
-  { to: '/business-dev', label: 'Business Development', doctype: 'Deal' },
-  { to: '/finance', label: 'Finance', doctype: 'Invoice' },
+  { to: '/business-dev', label: 'Business Development', module: 'business_dev', doctype: 'Deal' },
+  { to: '/finance', label: 'Finance', module: 'finance', doctype: 'Invoice' },
+  { to: '/operations', label: 'Operations', module: 'operations', doctype: 'Project' },
 ]
 
 const items = computed(() =>
-  modules.map((m) => ({
-    ...m,
-    editable: session.canWrite(m.doctype),
-  }))
+  modules
+    .filter((m) => session.canRead(m.module))
+    .map((m) => ({
+      ...m,
+      editable: session.canWrite(m.doctype),
+    }))
 )
-const roleLabel = computed(() =>
-  session.isAdmin ? 'Admin' : (['CBO', 'CFO', 'COO'].find((r) => session.roles.includes(r)) || '')
-)
+const roleLabel = computed(() => session.primaryRole)
 
 const open = ref(false)
 const route = useRoute()

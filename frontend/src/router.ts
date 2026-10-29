@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { ensureAdminAccess, session } from '@/data/session'
+import { ensureAdminAccess, ensureSessionData, session } from '@/data/session'
 
 const businessDevTabs = [
   { label: 'Overview', to: '/business-dev/overview' },
@@ -13,6 +13,13 @@ const financeTabs = [
   { label: 'Overview', to: '/finance/overview' },
   { label: 'Invoices', to: '/finance/invoices' },
   { label: 'Expenses', to: '/finance/expenses' },
+]
+
+const operationsTabs = [
+  { label: 'Overview', to: '/operations/overview' },
+  { label: 'Projects', to: '/operations/projects' },
+  { label: 'Tools', to: '/operations/tools' },
+  { label: 'Engagement Logs', to: '/operations/engagements' },
 ]
 
 const routes = [
@@ -29,6 +36,7 @@ const routes = [
     path: '/business-dev',
     component: () => import('@/layouts/DepartmentLayout.vue'),
     props: { tabs: businessDevTabs },
+    meta: { module: 'business_dev' },
     children: [
       { path: '', redirect: '/business-dev/overview' },
       {
@@ -64,18 +72,85 @@ const routes = [
     component: () => import('@/pages/AdminUsers.vue'),
     meta: { requiresAdmin: true },
   },
-  { path: '/operations/:pathMatch(.*)*', redirect: '/dashboard' },
+  {
+    path: '/operations',
+    component: () => import('@/layouts/DepartmentLayout.vue'),
+    props: { tabs: operationsTabs },
+    meta: { module: 'operations' },
+    children: [
+      { path: '', redirect: '/operations/overview' },
+      {
+        path: 'overview',
+        name: 'OperationsOverview',
+        component: () => import('@/pages/OperationsOverview.vue'),
+      },
+      {
+        path: 'projects',
+        name: 'OperationsProjects',
+        component: () => import('@/pages/OperationsRecords.vue'),
+        props: {
+          title: 'Projects',
+          doctype: 'Project',
+          kind: 'Project',
+          orderBy: 'modified desc',
+          columns: [
+            { key: 'name', label: 'Project' },
+            { key: 'client', label: 'Client' },
+            { key: 'project_type', label: 'Type' },
+            { key: 'stage', label: 'Stage', type: 'status' },
+            { key: 'committed_date', label: 'Committed' },
+            { key: 'actual_delivery_date', label: 'Delivered' },
+          ],
+        },
+      },
+      {
+        path: 'tools',
+        name: 'OperationsTools',
+        component: () => import('@/pages/OperationsRecords.vue'),
+        props: {
+          title: 'Tools',
+          doctype: 'Tool Subscription',
+          kind: 'Tool',
+          orderBy: 'renewal_date asc',
+          columns: [
+            { key: 'tool_name', label: 'Tool' },
+            { key: 'billing_cycle', label: 'Billing' },
+            { key: 'current_cost', label: 'Cost', type: 'money' },
+            { key: 'renewal_date', label: 'Renewal' },
+          ],
+        },
+      },
+      {
+        path: 'engagements',
+        name: 'OperationsEngagements',
+        component: () => import('@/pages/OperationsRecords.vue'),
+        props: {
+          title: 'Engagement Logs',
+          doctype: 'Client Engagement Log',
+          kind: 'Engagement',
+          orderBy: 'contact_date desc',
+          columns: [
+            { key: 'client', label: 'Client' },
+            { key: 'contact_date', label: 'Date' },
+            { key: 'channel', label: 'Channel', type: 'status' },
+            { key: 'notes', label: 'Notes' },
+          ],
+        },
+      },
+    ],
+  },
   {
     path: '/finance',
     component: () => import('@/layouts/DepartmentLayout.vue'),
     props: { tabs: financeTabs },
+    meta: { module: 'finance' },
     children: [
       { path: '', redirect: '/finance/overview' },
       { path: 'overview', name: 'FinanceOverview', component: () => import('@/pages/FinanceOverview.vue') },
       {
         path: 'invoices',
         name: 'FinanceInvoices',
-        component: () => import('@/pages/OperationsList.vue'),
+        component: () => import('@/pages/FinanceList.vue'),
         props: {
           title: 'Invoices',
           doctype: 'Invoice',
@@ -95,7 +170,7 @@ const routes = [
       {
         path: 'expenses',
         name: 'FinanceExpenses',
-        component: () => import('@/pages/OperationsList.vue'),
+        component: () => import('@/pages/FinanceList.vue'),
         props: {
           title: 'Expenses',
           doctype: 'Expense',
@@ -112,6 +187,7 @@ const routes = [
       },
     ],
   },
+  { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
 ]
 
 let router = createRouter({
@@ -126,7 +202,12 @@ router.beforeEach(async (to) => {
     window.location.href = '/login?redirect-to=/frontend' + to.fullPath
     return false
   }
+  await ensureSessionData()
   if (to.meta.requiresAdmin && !(await ensureAdminAccess())) {
+    return { path: '/dashboard' }
+  }
+  const module = to.meta.module as string | undefined
+  if (module && !session.canRead(module)) {
     return { path: '/dashboard' }
   }
 })

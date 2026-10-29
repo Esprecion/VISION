@@ -4,8 +4,20 @@ import router from '@/router'
 
 export const sessionUser = ref<string | null>(getSessionUserFromCookie())
 export const userRoles = ref<string[]>([])
-export const moduleWritePerms = ref<Record<string, boolean>>({})
+export const modulePerms = ref<Record<string, { read: boolean; write: boolean }>>({})
 export const canManageUsers = ref(false)
+
+const MODULE_BY_DOCTYPE: Record<string, string> = {
+  Deal: 'business_dev',
+  Client: 'business_dev',
+  Product: 'business_dev',
+  'Service Contract': 'business_dev',
+  Invoice: 'finance',
+  Expense: 'finance',
+  Project: 'operations',
+  'Tool Subscription': 'operations',
+  'Client Engagement Log': 'operations',
+}
 
 const rolesCall = useCall({
   url: '/api/method/my_custom_app.api.get_my_roles',
@@ -19,13 +31,13 @@ const rolesCall = useCall({
 })
 
 const permsCall = useCall({
-  url: '/api/method/my_custom_app.api.get_module_write_perms',
+  url: '/api/method/my_custom_app.api.get_module_perms',
   immediate: false,
   onSuccess(data: any) {
-    moduleWritePerms.value = data?.message || data || {}
+    modulePerms.value = data?.message || data || {}
   },
   onError() {
-    moduleWritePerms.value = {}
+    modulePerms.value = {}
   },
 })
 
@@ -40,13 +52,22 @@ const adminAccessCall = useCall({
   },
 })
 
+async function ensureCall(call: any) {
+  if (call.loading) {
+    await call.promise.value
+  } else if (!call.isFinished) {
+    await call.submit()
+  }
+}
+
+export async function ensureSessionData() {
+  if (!sessionUser.value) return
+  await Promise.all([ensureCall(rolesCall), ensureCall(permsCall)])
+}
+
 export async function ensureAdminAccess() {
   if (!sessionUser.value) return false
-  if (adminAccessCall.loading) {
-    await adminAccessCall.promise.value
-  } else if (!adminAccessCall.isFinished) {
-    await adminAccessCall.submit()
-  }
+  await ensureCall(adminAccessCall)
   return canManageUsers.value
 }
 
@@ -59,7 +80,7 @@ watch(
       adminAccessCall.submit ? adminAccessCall.submit() : adminAccessCall.reload?.()
     } else {
       userRoles.value = []
-      moduleWritePerms.value = {}
+      modulePerms.value = {}
       canManageUsers.value = false
     }
   },
@@ -90,12 +111,26 @@ export const session = reactive({
   canManageUsers,
   isLoggedIn: computed(() => sessionUser.value != null),
   isAdmin: computed(() => userRoles.value.includes('System Manager') || sessionUser.value === 'Administrator'),
+  isSystemAdmin: computed(
+    () => userRoles.value.includes('System Admin') || sessionUser.value === 'Administrator'
+  ),
   isCBO: computed(() => userRoles.value.includes('CBO')),
   isCOO: computed(() => userRoles.value.includes('COO')),
   isCFO: computed(() => userRoles.value.includes('CFO')),
+  isCTO: computed(() => userRoles.value.includes('CTO')),
+  primaryRole: computed(() => {
+    if (sessionUser.value === 'Administrator') return 'Administrator'
+    if (userRoles.value.includes('System Admin')) return 'System Admin'
+    return ['CBO', 'COO', 'CFO', 'CTO'].find((role) => userRoles.value.includes(role)) || ''
+  }),
+  canRead: (module: string) => {
+    if (session.isAdmin) return true
+    return !!modulePerms.value?.[module]?.read
+  },
   canWrite: (doctype: string) => {
     if (session.isAdmin) return true
-    return !!moduleWritePerms.value?.[doctype]
+    const module = MODULE_BY_DOCTYPE[doctype]
+    return module ? !!modulePerms.value?.[module]?.write : false
   },
 })
 
