@@ -175,10 +175,28 @@ def get_perms(doctype):
 	return {p: bool(frappe.has_permission(doctype, p)) for p in ("create", "write", "delete")}
 
 
+MODULE_DOCTYPES = {
+	"business_dev": "Deal",
+	"finance": "Invoice",
+	"operations": "Project",
+}
+
+
+@frappe.whitelist()
+def get_module_perms():
+	"""Return read/write access for each top-level module."""
+	return {
+		module: {
+			"read": bool(frappe.has_permission(doctype, "read")),
+			"write": bool(frappe.has_permission(doctype, "write")),
+		}
+		for module, doctype in MODULE_DOCTYPES.items()
+	}
+
+
 @frappe.whitelist()
 def get_module_write_perms():
 	return {
-		"Deal": bool(frappe.has_permission("Deal", "write")),
-		"Invoice": bool(frappe.has_permission("Invoice", "write")),
-		"Project": bool(frappe.has_permission("Project", "write")),
+		doctype: bool(frappe.has_permission(doctype, "write"))
+		for doctype in MODULE_DOCTYPES.values()
 	}

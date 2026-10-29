@@ -78,7 +78,14 @@ def run():
 				"is_standard": "No",
 				"module": "Operations",
 				"query": query.strip(),
-				"roles": [{"role": "System Manager"}, {"role": "CBO"}, {"role": "COO"}, {"role": "CFO"}],
+				"roles": [
+					{"role": "System Manager"},
+					{"role": "System Admin"},
+					{"role": "CBO"},
+					{"role": "COO"},
+					{"role": "CFO"},
+					{"role": "CTO"},
+				],
 			}
 		).insert(ignore_permissions=True)
 		print("created:", name)
