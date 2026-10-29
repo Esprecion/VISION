@@ -4,14 +4,19 @@ import { createListResource, call } from 'frappe-ui'
 import ContractFormDialog from '@/components/ContractFormDialog.vue'
 import ContractDetailDialog from '@/components/ContractDetailDialog.vue'
 import { useToast } from '@/composables/useToast'
+import { session } from '@/data/session'
+import { displayValue, formatCurrency } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import PlusIcon from '~icons/lucide/plus'
 import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
+const canWrite = computed(() => session.canWrite('Service Contract'))
 const showContractDialog = ref(false)
 const showContractDetail = ref(false)
 const selectedContractName = ref('')
@@ -87,16 +92,12 @@ const filteredContracts = computed(() => {
 function clearSearch() {
   search.value = ''
 }
-
-function peso(n) {
-  return '₱' + Number(n || 0).toLocaleString('en-PH')
-}
 </script>
 
 <template>
   <div class="contracts-page">
     <PageHeader title="Business Development · Contracts">
-      <template #actions>
+      <template v-if="canWrite" #actions>
         <button class="btn-secondary" @click="showContractDialog = true">
           <PlusIcon class="btn-icon" aria-hidden="true" />
           Add Contract
@@ -104,15 +105,12 @@ function peso(n) {
       </template>
     </PageHeader>
 
-    <div class="search-wrap">
-      <SearchIcon class="search-icon" aria-hidden="true" />
-      <input
-        v-model="search"
-        class="search-input"
-        type="search"
-        placeholder="Search by client or deal..."
-      />
-    </div>
+    <AppSearchInput
+      v-model="search"
+      class="page-search"
+      label="Search contracts"
+      placeholder="Search by client or deal..."
+    />
 
     <div class="table-wrap">
       <AppSkeleton v-if="contractsResource.loading && !contractsResource.data" variant="table" :rows="5" :cols="6" />
@@ -125,9 +123,9 @@ function peso(n) {
       <EmptyState
         v-else-if="!contractsResource.data?.length"
         title="No contracts yet"
-        description="Won deals can be turned into contracts with payment milestones."
+        :description="canWrite ? 'Won deals can be turned into contracts with payment milestones.' : 'Contracts will appear here once the Business Development team creates them.'"
       >
-        <template #action>
+        <template v-if="canWrite" #action>
           <button class="btn-secondary" @click="showContractDialog = true">
             <PlusIcon class="btn-icon" aria-hidden="true" />
             Add Contract
@@ -157,24 +155,34 @@ function peso(n) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="c in filteredContracts" :key="c.name" class="clickable-row" @click="openContractDetail(c.name)">
+            <tr
+              v-for="c in filteredContracts"
+              :key="c.name"
+              class="clickable-row"
+              tabindex="0"
+              :aria-label="'Open contract for ' + dealTitle(c.deal)"
+              @click="openContractDetail(c.name)"
+              @keydown.enter="openContractDetail(c.name)"
+              @keydown.space.prevent="openContractDetail(c.name)"
+            >
               <td class="strong">{{ dealTitle(c.deal) }}</td>
               <td>{{ c.client }}</td>
-              <td class="num">{{ peso(c.value) }}</td>
-              <td>
+              <td class="num">{{ formatCurrency(c.value) }}</td>
+              <td @click.stop @keydown.stop>
                 <select
+                  v-if="canWrite"
                   :value="c.status"
                   class="status-select"
                   :class="statusClass(c.status)"
-                  aria-label="Contract status"
-                  @click.stop
+                  :aria-label="'Status for ' + dealTitle(c.deal)"
                   @change="updateStatus(c, $event.target.value)"
                 >
                   <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
                 </select>
+                <StatusBadge v-else :value="c.status" />
               </td>
-              <td>{{ c.start_date || '—' }}</td>
-              <td>{{ c.end_date || '—' }}</td>
+              <td>{{ displayValue(c.start_date) }}</td>
+              <td>{{ displayValue(c.end_date) }}</td>
             </tr>
           </tbody>
         </table>
@@ -202,32 +210,9 @@ function peso(n) {
   height: 14px;
   flex-shrink: 0;
 }
-.search-wrap {
-  position: relative;
-  margin-bottom: var(--space-4);
-}
-.search-icon {
-  position: absolute;
-  left: var(--space-3);
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--color-gray-500);
-  pointer-events: none;
-}
-.search-input {
-  width: 100%;
+.page-search {
   max-width: 360px;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3) var(--space-2) 36px;
-  font-size: var(--fs-sm);
   margin-bottom: var(--space-4);
-  background: var(--color-white);
-  font-family: inherit;
-  color: var(--color-gray-900);
-  box-sizing: border-box;
 }
 .table-wrap {
   background: var(--color-white);

@@ -3,16 +3,12 @@
     <PageHeader :title="title">
       <template #actions>
         <div class="head-right">
-          <div class="search-wrap">
-            <SearchIcon aria-hidden="true" />
-            <AppTextInput
-              v-model="search"
-              class="search-input"
-              type="search"
-              :placeholder="'Search ' + title.toLowerCase() + '...'"
-              :aria-label="'Search ' + title"
-            />
-          </div>
+          <AppSearchInput
+            v-model="search"
+            class="search-input"
+            :label="'Search ' + title"
+            :placeholder="'Search ' + title.toLowerCase() + '...'"
+          />
           <AppButton v-if="canCreate" variant="solid" theme="gray" @click="openNew">
             <template #prefix><PlusIcon aria-hidden="true" /></template>
             New {{ kindLabel }}
@@ -61,9 +57,7 @@
             <tbody>
               <tr v-for="row in rows" :key="row.name">
                 <td v-for="column in columns" :key="column.key">
-                  <span v-if="column.type === 'status'" class="status" :class="statusClass(row[column.key])">
-                    {{ display(row, column) }}
-                  </span>
+                  <StatusBadge v-if="column.type === 'status'" :value="row[column.key]" />
                   <span v-else :class="{ strong: column.key === 'name' }">{{ display(row, column) }}</span>
                 </td>
                 <td v-if="hasActions" class="actions">
@@ -88,9 +82,7 @@
               <template v-for="column in columns.slice(1)" :key="column.key">
                 <dt>{{ column.label }}</dt>
                 <dd>
-                  <span v-if="column.type === 'status'" class="status" :class="statusClass(row[column.key])">
-                    {{ display(row, column) }}
-                  </span>
+                  <StatusBadge v-if="column.type === 'status'" :value="row[column.key]" />
                   <template v-else>{{ display(row, column) }}</template>
                 </dd>
               </template>
@@ -129,9 +121,10 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import AppConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 import OperationsFormDialog from '@/components/OperationsFormDialog.vue'
-import SearchIcon from '~icons/lucide/search'
+import { displayValue, formatCurrency } from '@/utils/format'
 import PlusIcon from '~icons/lucide/plus'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
 
@@ -189,26 +182,11 @@ const listError = computed(() =>
   String(list.error?.messages?.[0] || list.error?.message || 'Something went wrong').replace(/<[^>]+>/g, '')
 )
 
-const money = (value) => '₱' + Number(value || 0).toLocaleString('en-PH')
-
 function display(row, column) {
   const value = row[column.key]
-  if (value == null || value === '') return '—'
-  if (column.type === 'money') return money(value)
-  return value
+  if (column.type === 'money') return formatCurrency(value)
+  return displayValue(value)
 }
-
-const STATUS_CLASSES = {
-  Kickoff: 'is-neutral',
-  Development: 'is-sent',
-  Testing: 'is-sent',
-  Deployed: 'is-paid',
-  Email: 'is-sent',
-  Call: 'is-neutral',
-  Meeting: 'is-paid',
-  Chat: 'is-neutral',
-}
-const statusClass = (value) => STATUS_CLASSES[value] || 'is-neutral'
 
 function openNew() {
   editName.value = null
@@ -264,17 +242,6 @@ async function doDelete() {
   align-items: center;
   flex-wrap: wrap;
 }
-.search-wrap {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.search-wrap svg {
-  width: 16px;
-  height: 16px;
-  color: var(--color-gray-500);
-  flex: none;
-}
 .search-input {
   width: 220px;
 }
@@ -320,26 +287,6 @@ tbody tr:last-child td {
 }
 .strong {
   font-weight: 600;
-}
-.status {
-  display: inline-block;
-  padding: 2px var(--space-2);
-  border-radius: 999px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.status.is-neutral {
-  background: var(--color-gray-100);
-  color: var(--color-gray-700);
-}
-.status.is-sent {
-  background: var(--color-blue-100);
-  color: var(--color-blue-700);
-}
-.status.is-paid {
-  background: var(--color-emerald-100);
-  color: var(--color-emerald-800);
 }
 .err {
   display: flex;

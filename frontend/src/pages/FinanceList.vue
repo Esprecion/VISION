@@ -8,9 +8,10 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import AppConfirmDialog from '@/components/ui/AppConfirmDialog.vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import AppTextInput from '@/components/ui/AppTextInput.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import SearchIcon from '~icons/lucide/search'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { displayValue, formatCurrency } from '@/utils/format'
 import PlusIcon from '~icons/lucide/plus'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
 import { quarterRange, yearRange } from '../utils/dateRange'
@@ -65,7 +66,6 @@ const dateInvalid = computed(() => !!fromDate.value && !!toDate.value && fromDat
 const hasFilters = computed(() => !!(fromDate.value || toDate.value || optFilter.value || search.value))
 function setRange(r) { fromDate.value = r.from; toDate.value = r.to }
 function clearFilters() { fromDate.value = ''; toDate.value = ''; optFilter.value = ''; search.value = '' }
-const money = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 
 const rows = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -88,19 +88,10 @@ const listError = computed(() =>
   String(list.error?.messages?.[0] || list.error?.message || 'Something went wrong').replace(/<[^>]+>/g, '')
 )
 
-const STATUS_CLASSES = {
-  Draft: 'is-neutral',
-  Sent: 'is-sent',
-  Paid: 'is-paid',
-  Overdue: 'is-overdue',
-}
-const statusClass = (v) => STATUS_CLASSES[v] || 'is-neutral'
-
 function show(row, col) {
   const v = row[col.key]
-  if (v == null || v === '') return '—'
-  if (col.type === 'money') return '₱' + Number(v).toLocaleString('en-PH')
-  return v
+  if (col.type === 'money') return formatCurrency(v)
+  return displayValue(v)
 }
 function openNew() { editName.value = null; showForm.value = true }
 function openEdit(r) { editName.value = r.name; showForm.value = true }
@@ -132,10 +123,12 @@ async function doDelete() {
     <PageHeader :title="title">
       <template #actions>
         <div class="head-right">
-          <div class="search-wrap">
-            <SearchIcon aria-hidden="true" />
-            <AppTextInput v-model="search" class="search-input" :placeholder="'Search ' + title.toLowerCase() + '...'" :aria-label="'Search ' + title" />
-          </div>
+          <AppSearchInput
+            v-model="search"
+            class="search-input"
+            :label="'Search ' + title"
+            :placeholder="'Search ' + title.toLowerCase() + '...'"
+          />
           <AppButton v-if="canCreate" variant="solid" theme="gray" @click="openNew">
             <template #prefix><PlusIcon aria-hidden="true" /></template>
             New {{ createKind }}
@@ -158,7 +151,7 @@ async function doDelete() {
         :aria-label="'Filter by ' + filterCol.label"
       />
       <AppButton v-if="hasFilters" variant="outline" size="sm" theme="red" @click="clearFilters">Clear</AppButton>
-      <span class="summary">Showing {{ rows.length }} of {{ (list.data || []).length }}<template v-if="moneyKey"> · {{ money(total) }}</template></span>
+      <span class="summary">Showing {{ rows.length }} of {{ (list.data || []).length }}<template v-if="moneyKey"> · {{ formatCurrency(total) }}</template></span>
     </div>
     <div v-if="dateInvalid" class="err">
       <AlertCircleIcon aria-hidden="true" />
@@ -189,7 +182,7 @@ async function doDelete() {
           <tbody>
             <tr v-for="r in rows" :key="r.name">
               <td v-for="c in columns" :key="c.key">
-                <span v-if="c.key === 'status'" class="status" :class="statusClass(show(r, c))">{{ show(r, c) }}</span>
+                <StatusBadge v-if="c.key === 'status'" :value="r[c.key]" />
                 <template v-else>{{ show(r, c) }}</template>
               </td>
               <td v-if="hasActions" class="actions">
@@ -219,26 +212,13 @@ async function doDelete() {
 <style scoped>
 .page { background: var(--color-gray-50); min-height: 100vh; padding: var(--page-pad); color: var(--color-gray-900); }
 .head-right { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
-.search-wrap {
-  display: flex; align-items: center; gap: var(--space-2);
-}
-.search-wrap svg { width: 16px; height: 16px; color: var(--color-gray-500); flex: none; }
 .search-input { width: 220px; }
-.search-wrap:focus-within svg { color: var(--color-gray-700); }
 .card { background: var(--color-white); border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-5); box-shadow: var(--shadow-xs); }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 th { text-align: left; color: var(--color-gray-600); font-weight: 500; padding: var(--space-2) var(--space-1); border-bottom: 1px solid var(--color-gray-200); white-space: nowrap; }
 td { padding: var(--space-3) var(--space-1); border-bottom: 1px solid var(--color-gray-100); }
 tbody tr:last-child td { border-bottom: none; }
-.status {
-  display: inline-block; padding: 2px var(--space-2); border-radius: 999px;
-  font-size: var(--fs-xs); font-weight: 600; white-space: nowrap;
-}
-.status.is-neutral { background: var(--color-gray-100); color: var(--color-gray-700); }
-.status.is-sent { background: var(--color-blue-100); color: var(--color-blue-700); }
-.status.is-paid { background: var(--color-emerald-100); color: var(--color-emerald-800); }
-.status.is-overdue { background: var(--color-red-100); color: var(--color-red-700); }
 .err {
   display: flex; align-items: flex-start; gap: var(--space-2);
   background: var(--color-red-100); border: 1px solid var(--color-red-200);

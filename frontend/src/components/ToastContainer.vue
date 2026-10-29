@@ -1,14 +1,25 @@
 <template>
-  <div class="toast-stack">
-    <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
+  <div class="toast-stack" role="region" aria-label="Notifications" aria-live="polite">
+    <div
+      v-for="t in toasts"
+      :key="t.id"
+      class="toast"
+      :class="t.type"
+      :role="t.type === 'error' ? 'alert' : 'status'"
+      aria-atomic="true"
+    >
       <span>{{ t.message }}</span>
       <button v-if="t.action" class="toast-action" @click="onAction(t)">{{ t.action.label }}</button>
+      <button class="toast-close" aria-label="Dismiss notification" @click="dismissToast(t.id)">
+        <XIcon aria-hidden="true" />
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { useToast } from '@/composables/useToast'
+import XIcon from '~icons/lucide/x'
 const { toasts, dismissToast } = useToast()
 function onAction(t) {
   t.action.onClick()
@@ -57,6 +68,26 @@ function onAction(t) {
 }
 .toast-action:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+.toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+}
+.toast-close:hover,
+.toast-close:focus-visible {
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.15);
+}
+.toast-close svg {
+  width: 14px;
+  height: 14px;
 }
 @keyframes toast-in {
   from {

@@ -3,14 +3,18 @@ import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import { useToast } from '@/composables/useToast'
+import { session } from '@/data/session'
+import { displayValue } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import PlusIcon from '~icons/lucide/plus'
 import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
+const canWrite = computed(() => session.canWrite('Product'))
 const showProductDialog = ref(false)
 const search = ref('')
 
@@ -46,7 +50,7 @@ function clearSearch() {
 <template>
   <div class="products-page">
     <PageHeader title="Business Development · Products">
-      <template #actions>
+      <template v-if="canWrite" #actions>
         <button class="btn-secondary" @click="showProductDialog = true">
           <PlusIcon class="btn-icon" aria-hidden="true" />
           Add Product
@@ -54,15 +58,12 @@ function clearSearch() {
       </template>
     </PageHeader>
 
-    <div class="search-wrap">
-      <SearchIcon class="search-icon" aria-hidden="true" />
-      <input
-        v-model="search"
-        class="search-input"
-        type="search"
-        placeholder="Search by name or type..."
-      />
-    </div>
+    <AppSearchInput
+      v-model="search"
+      class="page-search"
+      label="Search products"
+      placeholder="Search by name or type..."
+    />
 
     <div class="table-wrap">
       <AppSkeleton v-if="productsResource.loading && !productsResource.data" variant="table" :rows="6" :cols="3" />
@@ -75,9 +76,9 @@ function clearSearch() {
       <EmptyState
         v-else-if="!productsResource.data?.length"
         title="No products yet"
-        description="Add your first product so deals can reference it in line items."
+        :description="canWrite ? 'Add your first product so deals can reference it in line items.' : 'Products will appear here once the Business Development team adds them.'"
       >
-        <template #action>
+        <template v-if="canWrite" #action>
           <button class="btn-secondary" @click="showProductDialog = true">
             <PlusIcon class="btn-icon" aria-hidden="true" />
             Add Product
@@ -106,8 +107,8 @@ function clearSearch() {
           <tbody>
             <tr v-for="p in filteredProducts" :key="p.name">
               <td class="strong">{{ p.product_name }}</td>
-              <td><span class="type-badge">{{ p.type || '—' }}</span></td>
-              <td class="description-cell">{{ p.description || '—' }}</td>
+              <td><span class="type-badge">{{ displayValue(p.type) }}</span></td>
+              <td class="description-cell">{{ displayValue(p.description) }}</td>
             </tr>
           </tbody>
         </table>
@@ -130,8 +131,8 @@ function clearSearch() {
   height: 14px;
   flex-shrink: 0;
 }
-.search-wrap {
-  position: relative;
+.page-search {
+  max-width: 360px;
   margin-bottom: var(--space-4);
 }
 .search-icon {

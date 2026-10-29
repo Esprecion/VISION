@@ -3,14 +3,18 @@ import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import { useToast } from '@/composables/useToast'
+import { session } from '@/data/session'
+import { displayValue } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import PlusIcon from '~icons/lucide/plus'
 import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
+const canWrite = computed(() => session.canWrite('Client'))
 const showClientDialog = ref(false)
 const search = ref('')
 
@@ -47,7 +51,7 @@ function clearSearch() {
 <template>
   <div class="clients-page">
     <PageHeader title="Business Development · Clients">
-      <template #actions>
+      <template v-if="canWrite" #actions>
         <button class="btn-secondary" @click="showClientDialog = true">
           <PlusIcon class="btn-icon" aria-hidden="true" />
           Add Client
@@ -55,15 +59,12 @@ function clearSearch() {
       </template>
     </PageHeader>
 
-    <div class="search-wrap">
-      <SearchIcon class="search-icon" aria-hidden="true" />
-      <input
-        v-model="search"
-        class="search-input"
-        type="search"
-        placeholder="Search by name, contact, or territory..."
-      />
-    </div>
+    <AppSearchInput
+      v-model="search"
+      class="page-search"
+      label="Search clients"
+      placeholder="Search by name, contact, or territory..."
+    />
 
     <div class="table-wrap">
       <AppSkeleton v-if="clientsResource.loading && !clientsResource.data" variant="table" :rows="6" :cols="5" />
@@ -76,9 +77,9 @@ function clearSearch() {
       <EmptyState
         v-else-if="!clientsResource.data?.length"
         title="No clients yet"
-        description="Add your first client to start tracking contacts and territory."
+        :description="canWrite ? 'Add your first client to start tracking contacts and territory.' : 'Clients will appear here once the Business Development team adds them.'"
       >
-        <template #action>
+        <template v-if="canWrite" #action>
           <button class="btn-secondary" @click="showClientDialog = true">
             <PlusIcon class="btn-icon" aria-hidden="true" />
             Add Client
@@ -109,10 +110,10 @@ function clearSearch() {
           <tbody>
             <tr v-for="c in filteredClients" :key="c.name">
               <td class="strong">{{ c.client_name }}</td>
-              <td>{{ c.contact_person || '—' }}</td>
-              <td>{{ c.contact_email || '—' }}</td>
-              <td>{{ c.contact_phone || '—' }}</td>
-              <td>{{ c.territory || '—' }}</td>
+              <td>{{ displayValue(c.contact_person) }}</td>
+              <td>{{ displayValue(c.contact_email) }}</td>
+              <td>{{ displayValue(c.contact_phone) }}</td>
+              <td>{{ displayValue(c.territory) }}</td>
             </tr>
           </tbody>
         </table>
@@ -135,8 +136,8 @@ function clearSearch() {
   height: 14px;
   flex-shrink: 0;
 }
-.search-wrap {
-  position: relative;
+.page-search {
+  max-width: 360px;
   margin-bottom: var(--space-4);
 }
 .search-icon {

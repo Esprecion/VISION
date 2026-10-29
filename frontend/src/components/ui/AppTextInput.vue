@@ -34,6 +34,7 @@ defineOptions({ inheritAttrs: false })
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
   modelModifiers: { type: Object, default: () => ({}) },
+  id: { type: String, default: '' },
   label: { type: String, default: '' },
   type: { type: String, default: 'text' },
   placeholder: { type: String, default: '' },
@@ -46,7 +47,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
-const inputId = useId()
+const generatedId = useId()
+const inputId = props.id || generatedId
 
 function onUpdate(val) {
   if (props.modelModifiers?.number) {

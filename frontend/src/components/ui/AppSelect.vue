@@ -1,10 +1,11 @@
 <template>
   <div class="app-field" :class="{ 'app-field--error': error }">
-    <label v-if="label" class="app-field__label">
+    <label v-if="label" :id="labelId" class="app-field__label">
       {{ label }}
       <span v-if="required" class="app-field__req" aria-hidden="true">*</span>
     </label>
     <Select
+      :id="selectId"
       :options="options"
       :model-value="modelValue"
       :placeholder="placeholder"
@@ -12,6 +13,8 @@
       :size="size"
       :variant="variant"
       :aria-invalid="error ? 'true' : undefined"
+      :aria-labelledby="label ? labelId : undefined"
+      :aria-required="required ? 'true' : undefined"
       v-bind="$attrs"
       @update:model-value="emit('update:modelValue', $event)"
     >
@@ -24,6 +27,7 @@
 </template>
 
 <script setup>
+import { useId } from 'vue'
 import { Select } from 'frappe-ui'
 
 defineOptions({ inheritAttrs: false })
@@ -41,6 +45,8 @@ defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+const selectId = useId()
+const labelId = `${selectId}-label`
 </script>
 
 <style scoped>
