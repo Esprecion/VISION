@@ -136,6 +136,21 @@ class TestAdminCreateUser(FrappeTestCase):
 		self.assertNotIn("123", result["message"])
 		self.assertIsNone(self._find_user(account_name))
 
+	def test_create_user_does_not_log_or_return_passwords_on_failure(self):
+		account_name = self._account_name("insert-failure")
+
+		with patch(
+			"my_custom_app.admin.frappe.get_doc",
+			side_effect=Exception(f"insert failed for {self.password}"),
+		):
+			with patch("my_custom_app.admin.frappe.log_error") as log_error:
+				result = create_user(account_name, self.password, "COO")
+
+		self.assertFalse(result["ok"])
+		self.assertNotIn(self.password, str(result))
+		self.assertNotIn(self.password, str(log_error.call_args))
+		self.assertIsNone(self._find_user(account_name))
+
 	def test_non_system_admin_cannot_create_user(self):
 		creator = self._create_user("coo-creator")
 		account_name = self._account_name("blocked")

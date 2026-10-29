@@ -68,6 +68,19 @@ class TestAdminReadApis(FrappeTestCase):
 
 		self.assertEqual(row["role"], "COO")
 		self.assertFalse(row["has_extra_roles"])
+		self.assertTrue(row["enabled"])
+
+	def test_list_users_includes_inactive_status(self):
+		active = self._create_user("active", ["COO"])
+		inactive = self._create_user("inactive", ["CFO"])
+		frappe.db.set_value("User", inactive.name, "enabled", 0)
+
+		rows = list_users()
+		active_row = next(item for item in rows if item["account_name"] == active.username)
+		inactive_row = next(item for item in rows if item["account_name"] == inactive.username)
+
+		self.assertTrue(active_row["enabled"])
+		self.assertFalse(inactive_row["enabled"])
 
 	def test_list_users_shows_first_managed_role_and_flags_extra_roles(self):
 		user = self._create_user("multi", ["COO", "System Admin"])
@@ -106,6 +119,15 @@ class TestAdminReadApis(FrappeTestCase):
 		self.assertEqual(detail["account_name"], user.username)
 		self.assertEqual(detail["role"], "CFO")
 		self.assertFalse(detail["has_extra_roles"])
+		self.assertTrue(detail["enabled"])
+
+	def test_get_user_returns_inactive_status(self):
+		user = self._create_user("cfo-inactive", ["CFO"])
+		frappe.db.set_value("User", user.name, "enabled", 0)
+
+		detail = get_user(user.username)
+
+		self.assertFalse(detail["enabled"])
 
 	def test_get_user_returns_first_managed_role(self):
 		user = self._create_user("cfo-multi", ["CFO", "System Admin"])
@@ -115,9 +137,11 @@ class TestAdminReadApis(FrappeTestCase):
 		self.assertEqual(detail["role"], "CFO")
 		self.assertTrue(detail["has_extra_roles"])
 
-	def test_get_user_rejects_protected_user(self):
-		with self.assertRaises(frappe.DoesNotExistError):
-			get_user("Administrator")
+	def test_get_user_rejects_protected_users(self):
+		for account_name in ("Administrator", "Guest"):
+			with self.subTest(account_name=account_name):
+				with self.assertRaises(frappe.DoesNotExistError):
+					get_user(account_name)
 
 	def test_get_user_rejects_user_without_a_managed_role(self):
 		user = self._create_user("unmanaged-detail", ["System Manager"])
@@ -129,6 +153,8 @@ class TestAdminReadApis(FrappeTestCase):
 		user = self._create_user("coo-reader", ["COO"])
 		frappe.set_user(user.name)
 		try:
+			with self.assertRaises(frappe.PermissionError):
+				get_managed_roles()
 			with self.assertRaises(frappe.PermissionError):
 				list_users()
 			with self.assertRaises(frappe.PermissionError):

@@ -65,6 +65,117 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 		self.assertTrue(result["ok"])
 		self.assertEqual(check_password(user.name, self.password), user.name)
 
+	def test_edit_user_clears_sessions_when_role_changes(self):
+		user = self._create_user("edit-session-role", ["COO"])
+
+		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+			result = edit_user(user.username, "CFO")
+
+		self.assertTrue(result["ok"])
+		clear_sessions.assert_called_once_with(user=user.name, force=True)
+
+	def test_edit_user_clears_sessions_when_password_is_reset(self):
+		user = self._create_user("edit-session-password", ["COO"])
+		new_password = f"Aa1!{frappe.generate_hash(length=24)}"
+
+		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+			result = edit_user(user.username, "COO", new_password)
+
+		self.assertTrue(result["ok"])
+		clear_sessions.assert_called_once_with(user=user.name, force=True)
+
+	def test_edit_user_keeps_sessions_when_role_and_password_are_unchanged(self):
+		user = self._create_user("edit-session-same", ["COO"])
+
+		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+			result = edit_user(user.username, "COO")
+
+		self.assertTrue(result["ok"])
+		clear_sessions.assert_not_called()
+
+	def test_edit_user_preserves_unrelated_roles(self):
+		user = self._create_user("edit-extra-roles", ["COO", "System Manager"])
+
+		with patch("my_custom_app.admin.clear_sessions"):
+			result = edit_user(user.username, "CFO")
+
+		user.reload()
+		self.assertTrue(result["ok"])
+		self.assertEqual({row.role for row in user.roles}, {"System Manager", "CFO"})
+		self.assertEqual(result["user"]["roles"], ["CFO"])
+		self.assertTrue(result["user"]["has_extra_roles"])
+
+	def test_edit_user_replaces_other_managed_roles_with_one_role(self):
+		user = self._create_user("edit-managed-roles", ["COO", "CFO"])
+
+		with patch("my_custom_app.admin.clear_sessions"):
+			result = edit_user(user.username, "System Admin")
+
+		user.reload()
+		self.assertTrue(result["ok"])
+		self.assertEqual([row.role for row in user.roles], ["System Admin"])
+		self.assertEqual(result["user"]["roles"], ["System Admin"])
+
+	def test_edit_user_refuses_changing_your_own_role(self):
+		user = self._create_user("edit-self-role", ["System Admin"])
+		frappe.set_user(user.name)
+		try:
+			result = edit_user(user.username, "COO")
+		finally:
+			frappe.set_user("Administrator")
+
+		user.reload()
+		self.assertFalse(result["ok"])
+		self.assertEqual(result["message"], "You cannot change your own role.")
+		self.assertEqual([row.role for row in user.roles], ["System Admin"])
+
+	def test_edit_user_allows_resetting_your_own_password(self):
+		user = self._create_user("edit-self-password", ["System Admin"])
+		new_password = f"Aa1!{frappe.generate_hash(length=24)}"
+		frappe.set_user(user.name)
+		try:
+			with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+				result = edit_user(user.username, "System Admin", new_password)
+		finally:
+			frappe.set_user("Administrator")
+
+		self.assertTrue(result["ok"])
+		self.assertEqual(check_password(user.name, new_password), user.name)
+		clear_sessions.assert_called_once_with(user=user.name, force=True)
+
+	def test_edit_user_refuses_changing_the_last_active_system_admin_role(self):
+		user = self._create_user("edit-last-admin", ["System Admin"])
+
+		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+			result = edit_user(user.username, "COO")
+
+		user.reload()
+		self.assertFalse(result["ok"])
+		self.assertEqual(
+			result["message"],
+			"You cannot change the role of the last active System Admin.",
+		)
+		self.assertEqual([row.role for row in user.roles], ["System Admin"])
+
+	def test_edit_user_allows_role_change_when_another_active_system_admin_exists(self):
+		user = self._create_user("edit-other-admin", ["System Admin"])
+
+		with patch("my_custom_app.admin._active_system_admin_count", return_value=2):
+			with patch("my_custom_app.admin.clear_sessions"):
+				result = edit_user(user.username, "COO")
+
+		user.reload()
+		self.assertTrue(result["ok"])
+		self.assertEqual([row.role for row in user.roles], ["COO"])
+
+	def test_edit_user_refuses_protected_users(self):
+		for account_name in ("Administrator", "Guest"):
+			with self.subTest(account_name=account_name):
+				result = edit_user(account_name, "COO")
+
+				self.assertFalse(result["ok"])
+				self.assertEqual(result["message"], "This account cannot be edited.")
+
 	def test_edit_user_never_assigns_system_manager(self):
 		user = self._create_user("edit-system-manager", ["COO"])
 
@@ -117,6 +228,15 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 		self.assertEqual([row.role for row in user.roles], ["COO"])
 		self.assertNotIn(self.password, str(result))
 
+	def test_deactivate_user_clears_active_sessions(self):
+		user = self._create_user("deactivate-session", ["COO"])
+
+		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+			result = deactivate_user(user.username)
+
+		self.assertTrue(result["ok"])
+		clear_sessions.assert_called_once_with(user=user.name, force=True)
+
 	def test_deactivate_user_refuses_your_own_account(self):
 		user = self._create_user("deactivate-self", ["System Admin"])
 		frappe.set_user(user.name)
@@ -153,14 +273,16 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 		self.assertFalse(first.enabled)
 		self.assertTrue(second.enabled)
 
-	def test_deactivate_user_refuses_administrator(self):
-		before = frappe.db.get_value("User", "Administrator", "enabled")
+	def test_deactivate_user_refuses_protected_users(self):
+		for account_name in ("Administrator", "Guest"):
+			with self.subTest(account_name=account_name):
+				before = frappe.db.get_value("User", account_name, "enabled")
 
-		result = deactivate_user("Administrator")
+				result = deactivate_user(account_name)
 
-		self.assertFalse(result["ok"])
-		self.assertEqual(result["message"], "This account cannot be deactivated.")
-		self.assertEqual(frappe.db.get_value("User", "Administrator", "enabled"), before)
+				self.assertFalse(result["ok"])
+				self.assertEqual(result["message"], "This account cannot be deactivated.")
+				self.assertEqual(frappe.db.get_value("User", account_name, "enabled"), before)
 
 	def test_non_system_admin_cannot_deactivate_user(self):
 		target = self._create_user("deactivate-target", ["COO"])

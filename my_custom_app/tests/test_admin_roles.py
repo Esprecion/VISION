@@ -1,4 +1,6 @@
 import os
+from contextlib import redirect_stdout
+from io import StringIO
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -47,3 +49,11 @@ class TestAdminRoles(FrappeTestCase):
 		self.user_name = seed_first_admin()
 		second = seed_first_admin()
 		self.assertEqual(second, self.user_name)
+
+	def test_seed_first_admin_never_prints_the_password(self):
+		output = StringIO()
+
+		with redirect_stdout(output):
+			self.user_name = seed_first_admin()
+
+		self.assertNotIn(self.password, output.getvalue())
