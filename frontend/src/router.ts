@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { session } from '@/data/session'
+import { ensureAdminAccess, session } from '@/data/session'
 
 const businessDevTabs = [
   { label: 'Overview', to: '/business-dev/overview' },
@@ -62,6 +62,7 @@ const routes = [
     path: '/admin/users',
     name: 'AdminUsers',
     component: () => import('@/pages/AdminUsers.vue'),
+    meta: { requiresAdmin: true },
   },
   { path: '/operations/:pathMatch(.*)*', redirect: '/dashboard' },
   {
@@ -120,9 +121,12 @@ let router = createRouter({
 
 export default router
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   if (!session.isLoggedIn && to.path !== '/dashboard') {
     window.location.href = '/login?redirect-to=/frontend' + to.fullPath
     return false
+  }
+  if (to.meta.requiresAdmin && !(await ensureAdminAccess())) {
+    return { path: '/dashboard' }
   }
 })

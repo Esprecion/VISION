@@ -40,6 +40,16 @@ const adminAccessCall = useCall({
   },
 })
 
+export async function ensureAdminAccess() {
+  if (!sessionUser.value) return false
+  if (adminAccessCall.loading) {
+    await adminAccessCall.promise.value
+  } else if (!adminAccessCall.isFinished) {
+    await adminAccessCall.submit()
+  }
+  return canManageUsers.value
+}
+
 watch(
   sessionUser,
   (user) => {
