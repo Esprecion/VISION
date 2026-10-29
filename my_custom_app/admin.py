@@ -15,6 +15,13 @@ REQUIRED_DETAILS_MESSAGE = "Please complete all required user details."
 DUPLICATE_NAME_MESSAGE = "This account name is already taken."
 INVALID_ROLE_MESSAGE = "Please choose a valid role."
 CREATE_FAILED_MESSAGE = "Unable to create user. Please try again."
+EDIT_FAILED_MESSAGE = "Unable to update user. Please try again."
+DEACTIVATE_FAILED_MESSAGE = "Unable to deactivate user. Please try again."
+USER_NOT_FOUND_MESSAGE = "User not found."
+PROTECTED_EDIT_MESSAGE = "This account cannot be edited."
+PROTECTED_DEACTIVATE_MESSAGE = "This account cannot be deactivated."
+SELF_DEACTIVATE_MESSAGE = "You cannot deactivate your own account."
+LAST_SYSTEM_ADMIN_MESSAGE = "You cannot deactivate the last active System Admin."
 
 
 @frappe.whitelist()
@@ -107,7 +114,125 @@ def create_user(account_name=None, password=None, role=None):
 		"user": {
 			"account_name": doc.username,
 			"role": role,
+			"roles": [role],
 			"has_extra_roles": False,
+			"enabled": True,
+		},
+	}
+
+
+@frappe.whitelist()
+def edit_user(account_name=None, role=None, password=None):
+	"""Update a managed user's role and optionally replace their password."""
+	_require_system_admin()
+
+	account_name = (account_name or "").strip()
+	role = (role or "").strip()
+	password = password or ""
+
+	missing = []
+	if not account_name:
+		missing.append("account_name")
+	if not role:
+		missing.append("role")
+	if missing:
+		return _error(missing[0], REQUIRED_DETAILS_MESSAGE, missing)
+
+	if role not in ALLOWED_ROLES or not frappe.db.exists("Role", role):
+		return _error("role", INVALID_ROLE_MESSAGE, ["role"])
+
+	if account_name.lower() in PROTECTED_USER_NAMES:
+		return _error("account_name", PROTECTED_EDIT_MESSAGE, ["account_name"])
+
+	user = _find_user(account_name)
+	if not user:
+		return _error("account_name", USER_NOT_FOUND_MESSAGE, ["account_name"])
+
+	if password:
+		password_message = _password_problem(user.username or user.name, user.email, password)
+		if password_message:
+			return _error("password", password_message, ["password"])
+
+	try:
+		doc = frappe.get_doc("User", user.name)
+		extra_roles = [{"role": row.role} for row in doc.roles if row.role not in ALLOWED_ROLES]
+		doc.set("roles", [*extra_roles, {"role": role}])
+		if password:
+			doc.new_password = password
+		doc.save(ignore_permissions=True)
+	except frappe.ValidationError as error:
+		if _last_error_title().lower() == "password requirements not met":
+			return _error("password", _password_message(str(error)), ["password"])
+		return _error(None, _clean_message(str(error)) or EDIT_FAILED_MESSAGE)
+	except Exception as error:
+		frappe.log_error(
+			message=f"edit_user failed ({type(error).__name__})",
+			title="Administration: edit user",
+		)
+		return _error(None, EDIT_FAILED_MESSAGE)
+
+	return {
+		"ok": True,
+		"message": "User Updated",
+		"user": {
+			"account_name": doc.username or doc.name,
+			"role": role,
+			"roles": [role],
+			"has_extra_roles": bool(extra_roles),
+			"enabled": bool(doc.enabled),
+		},
+	}
+
+
+@frappe.whitelist()
+def deactivate_user(account_name=None):
+	"""Disable a user without deleting the record."""
+	_require_system_admin()
+
+	account_name = (account_name or "").strip()
+	if not account_name:
+		return _error("account_name", REQUIRED_DETAILS_MESSAGE, ["account_name"])
+
+	if account_name.lower() in PROTECTED_USER_NAMES:
+		return _error("account_name", PROTECTED_DEACTIVATE_MESSAGE, ["account_name"])
+
+	user = _find_user(account_name)
+	if not user:
+		return _error("account_name", USER_NOT_FOUND_MESSAGE, ["account_name"])
+
+	if _is_current_user(user):
+		return _error(None, SELF_DEACTIVATE_MESSAGE)
+
+	if (
+		user.enabled
+		and _has_role(user.name, SYSTEM_ADMIN_ROLE)
+		and _active_system_admin_count() <= 1
+	):
+		return _error(None, LAST_SYSTEM_ADMIN_MESSAGE)
+
+	try:
+		doc = frappe.get_doc("User", user.name)
+		if doc.enabled:
+			doc.enabled = 0
+			doc.save(ignore_permissions=True)
+	except Exception as error:
+		frappe.log_error(
+			message=f"deactivate_user failed ({type(error).__name__})",
+			title="Administration: deactivate user",
+		)
+		return _error(None, DEACTIVATE_FAILED_MESSAGE)
+
+	managed_roles = _managed_roles(doc.name)
+	extra_roles = [row.role for row in doc.roles if row.role not in ALLOWED_ROLES]
+	return {
+		"ok": True,
+		"message": "User Deactivated",
+		"user": {
+			"account_name": doc.username or doc.name,
+			"role": managed_roles[0] if managed_roles else "",
+			"roles": managed_roles,
+			"has_extra_roles": bool(extra_roles),
+			"enabled": False,
 		},
 	}
 
@@ -125,6 +250,59 @@ def _account_name_taken(account_name):
 	if account_name.lower() in PROTECTED_USER_NAMES:
 		return True
 	return bool(frappe.db.exists("User", {"username": account_name}))
+
+
+def _find_user(account_name):
+	user = frappe.db.get_value(
+		"User",
+		{"username": account_name},
+		["name", "username", "email", "enabled"],
+		as_dict=True,
+	)
+	if not user:
+		user = frappe.db.get_value(
+			"User",
+			account_name,
+			["name", "username", "email", "enabled"],
+			as_dict=True,
+		)
+	return user
+
+
+def _is_current_user(user):
+	current = (frappe.session.user or "").lower()
+	return current in {(user.name or "").lower(), (user.username or "").lower()}
+
+
+def _managed_roles(user_name):
+	roles = frappe.get_all(
+		"Has Role",
+		filters={"parenttype": "User", "parent": user_name},
+		pluck="role",
+		order_by="idx asc",
+	)
+	return [role for role in roles if role in ALLOWED_ROLES]
+
+
+def _has_role(user_name, role):
+	return bool(
+		frappe.db.exists(
+			"Has Role",
+			{"parenttype": "User", "parent": user_name, "role": role},
+		)
+	)
+
+
+def _active_system_admin_count():
+	parents = frappe.get_all(
+		"Has Role",
+		filters={"parenttype": "User", "role": SYSTEM_ADMIN_ROLE},
+		pluck="parent",
+		distinct=True,
+	)
+	if not parents:
+		return 0
+	return frappe.db.count("User", {"name": ("in", parents), "enabled": 1})
 
 
 def _password_problem(account_name, email, password):
@@ -208,7 +386,7 @@ def _load_users():
 	users = frappe.get_all(
 		"User",
 		filters={"name": ("in", parents)},
-		fields=["name", "username"],
+		fields=["name", "username", "enabled"],
 	)
 
 	roles_by_user = {}
@@ -231,7 +409,9 @@ def _load_users():
 			{
 				"account_name": user.username or user.name,
 				"role": managed_roles[0],
+				"roles": managed_roles,
 				"has_extra_roles": len(roles) > 1,
+				"enabled": bool(user.enabled),
 			}
 		)
 
@@ -244,15 +424,7 @@ def _load_user(account_name):
 	if not account_name or account_name.lower() in PROTECTED_USER_NAMES:
 		frappe.throw("User not found", frappe.DoesNotExistError)
 
-	user = frappe.db.get_value(
-		"User",
-		{"username": account_name},
-		["name", "username"],
-		as_dict=True,
-	)
-	if not user:
-		user = frappe.db.get_value("User", account_name, ["name", "username"], as_dict=True)
-
+	user = _find_user(account_name)
 	if not user or (user.name or "").lower() in PROTECTED_USER_NAMES:
 		frappe.throw("User not found", frappe.DoesNotExistError)
 
@@ -269,5 +441,7 @@ def _load_user(account_name):
 	return {
 		"account_name": user.username or user.name,
 		"role": managed_roles[0],
+		"roles": managed_roles,
 		"has_extra_roles": len(roles) > 1,
+		"enabled": bool(user.enabled),
 	}

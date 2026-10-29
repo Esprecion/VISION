@@ -47,7 +47,13 @@ class TestAdminCreateUser(FrappeTestCase):
 		self.assertEqual(result["message"], "User Created")
 		self.assertEqual(
 			result["user"],
-			{"account_name": account_name, "role": "COO", "has_extra_roles": False},
+			{
+				"account_name": account_name,
+				"role": "COO",
+				"roles": ["COO"],
+				"has_extra_roles": False,
+				"enabled": True,
+			},
 		)
 		self.assertEqual(user.username, account_name)
 		self.assertEqual(user.email, f"{account_name}@vision.local")
