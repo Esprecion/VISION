@@ -1,5 +1,5 @@
 <template>
-  <div class="app-field">
+  <div class="app-field" :class="{ 'app-field--error': error }">
     <label v-if="label" class="app-field__label">
       {{ label }}
       <span v-if="required" class="app-field__req" aria-hidden="true">*</span>
@@ -11,6 +11,7 @@
       :disabled="disabled"
       :size="size"
       :variant="variant"
+      :aria-invalid="error ? 'true' : undefined"
       v-bind="$attrs"
       @update:model-value="emit('update:modelValue', $event)"
     >
@@ -18,6 +19,7 @@
         <slot :name="name" v-bind="scope" />
       </template>
     </Select>
+    <p v-if="error" class="app-field__error" role="alert">{{ error }}</p>
   </div>
 </template>
 
@@ -33,6 +35,7 @@ defineProps({
   placeholder: { type: String, default: 'Select option' },
   disabled: { type: Boolean, default: false },
   required: { type: Boolean, default: false },
+  error: { type: String, default: '' },
   size: { type: String, default: 'sm' },
   variant: { type: String, default: 'outline' },
 })
@@ -55,5 +58,13 @@ const emit = defineEmits(['update:modelValue'])
 .app-field__req {
   color: var(--color-red-600);
   margin-inline-start: 2px;
+}
+.app-field__error {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--color-red-600);
+}
+.app-field--error :deep(button) {
+  border-color: var(--color-red-400);
 }
 </style>
