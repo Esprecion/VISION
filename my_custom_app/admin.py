@@ -25,6 +25,23 @@ LAST_SYSTEM_ADMIN_MESSAGE = "You cannot deactivate the last active System Admin.
 
 
 @frappe.whitelist()
+def can_manage_users():
+	"""Return whether the signed-in user may open the administration area."""
+	try:
+		_require_system_admin()
+	except frappe.PermissionError:
+		return False
+	return True
+
+
+@frappe.whitelist()
+def get_managed_roles():
+	"""Return the roles an administrator may assign on the users page."""
+	_require_system_admin()
+	return list(ALLOWED_ROLES)
+
+
+@frappe.whitelist()
 def list_users():
 	"""Return every non-protected user with at least one managed role."""
 	_require_system_admin()

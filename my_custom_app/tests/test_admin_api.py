@@ -3,8 +3,8 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from my_custom_app.admin import get_user, list_users
-from my_custom_app.admin_roles import ensure_roles
+from my_custom_app.admin import can_manage_users, get_managed_roles, get_user, list_users
+from my_custom_app.admin_roles import ALLOWED_ROLES, ensure_roles
 
 
 class TestAdminReadApis(FrappeTestCase):
@@ -38,6 +38,27 @@ class TestAdminReadApis(FrappeTestCase):
 		doc.insert(ignore_permissions=True)
 		self.created_users.append(doc.name)
 		return doc
+
+	def test_can_manage_users_uses_server_permission(self):
+		self.assertTrue(can_manage_users())
+
+		coo = self._create_user("access-coo", ["COO"])
+		frappe.set_user(coo.name)
+		try:
+			self.assertFalse(can_manage_users())
+		finally:
+			frappe.set_user("Administrator")
+
+		system_admin = self._create_user("access-admin", ["System Admin"])
+		frappe.set_user(system_admin.name)
+		try:
+			self.assertTrue(can_manage_users())
+		finally:
+			frappe.set_user("Administrator")
+
+	def test_managed_roles_never_include_system_manager(self):
+		self.assertEqual(get_managed_roles(), list(ALLOWED_ROLES))
+		self.assertNotIn("System Manager", get_managed_roles())
 
 	def test_list_users_uses_username_and_managed_role(self):
 		user = self._create_user("coo", ["COO"])
