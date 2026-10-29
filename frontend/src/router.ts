@@ -58,6 +58,11 @@ const routes = [
       },
     ],
   },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: () => import('@/pages/AdminUsers.vue'),
+  },
   { path: '/operations/:pathMatch(.*)*', redirect: '/dashboard' },
   {
     path: '/finance',

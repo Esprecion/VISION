@@ -5,6 +5,7 @@ import router from '@/router'
 export const sessionUser = ref<string | null>(getSessionUserFromCookie())
 export const userRoles = ref<string[]>([])
 export const moduleWritePerms = ref<Record<string, boolean>>({})
+export const canManageUsers = ref(false)
 
 const rolesCall = useCall({
   url: '/api/method/my_custom_app.api.get_my_roles',
@@ -28,15 +29,28 @@ const permsCall = useCall({
   },
 })
 
+const adminAccessCall = useCall({
+  url: '/api/method/my_custom_app.admin.can_manage_users',
+  immediate: false,
+  onSuccess(data: any) {
+    canManageUsers.value = Boolean(data?.message ?? data)
+  },
+  onError() {
+    canManageUsers.value = false
+  },
+})
+
 watch(
   sessionUser,
   (user) => {
     if (user) {
       rolesCall.submit ? rolesCall.submit() : rolesCall.reload?.()
       permsCall.submit ? permsCall.submit() : permsCall.reload?.()
+      adminAccessCall.submit ? adminAccessCall.submit() : adminAccessCall.reload?.()
     } else {
       userRoles.value = []
       moduleWritePerms.value = {}
+      canManageUsers.value = false
     }
   },
   { immediate: true }
@@ -63,6 +77,7 @@ export const session = reactive({
   }),
   user: sessionUser,
   roles: userRoles,
+  canManageUsers,
   isLoggedIn: computed(() => sessionUser.value != null),
   isAdmin: computed(() => userRoles.value.includes('System Manager') || sessionUser.value === 'Administrator'),
   isCBO: computed(() => userRoles.value.includes('CBO')),

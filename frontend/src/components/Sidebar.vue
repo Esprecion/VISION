@@ -59,6 +59,14 @@ function logout() {
         Dashboard
       </router-link>
       <router-link
+        v-if="session.canManageUsers"
+        to="/admin/users"
+        class="nav-item"
+        active-class="nav-item-active"
+      >
+        Administration
+      </router-link>
+      <router-link
         v-for="m in items"
         :key="m.to"
         :to="m.to"
