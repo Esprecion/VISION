@@ -196,7 +196,4 @@ def get_module_perms():
 
 @frappe.whitelist()
 def get_module_write_perms():
-	return {
-		doctype: bool(frappe.has_permission(doctype, "write"))
-		for doctype in MODULE_DOCTYPES.values()
-	}
+	return {doctype: bool(frappe.has_permission(doctype, "write")) for doctype in MODULE_DOCTYPES.values()}

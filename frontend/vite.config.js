@@ -5,38 +5,38 @@ import frappeui from 'frappe-ui/vite'
 import Icons from 'unplugin-icons/vite'
 
 export default defineConfig({
-  plugins: [
-    vue(),
-    frappeui({
-      lucideIcons: true,
-      jinjaBootData: true,
-      buildConfig: {
-        indexHtmlPath: '../my_custom_app/www/frontend.html',
-      },
-    }),
-    Icons({ compiler: 'vue3' }),
-  ],
-  server: {
-    allowedHosts: true,
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      'tailwind.config.js': path.resolve(__dirname, 'tailwind.config.js'),
-    },
-  },
-  optimizeDeps: {
-    exclude: ['frappe-ui'],
-    include: [
-      'frappe-ui > feather-icons',
-      'showdown',
-      'tailwind.config.js',
-      'engine.io-client',
-      'highlight.js/lib/core',
-    ],
-  },
+	plugins: [
+		vue(),
+		frappeui({
+			lucideIcons: true,
+			jinjaBootData: true,
+			buildConfig: {
+				indexHtmlPath: '../my_custom_app/www/frontend.html',
+			},
+		}),
+		Icons({ compiler: 'vue3' }),
+	],
+	server: {
+		allowedHosts: true,
+	},
+	resolve: {
+		alias: {
+			'@': path.resolve(__dirname, 'src'),
+			'tailwind.config.js': path.resolve(__dirname, 'tailwind.config.js'),
+		},
+	},
+	optimizeDeps: {
+		exclude: ['frappe-ui'],
+		include: [
+			'frappe-ui > feather-icons',
+			'showdown',
+			'tailwind.config.js',
+			'engine.io-client',
+			'highlight.js/lib/core',
+		],
+	},
 })
 
 function getAppName() {
-  return path.basename(path.resolve(__dirname, '../..'))
+	return path.basename(path.resolve(__dirname, '../..'))
 }

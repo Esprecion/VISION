@@ -1,4 +1,4 @@
-﻿from unittest import TestCase
+from unittest import TestCase
 from unittest.mock import patch
 
 from my_custom_app.patches.enable_username_login import execute
