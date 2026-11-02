@@ -137,6 +137,71 @@ class TestAdminReadApis(FrappeTestCase):
 		self.assertEqual(detail["role"], "CFO")
 		self.assertTrue(detail["has_extra_roles"])
 
+	def test_list_users_marks_the_current_account(self):
+		current = self._create_user("list-self", ["System Admin"])
+		other = self._create_user("list-other", ["COO"])
+
+		frappe.set_user(current.name)
+		try:
+			rows = list_users()
+		finally:
+			frappe.set_user("Administrator")
+
+		current_row = next(item for item in rows if item["account_name"] == current.username)
+		other_row = next(item for item in rows if item["account_name"] == other.username)
+
+		self.assertTrue(current_row["is_self"])
+		self.assertFalse(other_row["is_self"])
+
+	def test_list_users_flags_the_last_active_system_admin(self):
+		admin = self._create_user("list-last-admin", ["System Admin"])
+		coo = self._create_user("list-not-admin", ["COO"])
+
+		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+			rows = list_users()
+
+		admin_row = next(item for item in rows if item["account_name"] == admin.username)
+		coo_row = next(item for item in rows if item["account_name"] == coo.username)
+
+		self.assertTrue(admin_row["is_last_active_system_admin"])
+		self.assertFalse(coo_row["is_last_active_system_admin"])
+
+	def test_list_users_does_not_flag_a_disabled_system_admin(self):
+		admin = self._create_user("list-disabled-admin", ["System Admin"])
+		frappe.db.set_value("User", admin.name, "enabled", 0)
+
+		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+			rows = list_users()
+
+		row = next(item for item in rows if item["account_name"] == admin.username)
+
+		self.assertFalse(row["is_last_active_system_admin"])
+
+	def test_get_user_marks_the_current_account(self):
+		current = self._create_user("detail-self", ["System Admin"])
+		other = self._create_user("detail-other", ["COO"])
+
+		frappe.set_user(current.name)
+		try:
+			current_detail = get_user(current.username)
+			other_detail = get_user(other.username)
+		finally:
+			frappe.set_user("Administrator")
+
+		self.assertTrue(current_detail["is_self"])
+		self.assertFalse(other_detail["is_self"])
+
+	def test_get_user_flags_the_last_active_system_admin(self):
+		admin = self._create_user("detail-last-admin", ["System Admin"])
+		coo = self._create_user("detail-not-admin", ["COO"])
+
+		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+			admin_detail = get_user(admin.username)
+			coo_detail = get_user(coo.username)
+
+		self.assertTrue(admin_detail["is_last_active_system_admin"])
+		self.assertFalse(coo_detail["is_last_active_system_admin"])
+
 	def test_get_user_rejects_protected_users(self):
 		for account_name in ("Administrator", "Guest"):
 			with self.subTest(account_name=account_name):

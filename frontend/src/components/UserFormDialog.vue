@@ -14,6 +14,7 @@
           v-model="form.role"
           label="Role"
           required
+          :disabled="isRoleLocked"
           :options="roleOptions"
           :error="fieldErrors.role"
           placeholder="Choose a role"
@@ -42,6 +43,9 @@
         </AppTextInput>
         <p v-if="isEdit" class="hint">
           Account names cannot be changed. Leave the password blank to keep the current one.
+        </p>
+        <p v-if="isRoleLocked" class="hint hint--lock">
+          {{ roleLockMessage }}
         </p>
         <p v-if="errorMessage" class="error-msg" role="alert">
           <AlertCircleIcon class="error-icon" aria-hidden="true" />
@@ -82,6 +86,16 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'saved'])
 
 const isEdit = computed(() => Boolean(props.user))
+const isRoleLocked = computed(
+  () => isEdit.value && Boolean(props.user?.is_self || props.user?.is_last_active_system_admin)
+)
+const roleLockMessage = computed(() => {
+  if (!isRoleLocked.value) return ''
+  if (props.user?.is_self) {
+    return 'You cannot change your own role. You can still reset your password.'
+  }
+  return 'This is the last active System Admin. Assign System Admin to another account before changing this role.'
+})
 const show = ref(props.modelValue)
 const errorMessage = ref('')
 const showPassword = ref(false)
@@ -234,6 +248,9 @@ function submit() {
   margin: 0;
   font-size: var(--fs-xs);
   color: var(--color-gray-600);
+}
+.hint--lock {
+  color: var(--color-amber-800);
 }
 .password-toggle {
   display: inline-flex;

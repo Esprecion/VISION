@@ -235,11 +235,7 @@ def deactivate_user(account_name=None):
 	if _is_current_user(user):
 		return _error(None, SELF_DEACTIVATE_MESSAGE)
 
-	if (
-		user.enabled
-		and _has_role(user.name, SYSTEM_ADMIN_ROLE)
-		and _active_system_admin_count() <= 1
-	):
+	if user.enabled and _has_role(user.name, SYSTEM_ADMIN_ROLE) and _active_system_admin_count() <= 1:
 		return _error(None, LAST_SYSTEM_ADMIN_MESSAGE)
 
 	try:
@@ -345,9 +341,13 @@ def _find_user(account_name):
 	return user
 
 
-def _is_current_user(user):
+def _user_is_current(name, username):
 	current = (frappe.session.user or "").lower()
-	return current in {(user.name or "").lower(), (user.username or "").lower()}
+	return current in {(name or "").lower(), (username or "").lower()}
+
+
+def _is_current_user(user):
+	return _user_is_current(user.name, user.username)
 
 
 def _managed_roles(user_name):
@@ -470,6 +470,7 @@ def _load_users():
 		roles_by_user.setdefault(row.parent, []).append(row.role)
 
 	users_by_name = {user.name: user for user in users}
+	active_system_admin_count = None
 	items = []
 	for account_name in parents:
 		user = users_by_name.get(account_name)
@@ -481,6 +482,12 @@ def _load_users():
 		if not managed_roles:
 			continue
 
+		is_last_active_system_admin = False
+		if user.enabled and SYSTEM_ADMIN_ROLE in managed_roles:
+			if active_system_admin_count is None:
+				active_system_admin_count = _active_system_admin_count()
+			is_last_active_system_admin = active_system_admin_count <= 1
+
 		items.append(
 			{
 				"account_name": user.username or user.name,
@@ -488,6 +495,8 @@ def _load_users():
 				"roles": managed_roles,
 				"has_extra_roles": len(roles) > 1,
 				"enabled": bool(user.enabled),
+				"is_self": _user_is_current(user.name, user.username),
+				"is_last_active_system_admin": is_last_active_system_admin,
 			}
 		)
 
@@ -514,10 +523,16 @@ def _load_user(account_name):
 	if not managed_roles:
 		frappe.throw("User not found", frappe.DoesNotExistError)
 
+	is_last_active_system_admin = (
+		bool(user.enabled) and SYSTEM_ADMIN_ROLE in managed_roles and _active_system_admin_count() <= 1
+	)
+
 	return {
 		"account_name": user.username or user.name,
 		"role": managed_roles[0],
 		"roles": managed_roles,
 		"has_extra_roles": len(roles) > 1,
 		"enabled": bool(user.enabled),
+		"is_self": _user_is_current(user.name, user.username),
+		"is_last_active_system_admin": is_last_active_system_admin,
 	}

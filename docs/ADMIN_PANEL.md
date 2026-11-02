@@ -69,9 +69,13 @@ A user row has this shape:
   "role": "COO",
   "roles": ["COO"],
   "has_extra_roles": false,
-  "enabled": true
+  "enabled": true,
+  "is_self": false,
+  "is_last_active_system_admin": false
 }
 ```
+
+`is_self` marks the signed-in administrator's own row. `is_last_active_system_admin` marks the only enabled `System Admin`. The Users page uses these flags to label accounts and disable actions the server would reject anyway.
 
 Success responses use:
 
@@ -94,6 +98,14 @@ Errors use:
 - Role changes, password resets, and deactivation end the target user's active sessions so access changes apply immediately.
 - If an admin resets their own password, their current session is also ended.
 - Reactivation does not change the user's roles and does not grant a new role.
+
+## Users Page Behavior
+
+- The list can be searched by account name or role, filtered by status, and sorted by account or status.
+- The page shows total, active, and inactive account counts.
+- The signed-in admin's row is labelled `You`; the only enabled `System Admin` is labelled `Last admin`.
+- `Deactivate` and role changes are disabled for your own account and for the last active `System Admin`. Password resets remain available for your own account.
+- Disabled actions are also enforced by the API; the UI only mirrors the server rules.
 
 ## Tests
 
@@ -140,4 +152,4 @@ bench start
 - Phase C: Admin panel frontend, mobile layout, validation, search, reactivation, and route guard complete.
 - Phase D: Documentation and final verification.
 
-Last updated: 2026-10-29.
+Last updated: 2026-11-02.
