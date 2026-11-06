@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-model="show" :options="{ title: 'Add Product' }">
+	<Dialog v-model="show" :options="{ title: dialogTitle }">
 		<template #body-content>
 			<div class="form-grid">
 				<AppTextInput
@@ -16,9 +16,9 @@
 					placeholder="Select type"
 				/>
 				<AppTextInput v-model="form.description" label="Description" type="text" />
-				<div v-if="createProduct.error" class="error-msg">
+				<div v-if="errorText" class="error-msg">
 					<AlertCircleIcon class="btn-icon" aria-hidden="true" />
-					{{ createProduct.error.messages?.[0] || 'Something went wrong' }}
+					{{ errorText }}
 				</div>
 			</div>
 		</template>
@@ -26,19 +26,19 @@
 			<AppButton
 				variant="solid"
 				theme="gray"
-				:disabled="!form.product_name || !form.type || createProduct.loading"
-				:loading="createProduct.loading"
+				:disabled="!form.product_name || !form.type || isLoading"
+				:loading="isLoading"
 				@click="submit"
 			>
-				Save Product
+				{{ isEdit ? 'Save Changes' : 'Save Product' }}
 			</AppButton>
 		</template>
 	</Dialog>
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
-import { Dialog, createResource } from 'frappe-ui'
+import { ref, reactive, computed, watch } from 'vue'
+import { Dialog, createResource, call } from 'frappe-ui'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
@@ -46,15 +46,18 @@ import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps({
 	modelValue: Boolean,
+	editName: { type: String, default: null },
 })
-const emit = defineEmits(['update:modelValue', 'created'])
+const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
 const show = ref(props.modelValue)
 watch(
 	() => props.modelValue,
 	(v) => (show.value = v)
 )
-watch(show, (v) => emit('update:modelValue', v))
+
+const isEdit = computed(() => !!props.editName)
+const dialogTitle = computed(() => (isEdit.value ? 'Edit Product' : 'Add Product'))
 
 const form = reactive({
 	product_name: '',
@@ -69,24 +72,70 @@ const typeOptions = [
 	{ label: 'Support', value: 'Support' },
 ]
 
+const loading = ref(false)
+const loaded = ref(null)
+const loadError = ref(null)
+
 const createProduct = createResource({
 	url: 'frappe.client.insert',
 	method: 'POST',
 })
+const saveProduct = createResource({
+	url: 'frappe.client.save',
+	method: 'POST',
+})
+const activeResource = computed(() => (isEdit.value ? saveProduct : createProduct))
+const isLoading = computed(() => loading.value || !!activeResource.value.loading)
+const errorText = computed(() => {
+	const err = activeResource.value.error || loadError.value
+	if (!err) return ''
+	const message = err.messages?.[0] || err.message || 'Something went wrong'
+	return String(message).replace(/<[^>]+>/g, '')
+})
+
+function resetForm() {
+	Object.keys(form).forEach((k) => (form[k] = ''))
+}
+
+async function prepare() {
+	resetForm()
+	loaded.value = null
+	loadError.value = null
+	createProduct.reset()
+	saveProduct.reset()
+	if (!props.editName) return
+
+	loading.value = true
+	try {
+		const doc = await call('frappe.client.get', {
+			doctype: 'Product',
+			name: props.editName,
+		})
+		loaded.value = doc
+		form.product_name = doc.product_name || ''
+		form.type = doc.type || ''
+		form.description = doc.description || ''
+	} catch (e) {
+		loadError.value = e
+	} finally {
+		loading.value = false
+	}
+}
+
+watch(show, (v) => {
+	emit('update:modelValue', v)
+	if (v) prepare()
+})
 
 function submit() {
-	createProduct.submit(
+	if (!form.product_name || !form.type || isLoading.value) return
+	const doc = isEdit.value ? { ...loaded.value, ...form } : { doctype: 'Product', ...form }
+	activeResource.value.submit(
+		{ doc },
 		{
-			doc: {
-				doctype: 'Product',
-				...form,
-			},
-		},
-		{
-			onSuccess: (doc) => {
-				emit('created', doc)
+			onSuccess: (saved) => {
+				emit(isEdit.value ? 'updated' : 'created', saved)
 				show.value = false
-				Object.keys(form).forEach((k) => (form[k] = ''))
 			},
 		}
 	)

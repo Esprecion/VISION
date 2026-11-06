@@ -4,7 +4,7 @@ import { createListResource } from 'frappe-ui'
 import ClientFormDialog from '@/components/ClientFormDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { session } from '@/data/session'
-import { displayValue } from '@/utils/format'
+import { displayValue, formatDateTime } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import AppSearchInput from '@/components/ui/AppSearchInput.vue'
@@ -16,6 +16,7 @@ import SearchIcon from '~icons/lucide/search'
 const { showToast } = useToast()
 const canWrite = computed(() => session.canWrite('Client'))
 const showClientDialog = ref(false)
+const editName = ref(null)
 const search = ref('')
 
 const clientsResource = createListResource({
@@ -27,6 +28,7 @@ const clientsResource = createListResource({
 		'contact_email',
 		'contact_phone',
 		'territory',
+		'creation',
 	],
 	orderBy: 'client_name asc',
 	pageLength: 200,
@@ -36,6 +38,21 @@ const clientsResource = createListResource({
 function onClientCreated(doc) {
 	clientsResource.reload()
 	showToast(`Client "${doc.client_name}" added`)
+}
+
+function onClientUpdated(doc) {
+	clientsResource.reload()
+	showToast(`Client "${doc.client_name}" updated`)
+}
+
+function openCreate() {
+	editName.value = null
+	showClientDialog.value = true
+}
+
+function openEdit(client) {
+	editName.value = client.name
+	showClientDialog.value = true
 }
 
 const filteredClients = computed(() => {
@@ -59,7 +76,7 @@ function clearSearch() {
 	<div class="clients-page">
 		<PageHeader title="Business Development · Clients">
 			<template v-if="canWrite" #actions>
-				<button class="btn-secondary" @click="showClientDialog = true">
+				<button class="btn-secondary" @click="openCreate">
 					<PlusIcon class="btn-icon" aria-hidden="true" />
 					Add Client
 				</button>
@@ -78,7 +95,7 @@ function clearSearch() {
 				v-if="clientsResource.loading && !clientsResource.data"
 				variant="table"
 				:rows="6"
-				:cols="5"
+				:cols="6"
 			/>
 			<ErrorState
 				v-else-if="clientsResource.error && !clientsResource.data"
@@ -98,7 +115,7 @@ function clearSearch() {
 				"
 			>
 				<template v-if="canWrite" #action>
-					<button class="btn-secondary" @click="showClientDialog = true">
+					<button class="btn-secondary" @click="openCreate">
 						<PlusIcon class="btn-icon" aria-hidden="true" />
 						Add Client
 					</button>
@@ -123,6 +140,8 @@ function clearSearch() {
 							<th>Email</th>
 							<th>Phone</th>
 							<th>Territory</th>
+							<th>Created</th>
+							<th v-if="canWrite"><span class="sr-only">Actions</span></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -132,13 +151,22 @@ function clearSearch() {
 							<td>{{ displayValue(c.contact_email) }}</td>
 							<td>{{ displayValue(c.contact_phone) }}</td>
 							<td>{{ displayValue(c.territory) }}</td>
+							<td>{{ formatDateTime(c.creation) }}</td>
+							<td v-if="canWrite" class="actions">
+								<button class="btn-secondary" @click="openEdit(c)">Edit</button>
+							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
 		</div>
 
-		<ClientFormDialog v-model="showClientDialog" @created="onClientCreated" />
+		<ClientFormDialog
+			v-model="showClientDialog"
+			:edit-name="editName"
+			@created="onClientCreated"
+			@updated="onClientUpdated"
+		/>
 	</div>
 </template>
 
@@ -214,6 +242,21 @@ function clearSearch() {
 }
 .strong {
 	font-weight: 600;
+}
+.actions {
+	white-space: nowrap;
+	text-align: right;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 @media (max-width: 640px) {
 	.search-input {

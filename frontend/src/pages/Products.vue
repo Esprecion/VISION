@@ -4,7 +4,7 @@ import { createListResource } from 'frappe-ui'
 import ProductFormDialog from '@/components/ProductFormDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { session } from '@/data/session'
-import { displayValue } from '@/utils/format'
+import { displayValue, formatDateTime } from '@/utils/format'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import AppSearchInput from '@/components/ui/AppSearchInput.vue'
@@ -16,11 +16,12 @@ import SearchIcon from '~icons/lucide/search'
 const { showToast } = useToast()
 const canWrite = computed(() => session.canWrite('Product'))
 const showProductDialog = ref(false)
+const editName = ref(null)
 const search = ref('')
 
 const productsResource = createListResource({
 	doctype: 'Product',
-	fields: ['name', 'product_name', 'type', 'description'],
+	fields: ['name', 'product_name', 'type', 'description', 'creation'],
 	orderBy: 'product_name asc',
 	pageLength: 200,
 	auto: true,
@@ -29,6 +30,21 @@ const productsResource = createListResource({
 function onProductCreated(doc) {
 	productsResource.reload()
 	showToast(`Product "${doc.product_name}" added`)
+}
+
+function onProductUpdated(doc) {
+	productsResource.reload()
+	showToast(`Product "${doc.product_name}" updated`)
+}
+
+function openCreate() {
+	editName.value = null
+	showProductDialog.value = true
+}
+
+function openEdit(product) {
+	editName.value = product.name
+	showProductDialog.value = true
 }
 
 const filteredProducts = computed(() => {
@@ -51,7 +67,7 @@ function clearSearch() {
 	<div class="products-page">
 		<PageHeader title="Business Development · Products">
 			<template v-if="canWrite" #actions>
-				<button class="btn-secondary" @click="showProductDialog = true">
+				<button class="btn-secondary" @click="openCreate">
 					<PlusIcon class="btn-icon" aria-hidden="true" />
 					Add Product
 				</button>
@@ -70,7 +86,7 @@ function clearSearch() {
 				v-if="productsResource.loading && !productsResource.data"
 				variant="table"
 				:rows="6"
-				:cols="3"
+				:cols="4"
 			/>
 			<ErrorState
 				v-else-if="productsResource.error && !productsResource.data"
@@ -90,7 +106,7 @@ function clearSearch() {
 				"
 			>
 				<template v-if="canWrite" #action>
-					<button class="btn-secondary" @click="showProductDialog = true">
+					<button class="btn-secondary" @click="openCreate">
 						<PlusIcon class="btn-icon" aria-hidden="true" />
 						Add Product
 					</button>
@@ -113,6 +129,8 @@ function clearSearch() {
 							<th>Product Name</th>
 							<th>Type</th>
 							<th>Description</th>
+							<th>Created</th>
+							<th v-if="canWrite"><span class="sr-only">Actions</span></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -122,13 +140,22 @@ function clearSearch() {
 								<span class="type-badge">{{ displayValue(p.type) }}</span>
 							</td>
 							<td class="description-cell">{{ displayValue(p.description) }}</td>
+							<td>{{ formatDateTime(p.creation) }}</td>
+							<td v-if="canWrite" class="actions">
+								<button class="btn-secondary" @click="openEdit(p)">Edit</button>
+							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
 		</div>
 
-		<ProductFormDialog v-model="showProductDialog" @created="onProductCreated" />
+		<ProductFormDialog
+			v-model="showProductDialog"
+			:edit-name="editName"
+			@created="onProductCreated"
+			@updated="onProductUpdated"
+		/>
 	</div>
 </template>
 
@@ -204,6 +231,21 @@ function clearSearch() {
 }
 .strong {
 	font-weight: 600;
+}
+.actions {
+	white-space: nowrap;
+	text-align: right;
+}
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 .description-cell {
 	min-width: 260px;
