@@ -235,7 +235,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
 import { Dialog, call } from 'frappe-ui'
-import FinanceFormDialog from './FinanceFormDialog.vue'
+import FinanceFormDialog from '@/components/FinanceFormDialog.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'

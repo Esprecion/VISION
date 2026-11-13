@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { createResource, call } from 'frappe-ui'
-import FinanceFormDialog from '../components/FinanceFormDialog.vue'
+import FinanceFormDialog from '@/components/FinanceFormDialog.vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -14,7 +14,7 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { displayValue, formatCurrency } from '@/utils/format'
 import PlusIcon from '~icons/lucide/plus'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
-import { quarterRange, yearRange } from '../utils/dateRange'
+import { quarterRange, yearRange } from '../../utils/dateRange'
 
 const props = defineProps({
 	title: String,

@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { createResource } from 'frappe-ui'
-import { yearRange } from '../utils/dateRange'
-import { quarterRange } from '../utils/dateRange'
+import { yearRange } from '../../utils/dateRange'
+import { quarterRange } from '../../utils/dateRange'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'

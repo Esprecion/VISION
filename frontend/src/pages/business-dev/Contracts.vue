@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { createListResource, call } from 'frappe-ui'
-import ContractFormDialog from '@/components/ContractFormDialog.vue'
-import ContractDetailDialog from '@/components/ContractDetailDialog.vue'
+import ContractFormDialog from '@/pages/business-dev/ContractFormDialog.vue'
+import ContractDetailDialog from '@/pages/business-dev/ContractDetailDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { session } from '@/data/session'
 import { displayValue, formatCurrency } from '@/utils/format'

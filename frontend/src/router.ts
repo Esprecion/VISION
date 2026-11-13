@@ -42,34 +42,34 @@ const routes = [
       {
         path: 'overview',
         name: 'BusinessDevOverview',
-        component: () => import('@/pages/BusinessDevDashboard.vue'),
+        component: () => import('@/pages/business-dev/BusinessDevDashboard.vue'),
       },
       {
         path: 'pipeline',
         name: 'Pipeline',
-        component: () => import('@/pages/Pipeline.vue'),
+        component: () => import('@/pages/business-dev/Pipeline.vue'),
       },
       {
         path: 'clients',
         name: 'Clients',
-        component: () => import('@/pages/Clients.vue'),
+        component: () => import('@/pages/business-dev/Clients.vue'),
       },
       {
         path: 'products',
         name: 'Products',
-        component: () => import('@/pages/Products.vue'),
+        component: () => import('@/pages/business-dev/Products.vue'),
       },
       {
         path: 'contracts',
         name: 'Contracts',
-        component: () => import('@/pages/Contracts.vue'),
+        component: () => import('@/pages/business-dev/Contracts.vue'),
       },
     ],
   },
   {
     path: '/admin/users',
     name: 'AdminUsers',
-    component: () => import('@/pages/AdminUsers.vue'),
+    component: () => import('@/pages/admin/AdminUsers.vue'),
     meta: { requiresAdmin: true },
   },
   {
@@ -82,12 +82,12 @@ const routes = [
       {
         path: 'overview',
         name: 'OperationsOverview',
-        component: () => import('@/pages/OperationsOverview.vue'),
+        component: () => import('@/pages/operations/OperationsOverview.vue'),
       },
       {
         path: 'projects',
         name: 'OperationsProjects',
-        component: () => import('@/pages/OperationsRecords.vue'),
+        component: () => import('@/pages/operations/OperationsRecords.vue'),
         props: {
           title: 'Projects',
           doctype: 'Project',
@@ -106,7 +106,7 @@ const routes = [
       {
         path: 'tools',
         name: 'OperationsTools',
-        component: () => import('@/pages/OperationsRecords.vue'),
+        component: () => import('@/pages/operations/OperationsRecords.vue'),
         props: {
           title: 'Tools',
           doctype: 'Tool Subscription',
@@ -123,7 +123,7 @@ const routes = [
       {
         path: 'engagements',
         name: 'OperationsEngagements',
-        component: () => import('@/pages/OperationsRecords.vue'),
+        component: () => import('@/pages/operations/OperationsRecords.vue'),
         props: {
           title: 'Engagement Logs',
           doctype: 'Client Engagement Log',
@@ -146,11 +146,11 @@ const routes = [
     meta: { module: 'finance' },
     children: [
       { path: '', redirect: '/finance/overview' },
-      { path: 'overview', name: 'FinanceOverview', component: () => import('@/pages/FinanceOverview.vue') },
+      { path: 'overview', name: 'FinanceOverview', component: () => import('@/pages/finance/FinanceOverview.vue') },
       {
         path: 'invoices',
         name: 'FinanceInvoices',
-        component: () => import('@/pages/FinanceList.vue'),
+        component: () => import('@/pages/finance/FinanceList.vue'),
         props: {
           title: 'Invoices',
           doctype: 'Invoice',
@@ -170,7 +170,7 @@ const routes = [
       {
         path: 'expenses',
         name: 'FinanceExpenses',
-        component: () => import('@/pages/FinanceList.vue'),
+        component: () => import('@/pages/finance/FinanceList.vue'),
         props: {
           title: 'Expenses',
           doctype: 'Expense',

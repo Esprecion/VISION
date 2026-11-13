@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { createListResource } from 'frappe-ui'
-import ClientFormDialog from '@/components/ClientFormDialog.vue'
+import ProductFormDialog from '@/pages/business-dev/ProductFormDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { session } from '@/data/session'
 import { displayValue, formatDateTime } from '@/utils/format'
@@ -14,56 +14,47 @@ import PlusIcon from '~icons/lucide/plus'
 import SearchIcon from '~icons/lucide/search'
 
 const { showToast } = useToast()
-const canWrite = computed(() => session.canWrite('Client'))
-const showClientDialog = ref(false)
+const canWrite = computed(() => session.canWrite('Product'))
+const showProductDialog = ref(false)
 const editName = ref(null)
 const search = ref('')
 
-const clientsResource = createListResource({
-	doctype: 'Client',
-	fields: [
-		'name',
-		'client_name',
-		'contact_person',
-		'contact_email',
-		'contact_phone',
-		'territory',
-		'creation',
-	],
-	orderBy: 'client_name asc',
+const productsResource = createListResource({
+	doctype: 'Product',
+	fields: ['name', 'product_name', 'type', 'description', 'creation'],
+	orderBy: 'product_name asc',
 	pageLength: 200,
 	auto: true,
 })
 
-function onClientCreated(doc) {
-	clientsResource.reload()
-	showToast(`Client "${doc.client_name}" added`)
+function onProductCreated(doc) {
+	productsResource.reload()
+	showToast(`Product "${doc.product_name}" added`)
 }
 
-function onClientUpdated(doc) {
-	clientsResource.reload()
-	showToast(`Client "${doc.client_name}" updated`)
+function onProductUpdated(doc) {
+	productsResource.reload()
+	showToast(`Product "${doc.product_name}" updated`)
 }
 
 function openCreate() {
 	editName.value = null
-	showClientDialog.value = true
+	showProductDialog.value = true
 }
 
-function openEdit(client) {
-	editName.value = client.name
-	showClientDialog.value = true
+function openEdit(product) {
+	editName.value = product.name
+	showProductDialog.value = true
 }
 
-const filteredClients = computed(() => {
-	const list = clientsResource.data || []
+const filteredProducts = computed(() => {
+	const list = productsResource.data || []
 	if (!search.value.trim()) return list
 	const q = search.value.toLowerCase()
 	return list.filter(
-		(c) =>
-			(c.client_name || '').toLowerCase().includes(q) ||
-			(c.contact_person || '').toLowerCase().includes(q) ||
-			(c.territory || '').toLowerCase().includes(q)
+		(p) =>
+			(p.product_name || '').toLowerCase().includes(q) ||
+			(p.type || '').toLowerCase().includes(q)
 	)
 })
 
@@ -73,12 +64,12 @@ function clearSearch() {
 </script>
 
 <template>
-	<div class="clients-page">
-		<PageHeader title="Business Development · Clients">
+	<div class="products-page">
+		<PageHeader title="Business Development · Products">
 			<template v-if="canWrite" #actions>
 				<button class="btn-secondary" @click="openCreate">
 					<PlusIcon class="btn-icon" aria-hidden="true" />
-					Add Client
+					Add Product
 				</button>
 			</template>
 		</PageHeader>
@@ -86,74 +77,72 @@ function clearSearch() {
 		<AppSearchInput
 			v-model="search"
 			class="page-search"
-			label="Search clients"
-			placeholder="Search by name, contact, or territory..."
+			label="Search products"
+			placeholder="Search by name or type..."
 		/>
 
 		<div class="table-wrap">
 			<AppSkeleton
-				v-if="clientsResource.loading && !clientsResource.data"
+				v-if="productsResource.loading && !productsResource.data"
 				variant="table"
 				:rows="6"
-				:cols="6"
+				:cols="4"
 			/>
 			<ErrorState
-				v-else-if="clientsResource.error && !clientsResource.data"
-				title="Couldn't load clients"
+				v-else-if="productsResource.error && !productsResource.data"
+				title="Couldn't load products"
 				:message="
-					clientsResource.error?.messages?.[0] || clientsResource.error?.message || ''
+					productsResource.error?.messages?.[0] || productsResource.error?.message || ''
 				"
-				:on-retry="() => clientsResource.reload()"
+				:on-retry="() => productsResource.reload()"
 			/>
 			<EmptyState
-				v-else-if="!clientsResource.data?.length"
-				title="No clients yet"
+				v-else-if="!productsResource.data?.length"
+				title="No products yet"
 				:description="
 					canWrite
-						? 'Add your first client to start tracking contacts and territory.'
-						: 'Clients will appear here once the Business Development team adds them.'
+						? 'Add your first product so deals can reference it in line items.'
+						: 'Products will appear here once the Business Development team adds them.'
 				"
 			>
 				<template v-if="canWrite" #action>
 					<button class="btn-secondary" @click="openCreate">
 						<PlusIcon class="btn-icon" aria-hidden="true" />
-						Add Client
+						Add Product
 					</button>
 				</template>
 			</EmptyState>
 			<EmptyState
-				v-else-if="filteredClients.length === 0"
+				v-else-if="filteredProducts.length === 0"
 				:icon="SearchIcon"
-				title="No matching clients"
-				description="No clients match your search. Try a different name, contact, or territory."
+				title="No matching products"
+				description="No products match your search. Try a different name or type."
 			>
 				<template #action>
 					<button class="btn-secondary" @click="clearSearch">Clear search</button>
 				</template>
 			</EmptyState>
 			<div v-else class="table-scroll">
-				<table class="clients-table">
+				<table class="products-table">
 					<thead>
 						<tr>
-							<th>Client Name</th>
-							<th>Contact Person</th>
-							<th>Email</th>
-							<th>Phone</th>
-							<th>Territory</th>
+							<th>Product Name</th>
+							<th>Type</th>
+							<th>Description</th>
 							<th>Created</th>
 							<th v-if="canWrite"><span class="sr-only">Actions</span></th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr v-for="c in filteredClients" :key="c.name">
-							<td class="strong">{{ c.client_name }}</td>
-							<td>{{ displayValue(c.contact_person) }}</td>
-							<td>{{ displayValue(c.contact_email) }}</td>
-							<td>{{ displayValue(c.contact_phone) }}</td>
-							<td>{{ displayValue(c.territory) }}</td>
-							<td>{{ formatDateTime(c.creation) }}</td>
+						<tr v-for="p in filteredProducts" :key="p.name">
+							<td class="strong">{{ p.product_name }}</td>
+							<td>
+								<span class="type-badge">{{ displayValue(p.type) }}</span>
+							</td>
+							<td class="description-cell">{{ displayValue(p.description) }}</td>
+							<td>{{ formatDateTime(p.creation) }}</td>
 							<td v-if="canWrite" class="actions">
-								<button class="btn-secondary" @click="openEdit(c)">Edit</button>
+								<button class="btn-secondary" @click="openEdit(p)">Edit</button>
 							</td>
 						</tr>
 					</tbody>
@@ -161,17 +150,17 @@ function clearSearch() {
 			</div>
 		</div>
 
-		<ClientFormDialog
-			v-model="showClientDialog"
+		<ProductFormDialog
+			v-model="showProductDialog"
 			:edit-name="editName"
-			@created="onClientCreated"
-			@updated="onClientUpdated"
+			@created="onProductCreated"
+			@updated="onProductUpdated"
 		/>
 	</div>
 </template>
 
 <style scoped>
-.clients-page {
+.products-page {
 	background: var(--color-gray-50);
 	min-height: 100vh;
 	padding: var(--page-pad);
@@ -218,26 +207,26 @@ function clearSearch() {
 .table-scroll {
 	overflow-x: auto;
 }
-.clients-table {
+.products-table {
 	width: 100%;
 	border-collapse: collapse;
 }
-.clients-table th,
-.clients-table td {
+.products-table th,
+.products-table td {
 	text-align: left;
 	padding: var(--space-3) var(--space-4);
 	font-size: var(--fs-sm);
 	border-bottom: 1px solid var(--color-gray-200);
-	white-space: nowrap;
 }
-.clients-table th {
+.products-table th {
 	color: var(--color-gray-600);
 	font-weight: 600;
 	font-size: var(--fs-xs);
 	text-transform: uppercase;
 	background: var(--color-gray-50);
+	white-space: nowrap;
 }
-.clients-table tr:last-child td {
+.products-table tr:last-child td {
 	border-bottom: none;
 }
 .strong {
@@ -257,6 +246,19 @@ function clearSearch() {
 	clip: rect(0, 0, 0, 0);
 	white-space: nowrap;
 	border: 0;
+}
+.description-cell {
+	min-width: 260px;
+}
+.type-badge {
+	display: inline-block;
+	background: var(--color-amber-100);
+	color: var(--color-amber-700);
+	padding: 2px var(--space-2);
+	border-radius: var(--radius-full);
+	font-size: var(--fs-xs);
+	font-weight: 600;
+	white-space: nowrap;
 }
 @media (max-width: 640px) {
 	.search-input {

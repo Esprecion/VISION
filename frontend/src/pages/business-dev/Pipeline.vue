@@ -207,15 +207,15 @@
 </template>
 
 <script setup>
-import { parseLocal, startOfDayMs, endOfDayMs, quarterRange, yearRange } from '../utils/dateRange'
+import { parseLocal, startOfDayMs, endOfDayMs, quarterRange, yearRange } from '../../utils/dateRange'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { createListResource, createResource } from 'frappe-ui'
-import ClientFormDialog from '@/components/ClientFormDialog.vue'
-import ProductFormDialog from '@/components/ProductFormDialog.vue'
-import AddDealDialog from '@/components/AddDealDialog.vue'
-import DealDetailDialog from '@/components/DealDetailDialog.vue'
-import ManageStagesDialog from '@/components/ManageStagesDialog.vue'
-import ContractFormDialog from '@/components/ContractFormDialog.vue'
+import ClientFormDialog from '@/pages/business-dev/ClientFormDialog.vue'
+import ProductFormDialog from '@/pages/business-dev/ProductFormDialog.vue'
+import AddDealDialog from '@/pages/business-dev/AddDealDialog.vue'
+import DealDetailDialog from '@/pages/business-dev/DealDetailDialog.vue'
+import ManageStagesDialog from '@/pages/business-dev/ManageStagesDialog.vue'
+import ContractFormDialog from '@/pages/business-dev/ContractFormDialog.vue'
 import { useToast } from '@/composables/useToast'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
