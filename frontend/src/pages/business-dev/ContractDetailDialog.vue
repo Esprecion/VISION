@@ -283,7 +283,7 @@ const invoicePrefill = ref(null)
 async function loadInvoices() {
 	try {
 		canInvoice.value =
-			(await call('my_custom_app.api.can_create', { doctype: 'Invoice' })) === true
+			(await call('my_custom_app.shared.api.can_create', { doctype: 'Invoice' })) === true
 		invoices.value =
 			(await call('frappe.client.get_list', {
 				doctype: 'Invoice',

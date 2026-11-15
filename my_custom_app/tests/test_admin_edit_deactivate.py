@@ -4,8 +4,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils.password import check_password
 
-from my_custom_app.admin import deactivate_user, edit_user
-from my_custom_app.admin_roles import ensure_roles
+from my_custom_app.administration.admin import deactivate_user, edit_user
+from my_custom_app.administration.admin_roles import ensure_roles
 
 
 class TestAdminEditAndDeactivate(FrappeTestCase):
@@ -68,7 +68,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_edit_user_clears_sessions_when_role_changes(self):
 		user = self._create_user("edit-session-role", ["COO"])
 
-		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+		with patch("my_custom_app.administration.admin.clear_sessions") as clear_sessions:
 			result = edit_user(user.username, "CFO")
 
 		self.assertTrue(result["ok"])
@@ -78,7 +78,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 		user = self._create_user("edit-session-password", ["COO"])
 		new_password = f"Aa1!{frappe.generate_hash(length=24)}"
 
-		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+		with patch("my_custom_app.administration.admin.clear_sessions") as clear_sessions:
 			result = edit_user(user.username, "COO", new_password)
 
 		self.assertTrue(result["ok"])
@@ -87,7 +87,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_edit_user_keeps_sessions_when_role_and_password_are_unchanged(self):
 		user = self._create_user("edit-session-same", ["COO"])
 
-		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+		with patch("my_custom_app.administration.admin.clear_sessions") as clear_sessions:
 			result = edit_user(user.username, "COO")
 
 		self.assertTrue(result["ok"])
@@ -96,7 +96,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_edit_user_preserves_unrelated_roles(self):
 		user = self._create_user("edit-extra-roles", ["COO", "System Manager"])
 
-		with patch("my_custom_app.admin.clear_sessions"):
+		with patch("my_custom_app.administration.admin.clear_sessions"):
 			result = edit_user(user.username, "CFO")
 
 		user.reload()
@@ -108,7 +108,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_edit_user_replaces_other_managed_roles_with_one_role(self):
 		user = self._create_user("edit-managed-roles", ["COO", "CFO"])
 
-		with patch("my_custom_app.admin.clear_sessions"):
+		with patch("my_custom_app.administration.admin.clear_sessions"):
 			result = edit_user(user.username, "System Admin")
 
 		user.reload()
@@ -134,7 +134,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 		new_password = f"Aa1!{frappe.generate_hash(length=24)}"
 		frappe.set_user(user.name)
 		try:
-			with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+			with patch("my_custom_app.administration.admin.clear_sessions") as clear_sessions:
 				result = edit_user(user.username, "System Admin", new_password)
 		finally:
 			frappe.set_user("Administrator")
@@ -146,7 +146,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_edit_user_refuses_changing_the_last_active_system_admin_role(self):
 		user = self._create_user("edit-last-admin", ["System Admin"])
 
-		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+		with patch("my_custom_app.administration.admin._active_system_admin_count", return_value=1):
 			result = edit_user(user.username, "COO")
 
 		user.reload()
@@ -160,8 +160,8 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_edit_user_allows_role_change_when_another_active_system_admin_exists(self):
 		user = self._create_user("edit-other-admin", ["System Admin"])
 
-		with patch("my_custom_app.admin._active_system_admin_count", return_value=2):
-			with patch("my_custom_app.admin.clear_sessions"):
+		with patch("my_custom_app.administration.admin._active_system_admin_count", return_value=2):
+			with patch("my_custom_app.administration.admin.clear_sessions"):
 				result = edit_user(user.username, "COO")
 
 		user.reload()
@@ -192,10 +192,10 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 		new_password = f"Aa1!{frappe.generate_hash(length=24)}"
 
 		with patch(
-			"my_custom_app.admin.frappe.get_doc",
+			"my_custom_app.administration.admin.frappe.get_doc",
 			side_effect=Exception(f"save failed for {new_password}"),
 		):
-			with patch("my_custom_app.admin.frappe.log_error") as log_error:
+			with patch("my_custom_app.administration.admin.frappe.log_error") as log_error:
 				result = edit_user(user.username, "CFO", new_password)
 
 		self.assertFalse(result["ok"])
@@ -231,7 +231,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_deactivate_user_clears_active_sessions(self):
 		user = self._create_user("deactivate-session", ["COO"])
 
-		with patch("my_custom_app.admin.clear_sessions") as clear_sessions:
+		with patch("my_custom_app.administration.admin.clear_sessions") as clear_sessions:
 			result = deactivate_user(user.username)
 
 		self.assertTrue(result["ok"])
@@ -253,7 +253,7 @@ class TestAdminEditAndDeactivate(FrappeTestCase):
 	def test_deactivate_user_refuses_last_active_system_admin(self):
 		user = self._create_user("deactivate-last-admin", ["System Admin"])
 
-		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+		with patch("my_custom_app.administration.admin._active_system_admin_count", return_value=1):
 			result = deactivate_user(user.username)
 
 		user.reload()

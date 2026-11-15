@@ -4,8 +4,8 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils.password import check_password
 
-from my_custom_app.admin import create_user
-from my_custom_app.admin_roles import ensure_roles
+from my_custom_app.administration.admin import create_user
+from my_custom_app.administration.admin_roles import ensure_roles
 
 
 class TestAdminCreateUser(FrappeTestCase):
@@ -140,10 +140,10 @@ class TestAdminCreateUser(FrappeTestCase):
 		account_name = self._account_name("insert-failure")
 
 		with patch(
-			"my_custom_app.admin.frappe.get_doc",
+			"my_custom_app.administration.admin.frappe.get_doc",
 			side_effect=Exception(f"insert failed for {self.password}"),
 		):
-			with patch("my_custom_app.admin.frappe.log_error") as log_error:
+			with patch("my_custom_app.administration.admin.frappe.log_error") as log_error:
 				result = create_user(account_name, self.password, "COO")
 
 		self.assertFalse(result["ok"])

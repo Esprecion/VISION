@@ -44,7 +44,7 @@ const sortOptions = [
 ]
 
 const usersCall = useCall({
-	url: '/api/method/my_custom_app.admin.list_users',
+	url: '/api/method/my_custom_app.administration.admin.list_users',
 	immediate: true,
 	onSuccess(data) {
 		users.value = data?.message || data || []
@@ -55,7 +55,7 @@ const usersCall = useCall({
 })
 
 const rolesCall = useCall({
-	url: '/api/method/my_custom_app.admin.get_managed_roles',
+	url: '/api/method/my_custom_app.administration.admin.get_managed_roles',
 	immediate: true,
 	onSuccess(data) {
 		roles.value = data?.message || data || []
@@ -66,12 +66,12 @@ const rolesCall = useCall({
 })
 
 const deactivateUser = createResource({
-	url: '/api/method/my_custom_app.admin.deactivate_user',
+	url: '/api/method/my_custom_app.administration.admin.deactivate_user',
 	method: 'POST',
 })
 
 const reactivateUser = createResource({
-	url: '/api/method/my_custom_app.admin.reactivate_user',
+	url: '/api/method/my_custom_app.administration.admin.reactivate_user',
 	method: 'POST',
 })
 

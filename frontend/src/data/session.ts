@@ -20,7 +20,7 @@ const MODULE_BY_DOCTYPE: Record<string, string> = {
 }
 
 const rolesCall = useCall({
-  url: '/api/method/my_custom_app.api.get_my_roles',
+  url: '/api/method/my_custom_app.shared.api.get_my_roles',
   immediate: false,
   onSuccess(data: any) {
     userRoles.value = data?.message?.roles || data?.roles || []
@@ -31,7 +31,7 @@ const rolesCall = useCall({
 })
 
 const permsCall = useCall({
-  url: '/api/method/my_custom_app.api.get_module_perms',
+  url: '/api/method/my_custom_app.shared.api.get_module_perms',
   immediate: false,
   onSuccess(data: any) {
     modulePerms.value = data?.message || data || {}
@@ -42,7 +42,7 @@ const permsCall = useCall({
 })
 
 const adminAccessCall = useCall({
-  url: '/api/method/my_custom_app.admin.can_manage_users',
+  url: '/api/method/my_custom_app.administration.admin.can_manage_users',
   immediate: false,
   onSuccess(data: any) {
     canManageUsers.value = Boolean(data?.message ?? data)

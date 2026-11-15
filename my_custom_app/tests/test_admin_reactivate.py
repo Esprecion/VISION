@@ -1,8 +1,8 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from my_custom_app.admin import deactivate_user, reactivate_user
-from my_custom_app.admin_roles import ensure_roles
+from my_custom_app.administration.admin import deactivate_user, reactivate_user
+from my_custom_app.administration.admin_roles import ensure_roles
 
 
 class TestAdminReactivateUser(FrappeTestCase):

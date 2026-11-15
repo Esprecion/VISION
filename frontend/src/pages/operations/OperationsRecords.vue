@@ -213,7 +213,7 @@ const list = createResource({
 })
 
 const perms = createResource({
-	url: 'my_custom_app.api.get_perms',
+	url: 'my_custom_app.shared.api.get_perms',
 	params: { doctype: props.doctype },
 	auto: true,
 })

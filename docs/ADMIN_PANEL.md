@@ -5,7 +5,7 @@ The Administration panel manages VISION user accounts without deleting Frappe us
 ## Access
 
 - Route: `/admin/users` in the VISION frontend.
-- Access is controlled by the server endpoint `my_custom_app.admin.can_manage_users`.
+- Access is controlled by the server endpoint `my_custom_app.administration.admin.can_manage_users`.
 - Only users with the `System Admin` role can use the admin APIs.
 - The sidebar link and the route guard both use the server check. Direct visits to `/admin/users` by non-admins redirect to `/dashboard`.
 - `Administrator` and `Guest` are protected. They are never listed and cannot be created, edited, deactivated, or reactivated through this panel.
@@ -35,7 +35,7 @@ Create the first `System Admin` from the bench environment:
 ```bash
 VISION_ADMIN_USERNAME=sysadmin01 \
 VISION_ADMIN_PASSWORD='replace-with-a-strong-password' \
-bench --site site1.local execute my_custom_app.admin_roles.seed_first_admin
+bench --site site1.local execute my_custom_app.administration.admin_roles.seed_first_admin
 ```
 
 `seed_first_admin` is idempotent and does not print the password.
@@ -48,7 +48,7 @@ The patch is listed in `my_custom_app/patches.txt` and is safe to run again.
 
 ## API Endpoints
 
-All endpoints are in `my_custom_app.admin`.
+All endpoints are in `my_custom_app.administration.admin`.
 
 | Endpoint | Purpose |
 | --- | --- |

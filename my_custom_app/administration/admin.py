@@ -3,7 +3,7 @@ import re
 import frappe
 from frappe.sessions import clear_sessions
 
-from my_custom_app.admin_roles import (
+from my_custom_app.administration.admin_roles import (
 	ALLOWED_ROLES,
 	PROTECTED_USERS,
 	SYSTEM_ADMIN_ROLE,

@@ -3,8 +3,8 @@ from unittest.mock import patch
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from my_custom_app.admin import can_manage_users, get_managed_roles, get_user, list_users
-from my_custom_app.admin_roles import ALLOWED_ROLES, ensure_roles
+from my_custom_app.administration.admin import can_manage_users, get_managed_roles, get_user, list_users
+from my_custom_app.administration.admin_roles import ALLOWED_ROLES, ensure_roles
 
 
 class TestAdminReadApis(FrappeTestCase):
@@ -157,7 +157,7 @@ class TestAdminReadApis(FrappeTestCase):
 		admin = self._create_user("list-last-admin", ["System Admin"])
 		coo = self._create_user("list-not-admin", ["COO"])
 
-		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+		with patch("my_custom_app.administration.admin._active_system_admin_count", return_value=1):
 			rows = list_users()
 
 		admin_row = next(item for item in rows if item["account_name"] == admin.username)
@@ -170,7 +170,7 @@ class TestAdminReadApis(FrappeTestCase):
 		admin = self._create_user("list-disabled-admin", ["System Admin"])
 		frappe.db.set_value("User", admin.name, "enabled", 0)
 
-		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+		with patch("my_custom_app.administration.admin._active_system_admin_count", return_value=1):
 			rows = list_users()
 
 		row = next(item for item in rows if item["account_name"] == admin.username)
@@ -195,7 +195,7 @@ class TestAdminReadApis(FrappeTestCase):
 		admin = self._create_user("detail-last-admin", ["System Admin"])
 		coo = self._create_user("detail-not-admin", ["COO"])
 
-		with patch("my_custom_app.admin._active_system_admin_count", return_value=1):
+		with patch("my_custom_app.administration.admin._active_system_admin_count", return_value=1):
 			admin_detail = get_user(admin.username)
 			coo_detail = get_user(coo.username)
 
@@ -228,14 +228,14 @@ class TestAdminReadApis(FrappeTestCase):
 			frappe.set_user("Administrator")
 
 	def test_list_users_logs_and_reports_read_failure(self):
-		with patch("my_custom_app.admin._load_users", side_effect=Exception("db down")):
+		with patch("my_custom_app.administration.admin._load_users", side_effect=Exception("db down")):
 			with self.assertRaises(frappe.ValidationError) as error:
 				list_users()
 
 		self.assertIn("Unable to load users. Please try again.", str(error.exception))
 
 	def test_get_user_logs_and_reports_read_failure(self):
-		with patch("my_custom_app.admin._load_user", side_effect=Exception("db down")):
+		with patch("my_custom_app.administration.admin._load_user", side_effect=Exception("db down")):
 			with self.assertRaises(frappe.ValidationError) as error:
 				get_user("someone")
 

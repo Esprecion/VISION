@@ -83,7 +83,7 @@ app_license = "mit"
 # ------------
 
 # before_install = "my_custom_app.install.before_install"
-after_install = "my_custom_app.admin_roles.ensure_roles"
+after_install = "my_custom_app.administration.admin_roles.ensure_roles"
 
 # Uninstallation
 # ------------

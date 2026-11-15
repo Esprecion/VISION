@@ -27,7 +27,7 @@ def seed_first_admin():
 
 	Run with:
 		VISION_ADMIN_USERNAME=sysadmin01 VISION_ADMIN_PASSWORD=... \
-			bench --site site1.local execute my_custom_app.admin_roles.seed_first_admin
+			bench --site site1.local execute my_custom_app.administration.admin_roles.seed_first_admin
 	"""
 	account_name = (os.environ.get("VISION_ADMIN_USERNAME") or "").strip()
 	password = os.environ.get("VISION_ADMIN_PASSWORD") or ""

@@ -42,7 +42,7 @@ const list = createResource({
 
 // Only roles with create permission see the button (the server enforces it too)
 const perms = createResource({
-	url: 'my_custom_app.api.get_perms',
+	url: 'my_custom_app.shared.api.get_perms',
 	params: { doctype: props.doctype },
 	auto: !!props.createKind,
 })

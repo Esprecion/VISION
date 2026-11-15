@@ -301,7 +301,7 @@ const clientOk = computed(() => (newClient.value ? !!clientForm.client_name.trim
 const canSubmit = computed(() => form.deal_title && clientOk.value && validItems.value.length > 0)
 
 const createDeal = createResource({
-	url: 'my_custom_app.api.create_deal_with_details',
+	url: 'my_custom_app.business_development.api.create_deal_with_details',
 	method: 'POST',
 })
 

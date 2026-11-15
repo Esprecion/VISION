@@ -124,12 +124,12 @@ const fieldErrors = reactive({
 const roleOptions = computed(() => props.roles.map((role) => ({ label: role, value: role })))
 
 const createUser = createResource({
-	url: '/api/method/my_custom_app.admin.create_user',
+	url: '/api/method/my_custom_app.administration.admin.create_user',
 	method: 'POST',
 })
 
 const editUser = createResource({
-	url: '/api/method/my_custom_app.admin.edit_user',
+	url: '/api/method/my_custom_app.administration.admin.edit_user',
 	method: 'POST',
 })
 

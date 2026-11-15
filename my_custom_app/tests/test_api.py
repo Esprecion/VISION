@@ -1,7 +1,7 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from my_custom_app.api import create_deal_with_details
+from my_custom_app.business_development.api import create_deal_with_details
 
 
 def ensure_stage(name="Lead"):

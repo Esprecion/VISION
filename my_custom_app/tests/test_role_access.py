@@ -1,9 +1,9 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from my_custom_app.admin import can_manage_users
-from my_custom_app.admin_roles import ensure_roles
-from my_custom_app.api import get_module_perms
+from my_custom_app.administration.admin import can_manage_users
+from my_custom_app.administration.admin_roles import ensure_roles
+from my_custom_app.shared.api import get_module_perms
 
 
 class TestRoleAccess(FrappeTestCase):

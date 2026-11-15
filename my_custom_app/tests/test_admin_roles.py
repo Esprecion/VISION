@@ -5,7 +5,7 @@ from io import StringIO
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from my_custom_app.admin_roles import ALLOWED_ROLES, ensure_roles, seed_first_admin
+from my_custom_app.administration.admin_roles import ALLOWED_ROLES, ensure_roles, seed_first_admin
 
 
 class TestAdminRoles(FrappeTestCase):
