@@ -78,7 +78,7 @@ class TestRoleAccess(FrappeTestCase):
 		self.assert_perms(perms, (True, False), (True, False), (True, True))
 		self.assertFalse(can_admin)
 
-	def test_system_admin_has_module_and_admin_access(self):
+	def test_system_admin_has_admin_access_only(self):
 		perms, can_admin = self._perms_for("System Admin")
-		self.assert_perms(perms, (True, True), (True, True), (True, True))
+		self.assert_perms(perms, (False, False), (False, False), (False, False))
 		self.assertTrue(can_admin)

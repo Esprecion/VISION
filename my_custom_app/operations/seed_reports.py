@@ -80,7 +80,6 @@ def run():
 				"query": query.strip(),
 				"roles": [
 					{"role": "System Manager"},
-					{"role": "System Admin"},
 					{"role": "CBO"},
 					{"role": "COO"},
 					{"role": "CFO"},

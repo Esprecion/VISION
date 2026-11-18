@@ -1,7 +1,7 @@
 import frappe
 
 MODULES = ("Business Development", "Finance", "Operations")
-ROLES = ("CTO", "System Admin")
+ROLES = ("CTO",)
 
 
 def execute():
