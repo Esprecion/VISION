@@ -19,11 +19,19 @@ def run():
 		(1, 90000, "2026-09-01", "2026-09-30", "Overdue"),
 		(2, 48000, "2026-08-15", "2026-09-14", "Sent"),
 	]
+	payment_specs = [
+		# (invoice idx, amount, payment date, method, reference)
+		(0, 65000, "2026-05-05", "Bank Transfer", "PAY-SEED-001"),
+		(1, 65000, "2026-08-05", "Bank Transfer", "PAY-SEED-002"),
+		(2, 90000, "2026-07-05", "Bank Transfer", "PAY-SEED-003"),
+		(4, 24000, "2026-08-20", "Online", "PAY-SEED-004"),
+	]
+	invoice_docs = []
 	for idx, amount, isd, dd, status in invoice_specs:
 		if idx >= len(contracts):
 			continue
 		c = contracts[idx]
-		frappe.get_doc(
+		doc = frappe.get_doc(
 			{
 				"doctype": "Invoice",
 				"client": c["client"],
@@ -34,6 +42,22 @@ def run():
 				"status": status,
 			}
 		).insert(ignore_permissions=True)
+		invoice_docs.append(doc)
+
+	if not frappe.db.count("Client Payment"):
+		for idx, amount, date, method, reference in payment_specs:
+			if idx >= len(invoice_docs):
+				continue
+			frappe.get_doc(
+				{
+					"doctype": "Client Payment",
+					"invoice": invoice_docs[idx].name,
+					"amount": amount,
+					"payment_date": date,
+					"payment_method": method,
+					"reference": reference,
+				}
+			).insert(ignore_permissions=True)
 
 	projects = frappe.get_all("Project", pluck="name")
 	print("Projects:", projects)

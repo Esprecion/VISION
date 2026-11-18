@@ -1,10 +1,10 @@
 import frappe
 
 REVENUE = """SELECT client AS `Client:Link/Client:220`,
-       SUM(amount) AS `Total Paid Revenue:Currency:160`,
+       SUM(paid_amount) AS `Total Paid Revenue:Currency:160`,
        COUNT(*) AS `Paid Invoices:Int:120`
 FROM `tabInvoice`
-WHERE status = 'Paid'
+WHERE paid_amount > 0
   AND issue_date BETWEEN %(from_date)s AND %(to_date)s
 GROUP BY client
 ORDER BY `Total Paid Revenue:Currency:160` DESC"""
@@ -23,9 +23,9 @@ FROM (
     WHERE expense_date BETWEEN %(from_date)s AND %(to_date)s
 ) m
 LEFT JOIN (
-    SELECT CONCAT(YEAR(issue_date), '-', LPAD(MONTH(issue_date), 2, '0')) AS month, SUM(amount) AS revenue
+    SELECT CONCAT(YEAR(issue_date), '-', LPAD(MONTH(issue_date), 2, '0')) AS month, SUM(paid_amount) AS revenue
     FROM `tabInvoice`
-    WHERE status = 'Paid' AND issue_date BETWEEN %(from_date)s AND %(to_date)s
+    WHERE paid_amount > 0 AND issue_date BETWEEN %(from_date)s AND %(to_date)s
     GROUP BY month
 ) r ON r.month = m.month
 LEFT JOIN (

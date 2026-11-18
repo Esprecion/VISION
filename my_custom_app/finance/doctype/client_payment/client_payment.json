@@ -1,0 +1,84 @@
+{
+  "doctype": "DocType",
+  "name": "Client Payment",
+  "module": "Finance",
+  "custom": 0,
+  "engine": "InnoDB",
+  "istable": 0,
+  "track_changes": 1,
+  "field_order": ["invoice", "client", "amount", "payment_date", "payment_method", "reference"],
+  "fields": [
+    {
+      "fieldname": "invoice",
+      "fieldtype": "Link",
+      "label": "Invoice",
+      "options": "Invoice",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "client",
+      "fieldtype": "Link",
+      "label": "Client",
+      "options": "Client",
+      "fetch_from": "invoice.client",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "amount",
+      "fieldtype": "Currency",
+      "label": "Amount Paid",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "payment_date",
+      "fieldtype": "Date",
+      "label": "Payment Date",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "payment_method",
+      "fieldtype": "Select",
+      "label": "Payment Method",
+      "options": "Cash\nBank Transfer\nCheck\nOnline",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "reference",
+      "fieldtype": "Data",
+      "label": "Reference",
+      "in_list_view": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1,
+      "share": 1
+    },
+    {
+      "role": "CFO",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "payment_date",
+  "sort_order": "DESC",
+  "autoname": "format:PAY-{#####}"
+}

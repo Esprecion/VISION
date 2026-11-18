@@ -12,6 +12,7 @@ const businessDevTabs = [
 const financeTabs = [
   { label: 'Overview', to: '/finance/overview' },
   { label: 'Invoices', to: '/finance/invoices' },
+  { label: 'Client Payments', to: '/finance/payments' },
   { label: 'Expenses', to: '/finance/expenses' },
 ]
 
@@ -142,11 +143,17 @@ const routes = [
   {
     path: '/finance',
     component: () => import('@/layouts/DepartmentLayout.vue'),
-    props: { tabs: financeTabs },
+    props: () => ({
+      tabs: financeTabs.filter((tab) => tab.to !== '/finance/payments' || session.isCFO.value),
+    }),
     meta: { module: 'finance' },
     children: [
       { path: '', redirect: '/finance/overview' },
-      { path: 'overview', name: 'FinanceOverview', component: () => import('@/pages/finance/FinanceOverview.vue') },
+      {
+        path: 'overview',
+        name: 'FinanceOverview',
+        component: () => import('@/pages/finance/FinanceOverview.vue'),
+      },
       {
         path: 'invoices',
         name: 'FinanceInvoices',
@@ -160,12 +167,20 @@ const routes = [
             { key: 'name', label: 'ID' },
             { key: 'client', label: 'Client' },
             { key: 'amount', label: 'Amount', type: 'money' },
+            { key: 'paid_amount', label: 'Paid', type: 'money' },
+            { key: 'outstanding_amount', label: 'Outstanding', type: 'money' },
             { key: 'issue_date', label: 'Issued' },
             { key: 'due_date', label: 'Due' },
             { key: 'status', label: 'Status' },
             { key: 'owner', label: 'Entered by' },
           ],
         },
+      },
+      {
+        path: 'payments',
+        name: 'FinancePayments',
+        component: () => import('@/pages/finance/ClientPayments.vue'),
+        meta: { requiresCFO: true },
       },
       {
         path: 'expenses',
@@ -204,6 +219,9 @@ router.beforeEach(async (to) => {
   }
   await ensureSessionData()
   if (to.meta.requiresAdmin && !(await ensureAdminAccess())) {
+    return { path: '/dashboard' }
+  }
+  if (to.meta.requiresCFO && !session.isCFO.value) {
     return { path: '/dashboard' }
   }
   const module = to.meta.module as string | undefined

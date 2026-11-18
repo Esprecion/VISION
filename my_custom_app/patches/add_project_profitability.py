@@ -9,9 +9,9 @@ QUERY = """SELECT p.name AS `Project:Link/Project:150`,
           ROUND((r.revenue - COALESCE(e.expense, 0)) / r.revenue * 100, 1)) AS `Margin Pct:Percent:100`
 FROM `tabProject` p
 LEFT JOIN (
-    SELECT contract, SUM(amount) AS revenue
+    SELECT contract, SUM(paid_amount) AS revenue
     FROM `tabInvoice`
-    WHERE status = 'Paid' AND issue_date BETWEEN %(from_date)s AND %(to_date)s
+    WHERE paid_amount > 0 AND issue_date BETWEEN %(from_date)s AND %(to_date)s
     GROUP BY contract
 ) r ON r.contract = p.contract
 LEFT JOIN (
@@ -33,12 +33,12 @@ HAVING COUNT(*) > 0
 UNION ALL
 
 SELECT 'COMPANY TOTAL', NULL,
-  (SELECT COALESCE(SUM(amount), 0) FROM `tabInvoice`
-    WHERE status = 'Paid' AND issue_date BETWEEN %(from_date)s AND %(to_date)s),
+  (SELECT COALESCE(SUM(paid_amount), 0) FROM `tabInvoice`
+    WHERE paid_amount > 0 AND issue_date BETWEEN %(from_date)s AND %(to_date)s),
   (SELECT COALESCE(SUM(amount), 0) FROM `tabExpense`
     WHERE expense_date BETWEEN %(from_date)s AND %(to_date)s),
-  (SELECT COALESCE(SUM(amount), 0) FROM `tabInvoice`
-    WHERE status = 'Paid' AND issue_date BETWEEN %(from_date)s AND %(to_date)s)
+  (SELECT COALESCE(SUM(paid_amount), 0) FROM `tabInvoice`
+    WHERE paid_amount > 0 AND issue_date BETWEEN %(from_date)s AND %(to_date)s)
   - (SELECT COALESCE(SUM(amount), 0) FROM `tabExpense`
     WHERE expense_date BETWEEN %(from_date)s AND %(to_date)s),
   0"""

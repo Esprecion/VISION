@@ -8,10 +8,10 @@ REPORTS = [
 		"Invoice",
 		"""
 SELECT client AS `Client:Link/Client:220`,
-       SUM(amount) AS `Total Paid Revenue:Currency:160`,
+       SUM(paid_amount) AS `Total Paid Revenue:Currency:160`,
        COUNT(*) AS `Paid Invoices:Int:120`
 FROM `tabInvoice`
-WHERE status = 'Paid'
+WHERE paid_amount > 0
 GROUP BY client
 ORDER BY `Total Paid Revenue:Currency:160` DESC
 """,
@@ -22,12 +22,12 @@ ORDER BY `Total Paid Revenue:Currency:160` DESC
 		"""
 SELECT name AS `Invoice:Link/Invoice:120`,
        client AS `Client:Link/Client:200`,
-       amount AS `Amount:Currency:130`,
+       outstanding_amount AS `Amount:Currency:130`,
        due_date AS `Due Date:Date:110`,
        status AS `Status:Data:90`,
        GREATEST(DATEDIFF(CURDATE(), due_date), 0) AS `Days Overdue:Int:110`
 FROM `tabInvoice`
-WHERE status IN ('Sent', 'Overdue')
+WHERE outstanding_amount > 0
 ORDER BY `Days Overdue:Int:110` DESC
 """,
 	),
@@ -45,8 +45,8 @@ FROM (
     SELECT DISTINCT DATE_FORMAT(expense_date, '%Y-%m') FROM `tabExpense`
 ) m
 LEFT JOIN (
-    SELECT DATE_FORMAT(issue_date, '%Y-%m') AS month, SUM(amount) AS revenue
-    FROM `tabInvoice` WHERE status = 'Paid' GROUP BY DATE_FORMAT(issue_date, '%Y-%m')
+    SELECT DATE_FORMAT(issue_date, '%Y-%m') AS month, SUM(paid_amount) AS revenue
+    FROM `tabInvoice` WHERE paid_amount > 0 GROUP BY DATE_FORMAT(issue_date, '%Y-%m')
 ) r ON r.month = m.month
 LEFT JOIN (
     SELECT DATE_FORMAT(expense_date, '%Y-%m') AS month, SUM(amount) AS expense

@@ -1,158 +1,175 @@
 {
- "doctype": "DocType",
- "name": "Invoice",
- "module": "Finance",
- "custom": 0,
- "engine": "InnoDB",
- "istable": 0,
- "track_changes": 1,
- "field_order": [
-  "client",
-  "contract",
-  "amount",
-  "issue_date",
-  "due_date",
-  "status",
-  "milestone",
-  "items",
-  "subtotal",
-  "charges",
-  "charges_total",
-  "terms_and_conditions"
- ],
- "fields": [
-  {
-   "fieldname": "client",
-   "fieldtype": "Link",
-   "label": "Client",
-   "options": "Client",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "contract",
-   "fieldtype": "Link",
-   "label": "Contract",
-   "options": "Service Contract"
-  },
-  {
-   "fieldname": "amount",
-   "fieldtype": "Currency",
-   "label": "Amount",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "issue_date",
-   "fieldtype": "Date",
-   "label": "Issue Date",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "due_date",
-   "fieldtype": "Date",
-   "label": "Due Date",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "label": "Status",
-   "options": "Draft\nSent\nPaid\nOverdue",
-   "default": "Draft",
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "milestone",
-   "fieldtype": "Data",
-   "label": "Milestone"
-  },
-  {
-   "fieldname": "items",
-   "fieldtype": "Table",
-   "label": "Items",
-   "options": "Invoice Item"
-  },
-  {
-   "fieldname": "subtotal",
-   "fieldtype": "Currency",
-   "label": "Subtotal",
-   "read_only": 1
-  },
-  {
-   "fieldname": "charges",
-   "fieldtype": "Table",
-   "label": "Additional Charges",
-   "options": "Invoice Charge"
-  },
-  {
-   "fieldname": "charges_total",
-   "fieldtype": "Currency",
-   "label": "Charges Total",
-   "read_only": 1
-  },
-  {
-   "fieldname": "terms_and_conditions",
-   "fieldtype": "Text",
-   "label": "Terms and Conditions"
-  }
- ],
- "permissions": [
-  {
-   "role": "System Manager",
-   "read": 1,
-   "write": 1,
-   "create": 1,
-   "delete": 1,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 1
-  },
-  {
-   "role": "CBO",
-   "read": 1,
-   "report": 1,
-   "export": 1,
-   "print": 1
-  },
-  {
-   "role": "COO",
-   "read": 1,
-   "write": 1,
-   "create": 1,
-   "delete": 1,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 1
-  },
-  {
-   "role": "CFO",
-   "read": 1,
-   "write": 1,
-   "create": 1,
-   "delete": 1,
-   "report": 1,
-   "export": 1,
-   "print": 1,
-   "email": 1,
-   "share": 1
-   },
-   {
+  "doctype": "DocType",
+  "name": "Invoice",
+  "module": "Finance",
+  "custom": 0,
+  "engine": "InnoDB",
+  "istable": 0,
+  "track_changes": 1,
+  "field_order": [
+    "client",
+    "contract",
+    "amount",
+    "paid_amount",
+    "outstanding_amount",
+    "issue_date",
 
-   "role": "CTO",
-   "read": 1,
-   "report": 1,
-   "export": 1,
-   "print": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "autoname": "format:INV-{#####}"
+    "due_date",
+    "status",
+    "milestone",
+    "items",
+    "subtotal",
+    "charges",
+    "charges_total",
+    "terms_and_conditions"
+  ],
+  "fields": [
+    {
+      "fieldname": "client",
+      "fieldtype": "Link",
+      "label": "Client",
+      "options": "Client",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "contract",
+      "fieldtype": "Link",
+      "label": "Contract",
+      "options": "Service Contract"
+    },
+    {
+      "fieldname": "amount",
+      "fieldtype": "Currency",
+      "label": "Amount",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "paid_amount",
+      "fieldtype": "Currency",
+      "label": "Paid Amount",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "outstanding_amount",
+      "fieldtype": "Currency",
+      "label": "Outstanding Amount",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+
+    {
+      "fieldname": "issue_date",
+      "fieldtype": "Date",
+      "label": "Issue Date",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "due_date",
+      "fieldtype": "Date",
+      "label": "Due Date",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Draft\nSent\nPaid\nOverdue",
+      "default": "Draft",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "milestone",
+      "fieldtype": "Data",
+      "label": "Milestone"
+    },
+    {
+      "fieldname": "items",
+      "fieldtype": "Table",
+      "label": "Items",
+      "options": "Invoice Item"
+    },
+    {
+      "fieldname": "subtotal",
+      "fieldtype": "Currency",
+      "label": "Subtotal",
+      "read_only": 1
+    },
+    {
+      "fieldname": "charges",
+      "fieldtype": "Table",
+      "label": "Additional Charges",
+      "options": "Invoice Charge"
+    },
+    {
+      "fieldname": "charges_total",
+      "fieldtype": "Currency",
+      "label": "Charges Total",
+      "read_only": 1
+    },
+    {
+      "fieldname": "terms_and_conditions",
+      "fieldtype": "Text",
+      "label": "Terms and Conditions"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1,
+      "share": 1
+    },
+    {
+      "role": "CBO",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
+    },
+    {
+      "role": "COO",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1,
+      "share": 1
+    },
+    {
+      "role": "CFO",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1,
+      "email": 1,
+      "share": 1
+    },
+    {
+      "role": "CTO",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "autoname": "format:INV-{#####}"
 }

@@ -1,3 +1,4 @@
+import frappe
 from frappe.model.document import Document
 
 
@@ -13,8 +14,6 @@ class Invoice(Document):
 			self.amount = self.subtotal + self.charges_total
 
 	def on_update(self):
-		import frappe
-
 		if self.contract and self.milestone:
 			frappe.db.set_value(
 				"Contract Payment Milestone",
@@ -22,3 +21,7 @@ class Invoice(Document):
 				"is_paid",
 				1 if self.status == "Paid" else 0,
 			)
+
+	def on_trash(self):
+		if frappe.db.exists("Client Payment", {"invoice": self.name}):
+			frappe.throw("This invoice cannot be deleted while it has linked client payments.")

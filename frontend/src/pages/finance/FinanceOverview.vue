@@ -77,13 +77,16 @@ function openDrill(kind, r) {
 			limit_page_length: 200,
 		}
 	} else {
-		const filters = { status: 'Paid', issue_date: ['between', [from_date, to_date]] }
+		const filters = {
+			paid_amount: ['>', 0],
+			issue_date: ['between', [from_date, to_date]],
+		}
 		if (!all)
 			filters.contract =
 				(projectsRes.data || []).find((p) => p.name === r[0])?.contract || '__none__'
 		params = {
 			doctype: 'Invoice',
-			fields: ['name', 'client', 'amount', 'issue_date'],
+			fields: ['name', 'client', 'paid_amount', 'issue_date'],
 			filters,
 			order_by: 'issue_date desc',
 			limit_page_length: 200,
@@ -529,7 +532,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			<EmptyState
 				v-else-if="!agingRows.length"
 				title="Nothing outstanding"
-				description="No unpaid invoices in this date range."
+				description="No invoices with an outstanding balance in this date range."
 			/>
 			<template v-else>
 				<div class="aging-top">
@@ -582,7 +585,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 							<tr>
 								<th>Invoice</th>
 								<th>Client</th>
-								<th>Amount</th>
+								<th>Outstanding</th>
 								<th>Due Date</th>
 								<th>Status</th>
 							</tr>

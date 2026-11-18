@@ -33,6 +33,15 @@ INVOICES = [
 	("jjk2r9ilrr", "2026-10-01", "2026-10-31", "Paid", [("Downpayment - executive dashboard", 1, 80000)], []),
 ]
 
+PAYMENTS = [
+	# (invoice index, amount, payment date, method, reference)
+	(0, 48000, "2026-01-25", "Bank Transfer", "PAY-DEMO-001"),
+	(2, 90000, "2026-03-10", "Bank Transfer", "PAY-DEMO-002"),
+	(3, 95000, "2026-07-15", "Bank Transfer", "PAY-DEMO-003"),
+	(5, 65000, "2026-05-15", "Check", "PAY-DEMO-004"),
+	(8, 80000, "2026-10-05", "Online", "PAY-DEMO-005"),
+]
+
 EXPENSES = [
 	# (project, category, date, items[(vendor, description, amount)])
 	(
@@ -95,6 +104,7 @@ def seed_demo_data():
 			if not frappe.db.exists(child, {"parent": name}):
 				frappe.delete_doc(dt, name, force=True, ignore_permissions=True)
 
+	invoice_docs = []
 	for contract, issue, due, status, items, charges in INVOICES:
 		client = frappe.db.get_value("Service Contract", contract, "client")
 		if not client:
@@ -114,6 +124,23 @@ def seed_demo_data():
 			}
 		).insert(ignore_permissions=True)
 		_owner("Invoice", doc.name)
+		invoice_docs.append(doc)
+
+	if not frappe.db.exists("Client Payment"):
+		for index, amount, date, method, reference in PAYMENTS:
+			if index >= len(invoice_docs):
+				continue
+			doc = frappe.get_doc(
+				{
+					"doctype": "Client Payment",
+					"invoice": invoice_docs[index].name,
+					"amount": amount,
+					"payment_date": date,
+					"payment_method": method,
+					"reference": reference,
+				}
+			).insert(ignore_permissions=True)
+			_owner("Client Payment", doc.name)
 
 	for project, category, date, items in EXPENSES:
 		if not frappe.db.exists("Project", project):
