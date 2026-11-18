@@ -178,6 +178,15 @@
 				</template>
 
 				<template v-else>
+					<AppButton variant="ghost" size="sm" @click="showImport = true">
+						Import from Receipt
+					</AppButton>
+					<ImportDialog
+						v-model="showImport"
+						mode="receipt"
+						@imported="applyImport"
+						@unavailable="onImportUnavailable"
+					/>
 					<AppSelect
 						label="Category *"
 						v-model="form.category"
@@ -233,9 +242,9 @@
 					</div>
 				</template>
 
-				<div v-if="activeRes.error" class="error-msg">
+				<div v-if="importError || activeRes.error" class="error-msg">
 					<AlertCircleIcon aria-hidden="true" />
-					<span>{{ errorText }}</span>
+					<span>{{ importError || errorText }}</span>
 				</div>
 			</div>
 		</template>
@@ -264,6 +273,7 @@ import AlertCircleIcon from '~icons/lucide/alert-circle'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import ImportDialog from '@/components/ui/ImportDialog.vue'
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -275,6 +285,8 @@ const emit = defineEmits(['update:modelValue', 'created'])
 
 const isInvoice = props.kind === 'Invoice'
 const show = ref(props.modelValue)
+const showImport = ref(false)
+const importError = ref('')
 watch(
 	() => props.modelValue,
 	(v) => (show.value = v)
@@ -282,6 +294,7 @@ watch(
 watch(show, async (v) => {
 	emit('update:modelValue', v)
 	if (v) {
+		importError.value = ''
 		Object.assign(form, blank())
 		loaded.value = null
 		netDays.value = props.editName ? '' : '30'
@@ -505,6 +518,27 @@ async function loadForEdit() {
 	} catch (e) {
 		saveDoc.error = e
 	}
+}
+
+function applyImport(values) {
+	if (isInvoice) return
+	importError.value = ''
+	if (values.category && categories.includes(values.category)) form.category = values.category
+	const date = values.expense_date || values.date
+	if (date) form.expense_date = date
+	const rawItems = Array.isArray(values.items) ? values.items : [values]
+	const importedItems = rawItems
+		.map((item) => ({
+			vendor: item.vendor || '',
+			description: item.description || '',
+			amount: item.amount === undefined ? 0 : Number(item.amount) || 0,
+		}))
+		.filter((item) => item.vendor || item.amount)
+	if (importedItems.length) form.items = importedItems
+}
+
+function onImportUnavailable() {
+	importError.value = 'Import unavailable. Please enter the details manually.'
 }
 
 function submit() {

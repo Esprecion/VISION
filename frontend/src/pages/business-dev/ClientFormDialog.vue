@@ -2,6 +2,15 @@
 	<Dialog v-model="show" :options="{ title: dialogTitle }">
 		<template #body-content>
 			<div class="form-grid">
+				<AppButton variant="ghost" size="sm" @click="showImport = true">
+					Import from Data
+				</AppButton>
+				<ImportDialog
+					v-model="showImport"
+					kind="client"
+					@imported="applyImport"
+					@unavailable="onImportUnavailable"
+				/>
 				<AppTextInput
 					v-model="form.client_name"
 					label="Client Name"
@@ -43,6 +52,7 @@ import { Dialog, createResource, call } from 'frappe-ui'
 import AlertCircleIcon from '~icons/lucide/alert-circle'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import ImportDialog from '@/components/ui/ImportDialog.vue'
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -51,6 +61,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
 const show = ref(props.modelValue)
+const showImport = ref(false)
+const importError = ref('')
 watch(
 	() => props.modelValue,
 	(v) => (show.value = v)
@@ -83,7 +95,9 @@ const saveClient = createResource({
 const activeResource = computed(() => (isEdit.value ? saveClient : createClient))
 const isLoading = computed(() => loading.value || !!activeResource.value.loading)
 const errorText = computed(() => {
-	const err = activeResource.value.error || loadError.value
+	const err = importError.value
+		? { message: importError.value }
+		: activeResource.value.error || loadError.value
 	if (!err) return ''
 	const message = err.messages?.[0] || err.message || 'Something went wrong'
 	return String(message).replace(/<[^>]+>/g, '')
@@ -91,6 +105,7 @@ const errorText = computed(() => {
 
 function resetForm() {
 	Object.keys(form).forEach((k) => (form[k] = ''))
+	importError.value = ''
 }
 
 async function prepare() {
@@ -125,6 +140,17 @@ watch(show, (v) => {
 	emit('update:modelValue', v)
 	if (v) prepare()
 })
+
+function applyImport(values) {
+	importError.value = ''
+	Object.keys(form).forEach((key) => {
+		if (values[key] !== undefined) form[key] = values[key]
+	})
+}
+
+function onImportUnavailable() {
+	importError.value = 'Import unavailable. Please enter the details manually.'
+}
 
 function submit() {
 	if (!form.client_name || isLoading.value) return

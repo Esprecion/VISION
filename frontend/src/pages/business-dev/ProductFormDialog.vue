@@ -2,6 +2,15 @@
 	<Dialog v-model="show" :options="{ title: dialogTitle }">
 		<template #body-content>
 			<div class="form-grid">
+				<AppButton variant="ghost" size="sm" @click="showImport = true">
+					Import from Data
+				</AppButton>
+				<ImportDialog
+					v-model="showImport"
+					kind="product"
+					@imported="applyImport"
+					@unavailable="onImportUnavailable"
+				/>
 				<AppTextInput
 					v-model="form.product_name"
 					label="Product Name"
@@ -43,6 +52,7 @@ import AlertCircleIcon from '~icons/lucide/alert-circle'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import ImportDialog from '@/components/ui/ImportDialog.vue'
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -51,6 +61,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
 const show = ref(props.modelValue)
+const showImport = ref(false)
+const importError = ref('')
 watch(
 	() => props.modelValue,
 	(v) => (show.value = v)
@@ -87,7 +99,9 @@ const saveProduct = createResource({
 const activeResource = computed(() => (isEdit.value ? saveProduct : createProduct))
 const isLoading = computed(() => loading.value || !!activeResource.value.loading)
 const errorText = computed(() => {
-	const err = activeResource.value.error || loadError.value
+	const err = importError.value
+		? { message: importError.value }
+		: activeResource.value.error || loadError.value
 	if (!err) return ''
 	const message = err.messages?.[0] || err.message || 'Something went wrong'
 	return String(message).replace(/<[^>]+>/g, '')
@@ -95,6 +109,7 @@ const errorText = computed(() => {
 
 function resetForm() {
 	Object.keys(form).forEach((k) => (form[k] = ''))
+	importError.value = ''
 }
 
 async function prepare() {
@@ -126,6 +141,19 @@ watch(show, (v) => {
 	emit('update:modelValue', v)
 	if (v) prepare()
 })
+
+function applyImport(values) {
+	importError.value = ''
+	if (values.product_name !== undefined) form.product_name = values.product_name
+	if (values.description !== undefined) form.description = values.description
+	if (values.type !== undefined && typeOptions.some((option) => option.value === values.type)) {
+		form.type = values.type
+	}
+}
+
+function onImportUnavailable() {
+	importError.value = 'Import unavailable. Please enter the details manually.'
+}
 
 function submit() {
 	if (!form.product_name || !form.type || isLoading.value) return

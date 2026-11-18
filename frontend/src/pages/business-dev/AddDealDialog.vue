@@ -6,6 +6,16 @@
 					Adding to: <strong>{{ stage }}</strong>
 				</div>
 
+				<AppButton variant="ghost" size="sm" @click="showImport = true">
+					Import from Data
+				</AppButton>
+				<ImportDialog
+					v-model="showImport"
+					kind="deal"
+					@imported="applyImport"
+					@unavailable="onImportUnavailable"
+				/>
+
 				<AppTextInput
 					label="Deal Title *"
 					v-model="form.deal_title"
@@ -155,9 +165,9 @@
 					</button>
 				</div>
 
-				<div v-if="createDeal.error" class="error-msg">
+				<div v-if="importError || createDeal.error" class="error-msg">
 					<AlertCircleIcon class="btn-icon" aria-hidden="true" />
-					{{ createDeal.error.messages?.[0] || 'Something went wrong' }}
+					{{ importError || createDeal.error.messages?.[0] || 'Something went wrong' }}
 				</div>
 			</div>
 		</template>
@@ -185,6 +195,7 @@ import AlertCircleIcon from '~icons/lucide/alert-circle'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import ImportDialog from '@/components/ui/ImportDialog.vue'
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -193,6 +204,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created'])
 
 const show = ref(props.modelValue)
+const showImport = ref(false)
+const importError = ref('')
 watch(
 	() => props.modelValue,
 	(v) => (show.value = v)
@@ -306,12 +319,48 @@ const createDeal = createResource({
 })
 
 function resetForm() {
+	importError.value = ''
 	form.deal_title = ''
 	form.client = ''
 	form.expected_close_date = ''
 	Object.keys(clientForm).forEach((k) => (clientForm[k] = ''))
 	newClient.value = false
 	items.value = [blankItem()]
+}
+
+function applyImport(values) {
+	importError.value = ''
+	if (values.deal_title !== undefined) form.deal_title = values.deal_title
+	if (values.expected_close_date !== undefined) {
+		form.expected_close_date = values.expected_close_date
+	}
+	if (values.client && clientOptions.value.some((option) => option.value === values.client)) {
+		form.client = values.client
+		newClient.value = false
+	} else if (values.client_name || values.client) {
+		newClient.value = true
+		clientForm.client_name = values.client_name || values.client
+	}
+	if (!Array.isArray(values.items)) return
+	const importedItems = values.items
+		.map((item) => {
+			const row = blankItem()
+			if (item.product) row.product = item.product
+			if (item.newName) {
+				row.isNew = true
+				row.newName = item.newName
+			}
+			if (item.newType) row.newType = item.newType
+			if (item.quantity !== undefined) row.quantity = Number(item.quantity) || 1
+			if (item.price !== undefined) row.price = Number(item.price) || 0
+			return row
+		})
+		.filter((row) => row.product || row.newName)
+	if (importedItems.length) items.value = [...importedItems, blankItem()]
+}
+
+function onImportUnavailable() {
+	importError.value = 'Import unavailable. Please enter the details manually.'
 }
 
 function submit() {
