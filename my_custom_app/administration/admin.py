@@ -14,19 +14,22 @@ PROTECTED_USER_NAMES = {user.lower() for user in PROTECTED_USERS}
 
 REQUIRED_DETAILS_MESSAGE = "Please complete all required user details."
 DUPLICATE_NAME_MESSAGE = "This account name is already taken."
+UNIQUE_ACCOUNT_NAME_MESSAGE = "Please enter a unique account name."
 INVALID_ROLE_MESSAGE = "Please choose a valid role."
 CREATE_FAILED_MESSAGE = "Unable to create user. Please try again."
 EDIT_FAILED_MESSAGE = "Unable to update user. Please try again."
+DELETE_FAILED_MESSAGE = "Unable to delete user. Please try again."
 DEACTIVATE_FAILED_MESSAGE = "Unable to deactivate user. Please try again."
 REACTIVATE_FAILED_MESSAGE = "Unable to reactivate user. Please try again."
 USER_NOT_FOUND_MESSAGE = "User not found."
 PROTECTED_EDIT_MESSAGE = "This account cannot be edited."
+PROTECTED_DELETE_MESSAGE = "This account cannot be deleted."
 PROTECTED_DEACTIVATE_MESSAGE = "This account cannot be deactivated."
 PROTECTED_REACTIVATE_MESSAGE = "This account cannot be reactivated."
 SELF_DEACTIVATE_MESSAGE = "You cannot deactivate your own account."
-SELF_ROLE_MESSAGE = "You cannot change your own role."
 LAST_SYSTEM_ADMIN_MESSAGE = "You cannot deactivate the last active System Admin."
-LAST_SYSTEM_ADMIN_ROLE_MESSAGE = "You cannot change the role of the last active System Admin."
+LAST_SYSTEM_ADMIN_ROLE_MESSAGE = "At least one System Admin is required."
+CANNOT_DELETE_MESSAGE = "This user cannot be deleted."
 
 
 @frappe.whitelist()
@@ -144,17 +147,21 @@ def create_user(account_name=None, password=None, role=None):
 
 
 @frappe.whitelist()
-def edit_user(account_name=None, role=None, password=None):
-	"""Update a managed user's role and optionally replace their password."""
+def edit_user(account_name=None, role=None, new_account_name=None, password=None):
+	"""Update a managed user's account name and role."""
 	_require_system_admin()
 
 	account_name = (account_name or "").strip()
+	new_account_name = (
+		new_account_name.strip() if new_account_name is not None else account_name
+	)
 	role = (role or "").strip()
-	password = password or ""
 
 	missing = []
 	if not account_name:
 		missing.append("account_name")
+	if not new_account_name:
+		missing.append("new_account_name")
 	if not role:
 		missing.append("role")
 	if missing:
@@ -163,38 +170,40 @@ def edit_user(account_name=None, role=None, password=None):
 	if role not in ALLOWED_ROLES or not frappe.db.exists("Role", role):
 		return _error("role", INVALID_ROLE_MESSAGE, ["role"])
 
-	if account_name.lower() in PROTECTED_USER_NAMES:
+	if (
+		account_name.lower() in PROTECTED_USER_NAMES
+		or new_account_name.lower() in PROTECTED_USER_NAMES
+	):
 		return _error("account_name", PROTECTED_EDIT_MESSAGE, ["account_name"])
+
+	if new_account_name.lower() != account_name.lower() and _account_name_taken(new_account_name):
+		return _error("account_name", UNIQUE_ACCOUNT_NAME_MESSAGE, ["account_name"])
 
 	user = _find_user(account_name)
 	if not user:
 		return _error("account_name", USER_NOT_FOUND_MESSAGE, ["account_name"])
 
-	if password:
-		password_message = _password_problem(user.username or user.name, user.email, password)
-		if password_message:
-			return _error("password", password_message, ["password"])
-
 	target_is_system_admin = _has_role(user.name, SYSTEM_ADMIN_ROLE)
-	if target_is_system_admin and role != SYSTEM_ADMIN_ROLE:
-		if _is_current_user(user):
-			return _error(None, SELF_ROLE_MESSAGE)
-		if user.enabled and _active_system_admin_count() <= 1:
-			return _error(None, LAST_SYSTEM_ADMIN_ROLE_MESSAGE)
+	if (
+		target_is_system_admin
+		and role != SYSTEM_ADMIN_ROLE
+		and user.enabled
+		and _active_system_admin_count() <= 1
+	):
+		return _error(None, LAST_SYSTEM_ADMIN_ROLE_MESSAGE)
 
 	try:
 		doc = frappe.get_doc("User", user.name)
+		previous_username = doc.username or ""
 		previous_managed_roles = [row.role for row in doc.roles if row.role in ALLOWED_ROLES]
 		extra_roles = [{"role": row.role} for row in doc.roles if row.role not in ALLOWED_ROLES]
+		doc.username = new_account_name
+		doc.first_name = new_account_name
 		doc.set("roles", [*extra_roles, {"role": role}])
-		if password:
-			doc.new_password = password
 		doc.save(ignore_permissions=True)
-		if previous_managed_roles != [role] or password:
+		if previous_username != new_account_name or previous_managed_roles != [role]:
 			clear_sessions(user=doc.name, force=True)
 	except frappe.ValidationError as error:
-		if _last_error_title().lower() == "password requirements not met":
-			return _error("password", _password_message(str(error)), ["password"])
 		return _error(None, _clean_message(str(error)) or EDIT_FAILED_MESSAGE)
 	except Exception as error:
 		frappe.log_error(
@@ -212,6 +221,53 @@ def edit_user(account_name=None, role=None, password=None):
 			"roles": [role],
 			"has_extra_roles": bool(extra_roles),
 			"enabled": bool(doc.enabled),
+		},
+	}
+
+
+@frappe.whitelist()
+def delete_user(account_name=None):
+	"""Remove a managed user account. Records they created are kept."""
+	_require_system_admin()
+
+	account_name = (account_name or "").strip()
+	if not account_name:
+		return _error("account_name", REQUIRED_DETAILS_MESSAGE, ["account_name"])
+
+	if account_name.lower() in PROTECTED_USER_NAMES:
+		return _error("account_name", PROTECTED_DELETE_MESSAGE, ["account_name"])
+
+	user = _find_user(account_name)
+	if not user:
+		return _error("account_name", USER_NOT_FOUND_MESSAGE, ["account_name"])
+
+	if _is_current_user(user):
+		return _error(None, CANNOT_DELETE_MESSAGE)
+
+	if user.enabled and _has_role(user.name, SYSTEM_ADMIN_ROLE) and _active_system_admin_count() <= 1:
+		return _error(None, CANNOT_DELETE_MESSAGE)
+
+	try:
+		account = user.username or user.name
+		managed_roles = _managed_roles(user.name)
+		clear_sessions(user=user.name, force=True)
+		frappe.delete_doc("User", user.name, force=True, ignore_permissions=True)
+	except Exception as error:
+		frappe.log_error(
+			message=f"delete_user failed ({type(error).__name__})",
+			title="Administration: delete user",
+		)
+		return _error(None, DELETE_FAILED_MESSAGE)
+
+	return {
+		"ok": True,
+		"message": "User Deleted",
+		"user": {
+			"account_name": account,
+			"role": managed_roles[0] if managed_roles else "",
+			"roles": managed_roles,
+			"has_extra_roles": False,
+			"enabled": False,
 		},
 	}
 

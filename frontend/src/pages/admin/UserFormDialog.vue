@@ -6,7 +6,6 @@
 					v-model="form.account_name"
 					label="Account Name"
 					required
-					:disabled="isEdit"
 					:error="fieldErrors.account_name"
 					placeholder="e.g. juan.delacruz"
 				/>
@@ -20,6 +19,7 @@
 					placeholder="Choose a role"
 				/>
 				<AppTextInput
+					v-if="!isEdit"
 					v-model="form.password"
 					:type="showPassword ? 'text' : 'password'"
 					:label="isEdit ? 'New Password' : 'Password'"
@@ -49,10 +49,7 @@
 						</button>
 					</template>
 				</AppTextInput>
-				<p v-if="isEdit" class="hint">
-					Account names cannot be changed. Leave the password blank to keep the current
-					one.
-				</p>
+				<p v-if="isEdit" class="hint">Only the account name and role can be changed.</p>
 				<p v-if="isRoleLocked" class="hint hint--lock">
 					{{ roleLockMessage }}
 				</p>
@@ -96,18 +93,17 @@ const emit = defineEmits(['update:modelValue', 'saved'])
 
 const isEdit = computed(() => Boolean(props.user))
 const isRoleLocked = computed(
-	() => isEdit.value && Boolean(props.user?.is_self || props.user?.is_last_active_system_admin)
+	() => isEdit.value && Boolean(props.user?.is_last_active_system_admin)
 )
-const roleLockMessage = computed(() => {
-	if (!isRoleLocked.value) return ''
-	if (props.user?.is_self) {
-		return 'You cannot change your own role. You can still reset your password.'
-	}
-	return 'This is the last active System Admin. Assign System Admin to another account before changing this role.'
-})
+const roleLockMessage = computed(() =>
+	isRoleLocked.value
+		? 'At least one System Admin is required. Assign another account before changing this role.'
+		: ''
+)
 const show = ref(props.modelValue)
 const errorMessage = ref('')
 const showPassword = ref(false)
+const originalAccountName = ref('')
 
 const form = reactive({
 	account_name: '',
@@ -204,7 +200,8 @@ function showResultError(result) {
 }
 
 function resetForm() {
-	form.account_name = props.user?.account_name || ''
+	originalAccountName.value = props.user?.account_name || ''
+	form.account_name = originalAccountName.value
 	form.role = props.user?.role || props.roles[0] || ''
 	form.password = ''
 	errorMessage.value = ''
@@ -221,10 +218,14 @@ function submit() {
 	showPassword.value = false
 
 	const payload = {
-		account_name: form.account_name.trim(),
+		account_name: isEdit.value ? originalAccountName.value : form.account_name.trim(),
 		role: form.role,
 	}
-	if (form.password) payload.password = form.password
+	if (isEdit.value) {
+		payload.new_account_name = form.account_name.trim()
+	} else if (form.password) {
+		payload.password = form.password
+	}
 
 	activeResource.value.submit(payload, {
 		onSuccess(response) {

@@ -19,28 +19,18 @@ import SearchIcon from '~icons/lucide/search'
 const { showToast } = useToast()
 
 const search = ref('')
-const statusFilter = ref('all')
 const sortBy = ref('account-asc')
 const users = ref([])
 const roles = ref([])
 const showForm = ref(false)
 const editingUser = ref(null)
-const showDeactivate = ref(false)
-const deactivateTarget = ref(null)
-const deactivatingAccount = ref('')
-const reactivatingAccount = ref('')
-
-const statusOptions = [
-	{ label: 'All statuses', value: 'all' },
-	{ label: 'Active', value: 'active' },
-	{ label: 'Inactive', value: 'inactive' },
-]
+const showDelete = ref(false)
+const deleteTarget = ref(null)
+const deletingAccount = ref('')
 
 const sortOptions = [
 	{ label: 'Account A–Z', value: 'account-asc' },
 	{ label: 'Account Z–A', value: 'account-desc' },
-	{ label: 'Active first', value: 'status-active' },
-	{ label: 'Inactive first', value: 'status-inactive' },
 ]
 
 const usersCall = useCall({
@@ -65,73 +55,37 @@ const rolesCall = useCall({
 	},
 })
 
-const deactivateUser = createResource({
-	url: '/api/method/my_custom_app.administration.admin.deactivate_user',
-	method: 'POST',
-})
-
-const reactivateUser = createResource({
-	url: '/api/method/my_custom_app.administration.admin.reactivate_user',
+const deleteUser = createResource({
+	url: '/api/method/my_custom_app.administration.admin.delete_user',
 	method: 'POST',
 })
 
 const filteredUsers = computed(() => {
 	const query = search.value.trim().toLowerCase()
-	const status = statusFilter.value
 
 	const list = users.value.filter((user) => {
-		if (status === 'active' && !user.enabled) return false
-		if (status === 'inactive' && user.enabled) return false
 		if (!query) return true
-
 		const accountName = (user.account_name || '').toLowerCase()
 		const userRoles = roleList(user).map((role) => role.toLowerCase())
 		return accountName.includes(query) || userRoles.some((role) => role.includes(query))
 	})
 
 	return [...list].sort((a, b) => {
-		if (sortBy.value === 'account-desc') {
-			return (b.account_name || '')
-				.toLowerCase()
-				.localeCompare((a.account_name || '').toLowerCase())
-		}
-		if (sortBy.value === 'status-active') {
-			return (
-				Number(b.enabled) - Number(a.enabled) ||
-				(a.account_name || '')
-					.toLowerCase()
-					.localeCompare((b.account_name || '').toLowerCase())
-			)
-		}
-		if (sortBy.value === 'status-inactive') {
-			return (
-				Number(a.enabled) - Number(b.enabled) ||
-				(a.account_name || '')
-					.toLowerCase()
-					.localeCompare((b.account_name || '').toLowerCase())
-			)
-		}
-		return (a.account_name || '')
-			.toLowerCase()
-			.localeCompare((b.account_name || '').toLowerCase())
+		const left = (a.account_name || '').toLowerCase()
+		const right = (b.account_name || '').toLowerCase()
+		return sortBy.value === 'account-desc'
+			? right.localeCompare(left)
+			: left.localeCompare(right)
 	})
 })
 
-const stats = computed(() => {
-	const total = users.value.length
-	const active = users.value.filter((user) => user.enabled).length
-	const inactive = total - active
-
-	return [
-		{ label: 'Total accounts', value: total, tone: 'default' },
-		{ label: 'Active', value: active, tone: 'positive' },
-		{ label: 'Inactive', value: inactive, tone: inactive ? 'negative' : 'default' },
-	]
-})
+const stats = computed(() => [
+	{ label: 'Total accounts', value: users.value.length, tone: 'default' },
+])
 
 const loading = computed(() => usersCall.loading && !users.value.length)
 const loadError = computed(() => usersCall.error)
-const hasFilters = computed(() => Boolean(search.value.trim()) || statusFilter.value !== 'all')
+const hasFilters = computed(() => Boolean(search.value.trim()))
 
 const roleColors = {
 	'System Admin': 'danger',
@@ -146,19 +100,17 @@ function roleList(user) {
 	return list.filter(Boolean)
 }
 
-function canDeactivate(user) {
-	return user.enabled && !user.is_self && !user.is_last_active_system_admin
+function canDelete(user) {
+	return !user.is_self && !user.is_last_active_system_admin
 }
 
-function deactivateReason(user) {
-	if (user.is_self) return 'You cannot deactivate your own account.'
-	if (user.is_last_active_system_admin) return 'This is the last active System Admin.'
+function deleteReason(user) {
+	if (user.is_self || user.is_last_active_system_admin) return 'This user cannot be deleted.'
 	return ''
 }
 
 function clearFilters() {
 	search.value = ''
-	statusFilter.value = 'all'
 }
 
 function openCreate() {
@@ -175,69 +127,41 @@ function onSaved(user) {
 	const wasEdit = Boolean(editingUser.value)
 	showForm.value = false
 	editingUser.value = null
-	showToast(`${wasEdit ? 'Updated' : 'Created'} ${user.account_name}`)
+	showToast(wasEdit ? 'User Updated' : 'User Created')
 	usersCall.reload()
 }
 
-function askDeactivate(user) {
-	if (!canDeactivate(user)) return
-	deactivateTarget.value = user
-	showDeactivate.value = true
+function askDelete(user) {
+	if (!canDelete(user)) return
+	deleteTarget.value = user
+	showDelete.value = true
 }
 
-function confirmDeactivate() {
-	const user = deactivateTarget.value
+function confirmDelete() {
+	const user = deleteTarget.value
 	if (!user) return
 
-	deactivatingAccount.value = user.account_name
-	deactivateUser.submit(
+	deletingAccount.value = user.account_name
+	deleteUser.submit(
 		{ account_name: user.account_name },
 		{
 			onSuccess(response) {
 				const result = response?.message || response
-				deactivatingAccount.value = ''
-				showDeactivate.value = false
-				deactivateTarget.value = null
+				deletingAccount.value = ''
+				showDelete.value = false
+				deleteTarget.value = null
 				if (!result?.ok) {
-					showToast(result?.message || 'Unable to deactivate the user.', 'error')
+					showToast(result?.message || 'Unable to delete the user.', 'error')
 					return
 				}
-				showToast(`${user.account_name} was deactivated`)
+				showToast('User Deleted')
 				usersCall.reload()
 			},
 			onError(error) {
-				deactivatingAccount.value = ''
-				showDeactivate.value = false
+				deletingAccount.value = ''
+				showDelete.value = false
 				showToast(
-					error?.messages?.[0] || error?.message || 'Unable to deactivate the user.',
-					'error'
-				)
-			},
-		}
-	)
-}
-
-function confirmReactivate(user) {
-	if (!user || user.enabled || reactivateUser.loading) return
-
-	reactivatingAccount.value = user.account_name
-	reactivateUser.submit(
-		{ account_name: user.account_name },
-		{
-			onSuccess(response) {
-				const result = response?.message || response
-				reactivatingAccount.value = ''
-				if (!result?.ok) {
-					showToast(result?.message || 'Unable to reactivate the user.', 'error')
-					return
-				}
-				showToast(`${user.account_name} was reactivated`)
-				usersCall.reload()
-			},
-			onError(error) {
-				reactivatingAccount.value = ''
-				showToast(
-					error?.messages?.[0] || error?.message || 'Unable to reactivate the user.',
+					error?.messages?.[0] || error?.message || 'Unable to delete the user.',
 					'error'
 				)
 			},
@@ -250,7 +174,7 @@ function confirmReactivate(user) {
 	<div class="admin-page">
 		<PageHeader
 			title="Administration · Users"
-			subtitle="Create accounts, assign roles, and deactivate access."
+			subtitle="Create accounts, edit names and roles, and delete users."
 		>
 			<template #actions>
 				<AppButton variant="solid" theme="gray" @click="openCreate">
@@ -282,16 +206,13 @@ function confirmReactivate(user) {
 			/>
 			<div class="admin-filters">
 				<div class="admin-filter">
-					<AppSelect v-model="statusFilter" label="Status" :options="statusOptions" />
-				</div>
-				<div class="admin-filter">
 					<AppSelect v-model="sortBy" label="Sort by" :options="sortOptions" />
 				</div>
 			</div>
 		</div>
 
 		<div class="table-wrap">
-			<AppSkeleton v-if="loading" variant="table" :rows="6" :cols="4" />
+			<AppSkeleton v-if="loading" variant="table" :rows="6" :cols="3" />
 			<ErrorState
 				v-else-if="loadError && !users.length"
 				title="Couldn't load users"
@@ -328,7 +249,6 @@ function confirmReactivate(user) {
 						<tr>
 							<th>Account</th>
 							<th>Roles</th>
-							<th>Status</th>
 							<th class="actions-head">Actions</th>
 						</tr>
 					</thead>
@@ -369,40 +289,20 @@ function confirmReactivate(user) {
 								</div>
 							</td>
 							<td>
-								<AppBadge
-									:label="user.enabled ? 'Active' : 'Inactive'"
-									:color="user.enabled ? 'success' : 'neutral'"
-								/>
-							</td>
-							<td>
 								<div class="row-actions">
 									<AppButton variant="ghost" size="sm" @click="openEdit(user)">
 										Edit
 									</AppButton>
 									<AppButton
-										v-if="user.enabled"
 										variant="ghost"
 										size="sm"
-										:disabled="!canDeactivate(user) || deactivateUser.loading"
-										:loading="deactivatingAccount === user.account_name"
-										:title="deactivateReason(user) || undefined"
-										:aria-label="`Deactivate ${user.account_name}`"
-										@click="askDeactivate(user)"
+										:disabled="!canDelete(user) || deleteUser.loading"
+										:loading="deletingAccount === user.account_name"
+										:title="deleteReason(user) || undefined"
+										:aria-label="`Delete ${user.account_name}`"
+										@click="askDelete(user)"
 									>
-										Deactivate
-									</AppButton>
-									<AppButton
-										v-else
-										variant="ghost"
-										size="sm"
-										:loading="reactivatingAccount === user.account_name"
-										:disabled="
-											reactivateUser.loading &&
-											reactivatingAccount !== user.account_name
-										"
-										@click="confirmReactivate(user)"
-									>
-										Reactivate
+										Delete
 									</AppButton>
 								</div>
 							</td>
@@ -423,10 +323,6 @@ function confirmReactivate(user) {
 								size="sm"
 							/>
 						</div>
-						<AppBadge
-							:label="user.enabled ? 'Active' : 'Inactive'"
-							:color="user.enabled ? 'success' : 'neutral'"
-						/>
 					</div>
 					<div class="role-list">
 						<AppBadge
@@ -448,28 +344,15 @@ function confirmReactivate(user) {
 							Edit
 						</AppButton>
 						<AppButton
-							v-if="user.enabled"
 							variant="ghost"
 							size="sm"
-							:disabled="!canDeactivate(user) || deactivateUser.loading"
-							:loading="deactivatingAccount === user.account_name"
-							:title="deactivateReason(user) || undefined"
-							:aria-label="`Deactivate ${user.account_name}`"
-							@click="askDeactivate(user)"
+							:disabled="!canDelete(user) || deleteUser.loading"
+							:loading="deletingAccount === user.account_name"
+							:title="deleteReason(user) || undefined"
+							:aria-label="`Delete ${user.account_name}`"
+							@click="askDelete(user)"
 						>
-							Deactivate
-						</AppButton>
-						<AppButton
-							v-else
-							variant="ghost"
-							size="sm"
-							:loading="reactivatingAccount === user.account_name"
-							:disabled="
-								reactivateUser.loading && reactivatingAccount !== user.account_name
-							"
-							@click="confirmReactivate(user)"
-						>
-							Reactivate
+							Delete
 						</AppButton>
 					</div>
 				</article>
@@ -479,17 +362,17 @@ function confirmReactivate(user) {
 		<UserFormDialog v-model="showForm" :user="editingUser" :roles="roles" @saved="onSaved" />
 
 		<AppConfirmDialog
-			v-model="showDeactivate"
-			title="Deactivate user?"
+			v-model="showDelete"
+			title="Delete this user?"
 			:message="
-				deactivateTarget
-					? `${deactivateTarget.account_name} will no longer be able to sign in. The user record will be kept.`
+				deleteTarget
+					? `${deleteTarget.account_name} will be removed and can no longer sign in. This cannot be undone.`
 					: ''
 			"
-			confirm-label="Deactivate"
+			confirm-label="Delete"
 			destructive
-			:loading="deactivateUser.loading"
-			@confirm="confirmDeactivate"
+			:loading="deleteUser.loading"
+			@confirm="confirmDelete"
 		/>
 	</div>
 </template>

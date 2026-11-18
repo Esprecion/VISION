@@ -5,6 +5,7 @@ from my_custom_app.administration.admin import (
 	can_manage_users,
 	create_user,
 	deactivate_user,
+	delete_user,
 	edit_user,
 	get_managed_roles,
 	get_user,
@@ -66,7 +67,9 @@ class TestAdminPermissions(FrappeTestCase):
 			with self.assertRaises(frappe.PermissionError):
 				create_user(blocked_account, self.password, "CFO")
 			with self.assertRaises(frappe.PermissionError):
-				edit_user(target.username, "CFO")
+				edit_user(target.username, "CFO", target.username)
+			with self.assertRaises(frappe.PermissionError):
+				delete_user(target.username)
 			with self.assertRaises(frappe.PermissionError):
 				deactivate_user(target.username)
 			with self.assertRaises(frappe.PermissionError):

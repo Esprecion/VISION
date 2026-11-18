@@ -1,6 +1,6 @@
 # VISION Administration Panel
 
-The Administration panel manages VISION user accounts without deleting Frappe users. It covers create, list, edit, deactivate, and reactivate flows for the account types used by the business.
+The Administration panel manages VISION user accounts. It covers create, list, edit, and delete flows for the account types used by the business.
 
 ## Access
 
@@ -8,7 +8,7 @@ The Administration panel manages VISION user accounts without deleting Frappe us
 - Access is controlled by the server endpoint `my_custom_app.administration.admin.can_manage_users`.
 - Only users with the `System Admin` role can use the admin APIs.
 - The sidebar link and the route guard both use the server check. Direct visits to `/admin/users` by non-admins redirect to `/dashboard`.
-- `Administrator` and `Guest` are protected. They are never listed and cannot be created, edited, deactivated, or reactivated through this panel.
+- `Administrator` and `Guest` are protected. They are never listed and cannot be created, edited, or deleted through this panel.
 
 ## Managed Roles
 
@@ -22,8 +22,9 @@ VISION manages exactly one of these roles per account:
 
 There is no CEO role; the founder is CEO and COO. `System Manager` is never granted by the Administration APIs.
 
-When editing a user:
+When editing a user, only the account name and role can change:
 
+- The account name must be filled in and unique; changing it updates the login name and ends the user's sessions.
 - The selected managed role replaces other managed roles.
 - Unrelated roles are preserved.
 - The table shows a small `Extra roles` note when `has_extra_roles` is true.
@@ -57,9 +58,10 @@ All endpoints are in `my_custom_app.administration.admin`.
 | `list_users()` | Returns all non-protected users with at least one managed role. |
 | `get_user(account_name)` | Returns one managed user. |
 | `create_user(account_name, password, role)` | Creates a user with one managed role. |
-| `edit_user(account_name, role, password=None)` | Changes the managed role and optionally resets the password. |
-| `deactivate_user(account_name)` | Disables the account and ends its active sessions. |
-| `reactivate_user(account_name)` | Enables the account without changing roles. |
+| `edit_user(account_name, role, new_account_name)` | Changes the account name and managed role. |
+| `delete_user(account_name)` | Deletes the account and ends its active sessions. |
+| `deactivate_user(account_name)` | Legacy endpoint that disables the account; not exposed in the UI. |
+| `reactivate_user(account_name)` | Legacy endpoint that enables the account; not exposed in the UI. |
 
 A user row has this shape:
 
@@ -91,20 +93,20 @@ Errors use:
 
 ## Safety Rules
 
-- Nobody can deactivate or demote their own account.
-- The last active `System Admin` cannot be deactivated or have their role changed.
-- Deactivation never deletes the Frappe user record.
-- Passwords are never logged, printed, or returned in API responses.
-- Role changes, password resets, and deactivation end the target user's active sessions so access changes apply immediately.
-- If an admin resets their own password, their current session is also ended.
-- Reactivation does not change the user's roles and does not grant a new role.
+- Nobody can delete their own account; the API returns `This user cannot be deleted.`
+- The last active `System Admin` cannot be deleted or demoted; demotion returns `At least one System Admin is required.`
+- Deleting a user removes the account but keeps records they created, as their owner is stored as a name string.
+- Passwords are never logged, printed, or returned in API responses, and cannot be changed through `edit_user`.
+- Account-name and role changes end the target user's active sessions so access changes apply immediately.
+- A blank or duplicate account name returns `Please enter a unique account name.` (missing values return the required-details message).
 
 ## Users Page Behavior
 
-- The list can be searched by account name or role, filtered by status, and sorted by account or status.
-- The page shows total, active, and inactive account counts.
+- The list can be searched by account name or role and sorted by account name.
+- The page shows the total account count.
 - The signed-in admin's row is labelled `You`; the only enabled `System Admin` is labelled `Last admin`.
-- `Deactivate` and role changes are disabled for your own account and for the last active `System Admin`. Password resets remain available for your own account.
+- `Delete` is disabled for your own account and for the last active `System Admin`.
+- The role field is locked only for the last active `System Admin`; all other accounts, including your own, can be renamed and have their role changed when another admin remains.
 - Disabled actions are also enforced by the API; the UI only mirrors the server rules.
 
 ## Tests
@@ -113,8 +115,8 @@ Backend tests live in `my_custom_app/tests/`:
 
 - `test_admin_api.py`: read permissions, status, protected users, and extra-role flags.
 - `test_admin_create.py`: create validation, password rules, duplicate names, and logging safety.
-- `test_admin_edit_deactivate.py`: edit/deactivate rules, extra roles, session revocation, and guardrails.
-- `test_admin_reactivate.py`: reactivation flow and permissions.
+- `test_admin_edit_deactivate.py`: edit and delete rules, extra roles, session revocation, and guardrails.
+- `test_admin_reactivate.py`: legacy reactivation endpoint behavior and permissions.
 - `test_admin_permissions.py`: non-admin and `System Manager` denial.
 - `test_admin_roles.py`: role creation and first-admin seeding.
 - `test_username_login_patch.py`: username-login patch behavior.
