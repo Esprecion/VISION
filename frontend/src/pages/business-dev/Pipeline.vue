@@ -207,7 +207,13 @@
 </template>
 
 <script setup>
-import { parseLocal, startOfDayMs, endOfDayMs, quarterRange, yearRange } from '../../utils/dateRange'
+import {
+	parseLocal,
+	startOfDayMs,
+	endOfDayMs,
+	quarterRange,
+	yearRange,
+} from '../../utils/dateRange'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { createListResource, createResource } from 'frappe-ui'
 import ClientFormDialog from '@/pages/business-dev/ClientFormDialog.vue'
