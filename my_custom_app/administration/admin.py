@@ -152,9 +152,7 @@ def edit_user(account_name=None, role=None, new_account_name=None, password=None
 	_require_system_admin()
 
 	account_name = (account_name or "").strip()
-	new_account_name = (
-		new_account_name.strip() if new_account_name is not None else account_name
-	)
+	new_account_name = new_account_name.strip() if new_account_name is not None else account_name
 	role = (role or "").strip()
 
 	missing = []
@@ -170,10 +168,7 @@ def edit_user(account_name=None, role=None, new_account_name=None, password=None
 	if role not in ALLOWED_ROLES or not frappe.db.exists("Role", role):
 		return _error("role", INVALID_ROLE_MESSAGE, ["role"])
 
-	if (
-		account_name.lower() in PROTECTED_USER_NAMES
-		or new_account_name.lower() in PROTECTED_USER_NAMES
-	):
+	if account_name.lower() in PROTECTED_USER_NAMES or new_account_name.lower() in PROTECTED_USER_NAMES:
 		return _error("account_name", PROTECTED_EDIT_MESSAGE, ["account_name"])
 
 	if new_account_name.lower() != account_name.lower() and _account_name_taken(new_account_name):

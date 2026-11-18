@@ -135,25 +135,17 @@ def business_development_records_and_metrics(from_date=None, to_date=None, stage
 		"metrics": {
 			"deals_per_stage": _count(deal.stage for deal in deals),
 			"open_deal_value": sum(
-				_number(deal.value)
-				for deal in deals
-				if (deal.stage or "") not in CLOSED_DEAL_STAGES
+				_number(deal.value) for deal in deals if (deal.stage or "") not in CLOSED_DEAL_STAGES
 			),
 			"draft_contracts": contract_counts.get("Draft", 0),
 			"finalized_contracts": contract_counts.get("Finalized", 0),
 			"contract_counts": contract_counts,
 		},
 		"records": {
-			"clients": [
-				_record("Client", row, "client_name", "territory") for row in clients
-			],
+			"clients": [_record("Client", row, "client_name", "territory") for row in clients],
 			"products": [_record("Product", row, "product_name", "type") for row in products],
-			"deals": [
-				_record("Deal", row, "deal_title", "client", "stage") for row in deals
-			],
-			"contracts": [
-				_record("Service Contract", row, "deal", "client", "status") for row in contracts
-			],
+			"deals": [_record("Deal", row, "deal_title", "client", "stage") for row in deals],
+			"contracts": [_record("Service Contract", row, "deal", "client", "status") for row in contracts],
 		},
 		"filters": {
 			"from_date": str(from_date)[:10] if from_date else "",
@@ -190,11 +182,7 @@ def operations_records_and_metrics(status=None, client=None):
 			"projects_per_status": _count(project.stage for project in projects),
 			"projects_linked_to_contract": sum(1 for project in projects if project.contract),
 		},
-		"records": {
-			"projects": [
-				_record("Project", row, "contract", "client", "stage") for row in projects
-			]
-		},
+		"records": {"projects": [_record("Project", row, "contract", "client", "stage") for row in projects]},
 		"filters": {"status": status or "", "client": client or ""},
 	}
 
@@ -246,22 +234,15 @@ def finance_records_and_metrics(from_date=None, to_date=None, client=None):
 		"metrics": {
 			"total_invoiced": sum(_number(invoice.amount) for invoice in invoices),
 			"total_received": payment_total if payments else invoice_paid_total,
-			"outstanding_balance": sum(
-				_number(invoice.outstanding_amount) for invoice in invoices
-			),
+			"outstanding_balance": sum(_number(invoice.outstanding_amount) for invoice in invoices),
 			"total_expenses": sum(_number(expense.amount) for expense in expenses),
 		},
 		"records": {
-			"invoices": [
-				_record("Invoice", row, "client", "issue_date", "status") for row in invoices
-			],
+			"invoices": [_record("Invoice", row, "client", "issue_date", "status") for row in invoices],
 			"payments": [
-				_record("Client Payment", row, "invoice", "client", "payment_date")
-				for row in payments
+				_record("Client Payment", row, "invoice", "client", "payment_date") for row in payments
 			],
-			"expenses": [
-				_record("Expense", row, "category", "project", "expense_date") for row in expenses
-			],
+			"expenses": [_record("Expense", row, "category", "project", "expense_date") for row in expenses],
 		},
 		"filters": {
 			"from_date": str(from_date)[:10] if from_date else "",

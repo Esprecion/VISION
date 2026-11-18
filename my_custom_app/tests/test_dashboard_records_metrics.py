@@ -142,9 +142,7 @@ class TestDashboardRecordsAndMetrics(FrappeTestCase):
 		self.assertTrue(result["metrics"]["draft_contracts"] >= 1)
 		self.assertTrue(result["metrics"]["finalized_contracts"] >= 1)
 		self.assertTrue(any(row["name"] == lead_one.name for row in result["records"]["deals"]))
-		self.assertTrue(
-			any(row["doctype"] == "Service Contract" for row in result["records"]["contracts"])
-		)
+		self.assertTrue(any(row["doctype"] == "Service Contract" for row in result["records"]["contracts"]))
 
 	def test_business_development_stage_filter(self):
 		client = self._client("filtered-client")
@@ -212,9 +210,7 @@ class TestDashboardRecordsAndMetrics(FrappeTestCase):
 		self._payment(invoice)
 		self._expense(project)
 
-		result = finance_records_and_metrics(
-			client=client.name, from_date="2026-03-06", to_date="2026-03-10"
-		)
+		result = finance_records_and_metrics(client=client.name, from_date="2026-03-06", to_date="2026-03-10")
 
 		self.assertEqual(result["metrics"]["total_invoiced"], 0)
 		self.assertEqual(result["metrics"]["total_received"], 0)

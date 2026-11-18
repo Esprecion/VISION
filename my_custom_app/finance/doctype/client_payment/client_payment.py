@@ -33,18 +33,14 @@ class ClientPayment(Document):
 			frappe.throw(frappe._("The payment cannot exceed the outstanding balance."))
 
 	def _paid_total(self):
-		rows = frappe.get_all(
-			"Client Payment", filters={"invoice": self.invoice}, fields=["name", "amount"]
-		)
+		rows = frappe.get_all("Client Payment", filters={"invoice": self.invoice}, fields=["name", "amount"])
 		exclude = self.name if not self.is_new() else None
 		return sum((r.amount or 0) for r in rows if r.name != exclude) + (self.amount or 0)
 
 	def _recompute(self, invoice_name, exclude=None):
 		if not invoice_name or not frappe.db.exists("Invoice", invoice_name):
 			return
-		rows = frappe.get_all(
-			"Client Payment", filters={"invoice": invoice_name}, fields=["name", "amount"]
-		)
+		rows = frappe.get_all("Client Payment", filters={"invoice": invoice_name}, fields=["name", "amount"])
 		paid = sum((r.amount or 0) for r in rows if r.name != exclude)
 		invoice = frappe.get_doc("Invoice", invoice_name)
 		outstanding = max((invoice.amount or 0) - paid, 0)
