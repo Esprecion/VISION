@@ -76,6 +76,27 @@
       "report": 1,
       "export": 1,
       "print": 1
+    },
+    {
+      "role": "CBO",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
+    },
+    {
+      "role": "COO",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
+    },
+    {
+      "role": "CTO",
+      "read": 1,
+      "report": 1,
+      "export": 1,
+      "print": 1
     }
   ],
   "sort_field": "payment_date",

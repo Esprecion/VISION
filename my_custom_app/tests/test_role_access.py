@@ -44,6 +44,14 @@ class TestRoleAccess(FrappeTestCase):
 		finally:
 			frappe.set_user("Administrator")
 
+	def _can_read(self, role, doctype):
+		user = self._user_with_role(role)
+		frappe.set_user(user.name)
+		try:
+			return bool(frappe.has_permission(doctype, "read"))
+		finally:
+			frappe.set_user("Administrator")
+
 	def assert_perms(self, perms, business_dev, finance, operations):
 		self.assertEqual(
 			{key: perms["business_dev"][key] for key in ("read", "write")},
@@ -77,6 +85,11 @@ class TestRoleAccess(FrappeTestCase):
 		perms, can_admin = self._perms_for("CTO")
 		self.assert_perms(perms, (True, False), (True, False), (True, True))
 		self.assertFalse(can_admin)
+
+	def test_executives_can_read_client_payments(self):
+		for role in ("CBO", "CFO", "COO", "CTO"):
+			with self.subTest(role=role):
+				self.assertTrue(self._can_read(role, "Client Payment"))
 
 	def test_system_admin_has_admin_access_only(self):
 		perms, can_admin = self._perms_for("System Admin")

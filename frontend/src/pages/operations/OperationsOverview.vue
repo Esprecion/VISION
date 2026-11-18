@@ -1,10 +1,12 @@
 <script setup>
-import { computed } from 'vue'
-import { createResource } from 'frappe-ui'
+import { computed, ref, watch } from 'vue'
+import { call, createResource } from 'frappe-ui'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
+import DashboardRecords from '@/components/ui/DashboardRecords.vue'
+import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
 
 function useReport(name) {
 	return createResource({
@@ -37,18 +39,82 @@ const costRows = computed(() => rowsOf(cost)) // [month, total]
 const maxCost = computed(() => Math.max(1, ...costRows.value.map((r) => Number(r[1]) || 0)))
 const maxActive = computed(() => Math.max(1, ...activeRows.value.map((r) => Number(r[1]) || 0)))
 
-const errText = (res) =>
-	String(res.error?.messages?.[0] || res.error?.message || 'Something went wrong').replace(
-		/<[^>]+>/g,
-		''
-	)
+const recordsErrorMessage = 'Unable to load records. Please try again.'
+const errText = () => recordsErrorMessage
 const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
+
+const statusOptions = ['Kickoff', 'Development', 'Testing', 'Deployed']
+const selectedStatus = ref('')
+const selectedClient = ref('')
+const showDetail = ref(false)
+const selectedRecord = ref(null)
+
+const recordFilters = computed(() => ({
+	status: selectedStatus.value,
+	client: selectedClient.value,
+}))
+const recordsCall = createResource({
+	url: 'my_custom_app.shared.dashboard.operations_records_and_metrics',
+	params: recordFilters.value,
+	auto: true,
+})
+watch(recordFilters, (filters) => {
+	recordsCall.update({ params: filters })
+	recordsCall.reload()
+})
+watch(
+	() => recordsCall.error,
+	(error) => {
+		if (error) {
+			call('my_custom_app.shared.dashboard.log_dashboard_error', {
+				source: 'operations',
+				message: error.message || String(error),
+			}).catch(() => {})
+		}
+	}
+)
+
+const metricData = computed(() => recordsCall.data?.metrics || {})
+const summaryMetrics = computed(() => {
+	const statusCounts = Object.entries(metricData.value.projects_per_status || {})
+		.map(([status, count]) => `${status}: ${count}`)
+		.join(' · ')
+	return [
+		{ label: 'PROJECTS PER STATUS', value: statusCounts || '0' },
+		{ label: 'LINKED TO CONTRACT', value: metricData.value.projects_linked_to_contract || 0 },
+	]
+})
+const recordGroups = computed(() => {
+	const records = recordsCall.data?.records || {}
+	return [{ key: 'projects', label: 'Projects', rows: records.projects || [] }]
+})
+function openRecord(record) {
+	selectedRecord.value = record
+	showDetail.value = true
+}
 </script>
 
 <template>
 	<div class="dashboard">
-		<PageHeader title="Operations" />
+		<PageHeader title="Operations">
+			<template #actions>
+				<div class="record-filters">
+					<select v-model="selectedStatus" aria-label="Filter by status">
+						<option value="">All statuses</option>
+						<option v-for="status in statusOptions" :key="status" :value="status">
+							{{ status }}
+						</option>
+					</select>
+					<input
+						v-model="selectedClient"
+						type="search"
+						placeholder="Filter by client..."
+						aria-label="Filter by client"
+					/>
+				</div>
+			</template>
+		</PageHeader>
 
 		<div class="tiles">
 			<div class="tile">
@@ -60,7 +126,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">ON-TIME DELIVERY</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="onTime.reload()">
 							Retry
 						</button>
@@ -84,7 +150,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">AVG PROJECT CYCLE TIME</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="cycle.reload()">
 							Retry
 						</button>
@@ -108,7 +174,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">ACTIVE CLIENTS</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="active.reload()">
 							Retry
 						</button>
@@ -129,7 +195,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">AVG CLIENT TENURE</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="tenure.reload()">
 							Retry
 						</button>
@@ -148,7 +214,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				<div class="card-label">Active Clients by Project Type</div>
 				<ErrorState
 					v-if="active.error"
-					title="Couldn't load this chart"
+					title="Records unavailable"
 					:message="errText(active)"
 					:on-retry="() => active.reload()"
 				/>
@@ -172,7 +238,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				<div class="card-label">Tool and API Cost Trend (monthly)</div>
 				<ErrorState
 					v-if="cost.error"
-					title="Couldn't load this chart"
+					title="Records unavailable"
 					:message="errText(cost)"
 					:on-retry="() => cost.reload()"
 				/>
@@ -201,7 +267,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			<div class="card-label">Client Tenure</div>
 			<ErrorState
 				v-if="tenure.error"
-				title="Couldn't load client tenure"
+				title="Records unavailable"
 				:message="errText(tenure)"
 				:on-retry="() => tenure.reload()"
 			/>
@@ -230,6 +296,24 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				</table>
 			</div>
 		</div>
+
+		<div class="record-summary">
+			<div v-for="metric in summaryMetrics" :key="metric.label" class="summary-metric">
+				<div class="summary-label">{{ metric.label }}</div>
+				<div class="summary-value">{{ metric.value }}</div>
+			</div>
+		</div>
+
+		<DashboardRecords
+			title="Operations Records"
+			empty-message="No projects yet."
+			:groups="recordGroups"
+			:loading="recordsCall.loading"
+			:error="recordsCall.error"
+			:on-retry="() => recordsCall.reload()"
+			@select="openRecord"
+		/>
+		<DashboardRecordDetailDialog v-model="showDetail" :record="selectedRecord" />
 	</div>
 </template>
 
@@ -367,6 +451,48 @@ td {
 }
 tbody tr:last-child td {
 	border-bottom: none;
+}
+.record-filters {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+.record-filters select,
+.record-filters input {
+	border: 1px solid var(--color-gray-200);
+	border-radius: var(--radius-sm);
+	padding: 6px var(--space-2);
+	font-size: var(--fs-sm);
+	background: var(--color-white);
+	color: var(--color-gray-900);
+	font-family: inherit;
+}
+.record-summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+.summary-metric {
+	background: var(--color-white);
+	border: 1px solid var(--color-gray-200);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4) var(--space-5);
+	box-shadow: var(--shadow-xs);
+}
+.summary-label {
+	font-size: var(--fs-xs);
+	color: var(--color-gray-600);
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	margin-bottom: var(--space-2);
+}
+.summary-value {
+	font-size: var(--fs-lg);
+	font-weight: 700;
+	color: var(--color-gray-900);
+	font-variant-numeric: tabular-nums;
 }
 @media (max-width: 900px) {
 	.tiles {

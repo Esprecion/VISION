@@ -3,7 +3,7 @@
 		<AppSkeleton v-if="loading" variant="chart" :rows="4" />
 		<ErrorState
 			v-else-if="error"
-			title="Couldn't load this chart"
+			title="Records unavailable"
 			:message="errorMessage"
 			:on-retry="onRetry"
 		/>
@@ -54,12 +54,9 @@ function format(value) {
 	return String(value ?? '')
 }
 
-const errorMessage = computed(() => {
-	const e = props.error
-	if (!e) return ''
-	if (typeof e === 'string') return e
-	return e.message || 'The request failed. Please try again.'
-})
+const errorMessage = computed(() =>
+	props.error ? 'Unable to load records. Please try again.' : ''
+)
 </script>
 
 <style scoped>

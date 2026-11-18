@@ -1,12 +1,14 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { createResource } from 'frappe-ui'
+import { call, createResource } from 'frappe-ui'
 import { yearRange } from '../../utils/dateRange'
 import { quarterRange } from '../../utils/dateRange'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
+import DashboardRecords from '@/components/ui/DashboardRecords.vue'
+import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
 import XIcon from '~icons/lucide/x'
 
 const initialRange = yearRange()
@@ -109,6 +111,59 @@ watch([fromInput, toInput], () => {
 		res.reload()
 	}
 })
+
+const recordsErrorMessage = 'Unable to load records. Please try again.'
+const selectedClient = ref('')
+const selectedRecordType = ref('all')
+const showDetail = ref(false)
+const selectedRecord = ref(null)
+const recordFilters = computed(() => ({
+	from_date: fromInput.value,
+	to_date: toInput.value,
+	client: selectedClient.value,
+}))
+const recordsCall = createResource({
+	url: 'my_custom_app.shared.dashboard.finance_records_and_metrics',
+	params: recordFilters.value,
+	auto: true,
+})
+watch(recordFilters, (filters) => {
+	recordsCall.update({ params: filters })
+	recordsCall.reload()
+})
+watch(
+	() => recordsCall.error,
+	(error) => {
+		if (error) {
+			call('my_custom_app.shared.dashboard.log_dashboard_error', {
+				source: 'finance',
+				message: error.message || String(error),
+			}).catch(() => {})
+		}
+	}
+)
+
+const metricData = computed(() => recordsCall.data?.metrics || {})
+const summaryMetrics = computed(() => [
+	{ label: 'TOTAL INVOICED', value: peso(metricData.value.total_invoiced) },
+	{ label: 'TOTAL RECEIVED', value: peso(metricData.value.total_received) },
+	{ label: 'OUTSTANDING BALANCE', value: peso(metricData.value.outstanding_balance) },
+	{ label: 'TOTAL EXPENSES', value: peso(metricData.value.total_expenses) },
+])
+const recordGroups = computed(() => {
+	const records = recordsCall.data?.records || {}
+	const groups = [
+		{ key: 'invoices', label: 'Invoices', rows: records.invoices || [] },
+		{ key: 'payments', label: 'Client Payments', rows: records.payments || [] },
+		{ key: 'expenses', label: 'Expenses', rows: records.expenses || [] },
+	]
+	if (selectedRecordType.value === 'all') return groups
+	return groups.filter((group) => group.key === selectedRecordType.value)
+})
+function openRecord(record) {
+	selectedRecord.value = record
+	showDetail.value = true
+}
 
 const revenueRows = computed(() => rowsOf(revenue)) // [client, total, count]
 const totalRevenue = computed(() => revenueRows.value.reduce((s, r) => s + Number(r[1] || 0), 0))
@@ -241,7 +296,7 @@ const burnNote = computed(() => {
 	)
 })
 
-const errText = (res) => res.error?.messages?.[0] || res.error?.message || ''
+const errText = () => recordsErrorMessage
 
 const peso = (n) => '₱' + Number(n || 0).toLocaleString('en-PH')
 const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
@@ -259,6 +314,20 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
 					<button type="button" @click="setRange(yearRange())">This year</button>
 				</div>
+				<div class="record-filters">
+					<select v-model="selectedRecordType" aria-label="Filter by record type">
+						<option value="all">All record types</option>
+						<option value="invoices">Invoices</option>
+						<option value="payments">Client Payments</option>
+						<option value="expenses">Expenses</option>
+					</select>
+					<input
+						v-model="selectedClient"
+						type="search"
+						placeholder="Filter by client..."
+						aria-label="Filter by client"
+					/>
+				</div>
 			</template>
 		</PageHeader>
 
@@ -272,7 +341,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">TOTAL PAID REVENUE</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="revenue.reload()">
 							Retry
 						</button>
@@ -293,7 +362,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">OUTSTANDING (A/R)</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="aging.reload()">
 							Retry
 						</button>
@@ -314,7 +383,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">LATEST NET BURN</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="burn.reload()">
 							Retry
 						</button>
@@ -340,7 +409,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<div class="label">NET PROFIT</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
-						Couldn't load.
+						{{ recordsErrorMessage }}
 						<button type="button" class="retry-link" @click="profit.reload()">
 							Retry
 						</button>
@@ -359,7 +428,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				<div class="card-label">Revenue per Client</div>
 				<ErrorState
 					v-if="revenue.error"
-					title="Couldn't load this chart"
+					title="Records unavailable"
 					:message="errText(revenue)"
 					:on-retry="() => revenue.reload()"
 				/>
@@ -384,7 +453,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				<div v-if="burnNote" class="muted note">{{ burnNote }}</div>
 				<ErrorState
 					v-if="burn.error"
-					title="Couldn't load this chart"
+					title="Records unavailable"
 					:message="errText(burn)"
 					:on-retry="() => burn.reload()"
 				/>
@@ -416,7 +485,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			<div class="card-label">Project Profitability (paid revenue minus expenses)</div>
 			<ErrorState
 				v-if="profit.error"
-				title="Couldn't load this table"
+				title="Records unavailable"
 				:message="errText(profit)"
 				:on-retry="() => profit.reload()"
 			/>
@@ -524,7 +593,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			<div class="card-label">Accounts Receivable Aging</div>
 			<ErrorState
 				v-if="aging.error"
-				title="Couldn't load aging"
+				title="Records unavailable"
 				:message="errText(aging)"
 				:on-retry="() => aging.reload()"
 			/>
@@ -608,7 +677,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			<div class="card-label">Expenses by Category</div>
 			<ErrorState
 				v-if="expenseRep.error"
-				title="Couldn't load expenses"
+				title="Records unavailable"
 				:message="errText(expenseRep)"
 				:on-retry="() => expenseRep.reload()"
 			/>
@@ -675,6 +744,24 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				</div>
 			</template>
 		</div>
+
+		<div class="record-summary">
+			<div v-for="metric in summaryMetrics" :key="metric.label" class="summary-metric">
+				<div class="summary-label">{{ metric.label }}</div>
+				<div class="summary-value">{{ metric.value }}</div>
+			</div>
+		</div>
+
+		<DashboardRecords
+			title="Finance Records"
+			empty-message="No finance records yet."
+			:groups="recordGroups"
+			:loading="recordsCall.loading"
+			:error="recordsCall.error"
+			:on-retry="() => recordsCall.reload()"
+			@select="openRecord"
+		/>
+		<DashboardRecordDetailDialog v-model="showDetail" :record="selectedRecord" />
 	</div>
 </template>
 
@@ -971,6 +1058,49 @@ tr.drill-total td {
 }
 .bucket-table td {
 	padding: var(--space-1) var(--space-3) var(--space-1) 0;
+}
+.record-filters {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+.record-filters select,
+.record-filters input,
+.period-picker input {
+	border: 1px solid var(--color-gray-200);
+	border-radius: var(--radius-sm);
+	padding: 6px var(--space-2);
+	font-size: var(--fs-sm);
+	background: var(--color-white);
+	color: var(--color-gray-900);
+	font-family: inherit;
+}
+.record-summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+.summary-metric {
+	background: var(--color-white);
+	border: 1px solid var(--color-gray-200);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4) var(--space-5);
+	box-shadow: var(--shadow-xs);
+}
+.summary-label {
+	font-size: var(--fs-xs);
+	color: var(--color-gray-600);
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	margin-bottom: var(--space-2);
+}
+.summary-value {
+	font-size: var(--fs-lg);
+	font-weight: 700;
+	color: var(--color-gray-900);
+	font-variant-numeric: tabular-nums;
 }
 @media (max-width: 900px) {
 	.tiles {

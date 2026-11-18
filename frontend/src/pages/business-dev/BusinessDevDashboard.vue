@@ -10,6 +10,23 @@
 					<button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
 					<button type="button" @click="setRange(yearRange())">This year</button>
 				</div>
+				<div class="record-filters">
+					<select v-model="selectedStage" aria-label="Filter by stage">
+						<option
+							v-for="option in stageOptions"
+							:key="option.value"
+							:value="option.value"
+						>
+							{{ option.label }}
+						</option>
+					</select>
+					<input
+						v-model="selectedClient"
+						type="search"
+						placeholder="Filter by client..."
+						aria-label="Filter by client"
+					/>
+				</div>
 				<RouterLink to="/business-dev/pipeline" class="kanban-link">
 					View Pipeline
 					<ArrowRightIcon class="kanban-link__icon" aria-hidden="true" />
@@ -26,7 +43,7 @@
 				<div class="stat-label">CONVERSION RATE</div>
 				<div class="stat-value">—</div>
 				<div class="stat-sub stat-sub--error">
-					Couldn't load.
+					{{ recordsErrorMessage }}
 					<button type="button" class="retry-link" @click="conversionRate.reload()">
 						Retry
 					</button>
@@ -132,8 +149,8 @@
 				<AppSkeleton v-if="velocity.loading" variant="table" :rows="4" :cols="3" />
 				<ErrorState
 					v-else-if="velocity.error"
-					title="Couldn't load this table"
-					:message="velocity.error.message"
+					title="Records unavailable"
+					:message="recordsErrorMessage"
 					:on-retry="() => velocity.reload()"
 				/>
 				<EmptyState
@@ -180,22 +197,43 @@
 				</template>
 			</div>
 		</div>
+
+		<div class="record-summary">
+			<div v-for="metric in summaryMetrics" :key="metric.label" class="summary-metric">
+				<div class="summary-label">{{ metric.label }}</div>
+				<div class="summary-value">{{ metric.value }}</div>
+			</div>
+		</div>
+
+		<DashboardRecords
+			title="Business Development Records"
+			empty-message="No business development records yet."
+			:groups="recordGroups"
+			:loading="recordsCall.loading"
+			:error="recordsCall.error"
+			:on-retry="() => recordsCall.reload()"
+			@select="openRecord"
+		/>
+		<DashboardRecordDetailDialog v-model="showDetail" :record="selectedRecord" />
 	</div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { createResource } from 'frappe-ui'
+import { call, createListResource, createResource } from 'frappe-ui'
 import { quarterRange, yearRange } from '../../utils/dateRange'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BarList from '@/components/ui/BarList.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
+import DashboardRecords from '@/components/ui/DashboardRecords.vue'
+import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
 import ArrowRightIcon from '~icons/lucide/arrow-right'
 import ChevronUpIcon from '~icons/lucide/chevron-up'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
 
+const recordsErrorMessage = 'Unable to load records. Please try again.'
 const initialRange = quarterRange(0)
 const fromInput = ref(initialRange.from)
 const toInput = ref(initialRange.to)
@@ -235,6 +273,79 @@ watch([fromInput, toInput], () => {
 		resource.reload()
 	})
 })
+
+const selectedStage = ref('')
+const selectedClient = ref('')
+const showDetail = ref(false)
+const selectedRecord = ref(null)
+const stageList = createListResource({
+	doctype: 'Pipeline Stage',
+	fields: ['stage_name', 'sequence'],
+	order_by: 'sequence asc',
+	auto: true,
+})
+const stageOptions = computed(() => [
+	{ label: 'All stages', value: '' },
+	...(stageList.data || []).map((stage) => ({
+		label: stage.stage_name,
+		value: stage.stage_name,
+	})),
+])
+
+const recordFilters = computed(() => ({
+	from_date: fromDate.value,
+	to_date: toDate.value,
+	stage: selectedStage.value,
+	client: selectedClient.value,
+}))
+const recordsCall = createResource({
+	url: 'my_custom_app.shared.dashboard.business_development_records_and_metrics',
+	params: recordFilters.value,
+	auto: true,
+})
+watch(recordFilters, (filters) => {
+	recordsCall.update({ params: filters })
+	recordsCall.reload()
+})
+watch(
+	() => recordsCall.error,
+	(error) => {
+		if (error) {
+			call('my_custom_app.shared.dashboard.log_dashboard_error', {
+				source: 'business_development',
+				message: error.message || String(error),
+			}).catch(() => {})
+		}
+	}
+)
+
+const metricData = computed(() => recordsCall.data?.metrics || {})
+const summaryMetrics = computed(() => {
+	const dealsPerStage = Object.entries(metricData.value.deals_per_stage || {})
+		.map(([stage, count]) => `${stage}: ${count}`)
+		.join(' · ')
+	return [
+		{ label: 'DEALS PER STAGE', value: dealsPerStage || '0' },
+		{ label: 'OPEN DEAL VALUE', value: peso(metricData.value.open_deal_value) },
+		{ label: 'DRAFT CONTRACTS', value: metricData.value.draft_contracts || 0 },
+		{ label: 'FINALIZED CONTRACTS', value: metricData.value.finalized_contracts || 0 },
+	]
+})
+
+const recordGroups = computed(() => {
+	const records = recordsCall.data?.records || {}
+	return [
+		{ key: 'clients', label: 'Clients', rows: records.clients || [] },
+		{ key: 'products', label: 'Products', rows: records.products || [] },
+		{ key: 'deals', label: 'Deals', rows: records.deals || [] },
+		{ key: 'contracts', label: 'Contracts', rows: records.contracts || [] },
+	]
+})
+
+function openRecord(record) {
+	selectedRecord.value = record
+	showDetail.value = true
+}
 
 const conversionRow = computed(() => conversionRate.data?.result?.[0])
 const conversionRateDisplay = computed(() =>
@@ -468,6 +579,50 @@ function peso(n) {
 .velocity-table td.stale {
 	color: var(--color-red-600);
 	font-weight: 600;
+}
+
+.record-filters {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	flex-wrap: wrap;
+}
+.record-filters select,
+.record-filters input,
+.period-picker input {
+	border: 1px solid var(--color-gray-200);
+	border-radius: var(--radius-sm);
+	padding: 6px var(--space-2);
+	font-size: var(--fs-sm);
+	background: var(--color-white);
+	color: var(--color-gray-900);
+	font-family: inherit;
+}
+.record-summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: var(--space-4);
+	margin-bottom: var(--space-4);
+}
+.summary-metric {
+	background: var(--color-white);
+	border: 1px solid var(--color-gray-200);
+	border-radius: var(--radius-lg);
+	padding: var(--space-4) var(--space-5);
+	box-shadow: var(--shadow-xs);
+}
+.summary-label {
+	font-size: var(--fs-xs);
+	color: var(--color-gray-600);
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	margin-bottom: var(--space-2);
+}
+.summary-value {
+	font-size: var(--fs-lg);
+	font-weight: 700;
+	color: var(--color-gray-900);
+	font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 900px) {
