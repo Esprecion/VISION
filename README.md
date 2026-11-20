@@ -14,6 +14,8 @@ VISION is a unified platform for MSMEs and others to manage business development
 - **COO** (Chief Operating Officer)
 - **CFO** (Chief Financial Officer)
 
+See [ROLE_OWNERSHIP.md](ROLE_OWNERSHIP.md) for role ownership, read-only access, and shared files.
+
 ## Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:
