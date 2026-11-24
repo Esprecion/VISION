@@ -7,12 +7,15 @@ VISION is a unified platform for MSMEs and others to manage business development
 - **Business Development** - Clients, Deals, Pipeline Stages, Products, and Service Contracts
 - **Operations** - Projects, Tool Subscriptions and tracking, and Client Engagement Logs
 - **Finance** - Invoices, Expenses, and financial reporting
+- **Administration** - User accounts, roles, and access management
 
 ## Roles
 
 - **CBO** (Chief Business Officer)
 - **COO** (Chief Operating Officer)
 - **CFO** (Chief Financial Officer)
+- **System Admin** - Manages users and role assignments
+- **CTO** (Chief Technology Officer)
 
 See [ROLE_OWNERSHIP.md](ROLE_OWNERSHIP.md) for role ownership, read-only access, and shared files.
 
