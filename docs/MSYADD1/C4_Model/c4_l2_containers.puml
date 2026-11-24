@@ -1,0 +1,45 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram for VISION
+
+Person(executive, "Executive / Leader", "Accesses executive dashboard via web browser to review metrics and risk alerts.")
+
+System_Boundary(vision_boundary, "VISION System Boundary") {
+
+    Container(webServer, "Web Application Host", "Next.js / Node.js", "Delivers static web content, single-page application bundles, and initial dashboard assets.")
+    Container(spa, "Single-Page App", "React", "Runs in executive browser. Provides organized view of metrics, RAG risk hierarchies, 'Last Updated' timestamps, and source document previews.")
+
+    Container(apiGateway, "Backend API Gateway", "Nest.js", "Handles secure email authentication, routes requests, manages user sessions, and exposes aggregated metric endpoints.")
+    Container(aiPipeline, "Data Ingestion & AI Engine", "Python / AI Services", "Parses unstructured files from the warehouse, extracts Performance Indicators (PIs), and calculates RAG risk levels.")
+    
+    ContainerDb(database, "VISION Metadata Store", "Supabase / PostgreSQL", "Stores aggregated Performance Indicator (PI) metrics, historical RAG risk statuses, user sessions, and document source mappings.")
+}
+
+System_Ext(fileWarehouse, "File Warehouse / Storage", "External storage for unstructured reports (e.g., PDFs, spreadsheets)")
+System_Ext(deptTools, "Operational Platforms", "Existing software and ERPs used across company departments")
+
+' Force side-by-side horizontal alignment inside boundary
+Rel_Right(webServer, spa, "Delivers SPA bundle", "HTTPS")
+Rel_Right(apiGateway, aiPipeline, "Triggers ingestion / sync", "Internal API")
+
+' Executive Interactions
+Rel(executive, webServer, "Visits platform URL", "HTTPS")
+Rel(executive, spa, "Interacts with dashboard", "Browser Interface")
+
+' Web App & Backend Interactions
+Rel(spa, apiGateway, "Requests metrics & dashboard state", "JSON / HTTPS")
+Rel(spa, fileWarehouse, "Provides direct source previews & links", "HTTPS")
+
+' Backend & Database Interactions
+Rel(apiGateway, database, "Queries compiled PIs & user sessions", "SQL")
+
+' AI Engine Interactions
+Rel(aiPipeline, fileWarehouse, "Extracts data from uploaded files", "HTTPS / Ingestion")
+Rel(aiPipeline, deptTools, "Pulls operational data", "API / Ingestion")
+Rel(aiPipeline, database, "Persists extracted PIs & computed RAG alerts", "SQL")
+
+@enduml

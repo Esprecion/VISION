@@ -1,0 +1,10 @@
+{
+  "name": "mcsproj-vision-dev",
+  "image": "mcr.microsoft.com/devcontainers/universal:noble",
+  "postCreateCommand": "cd system",
+  "postStartCommand": "cd system && bash resume.sh &",
+  "portsAttributes": {
+    "8000": { "label": "Frappe Web"},
+    "9000": { "label": "Frappe Realtime"}
+  }
+}

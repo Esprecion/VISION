@@ -19,6 +19,26 @@ VISION is a unified platform for MSMEs and others to manage business development
 
 See [ROLE_OWNERSHIP.md](ROLE_OWNERSHIP.md) for role ownership, read-only access, and shared files.
 
+## Development environment
+
+The development setup is based on the scripts in `system/` and the devcontainer definition in `.devcontainer/devcontainer.json`. These scripts are for development only.
+
+**How to deploy (19 November 2026 | For Development)**
+1. `cd system`
+2. `bash setup.sh`
+3. `bash frappe_setup.sh`
+
+**How to resume after shutdown (19 November 2026 | For Development)**
+1. `cd system`
+2. `bash resume.sh`
+
+**How to reset the Frappe app (20 November 2026 | For Development)**
+1. `cd system/backend/frappe-bench`
+2. `bench drop-site dashboard.localhost --root-password [Insert MariaDB root user password]`
+3. `bench remove-app vision_system`
+
+Supporting course and design artifacts live in `docs/`, including C4 diagrams and the final paper/presentation.
+
 ## Installation
 
 You can install this app using the [bench](https://github.com/frappe/bench) CLI:

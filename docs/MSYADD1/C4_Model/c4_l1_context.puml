@@ -1,0 +1,29 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context Diagram for VISION
+
+Person(executive, "Executive / Leader", "Views compiled progress, PIs/KPIs, RAG risk alerts, and verifies original source documents.")
+Person(employee, "Department Employee", "Carries out daily operations in existing tools and uploads unstructured reports to file storage.")
+
+System(vision, "VISION System", "Centralized web-based executive dashboard that aggregates operational data, evaluates RAG risks, and provides source links.")
+
+System_Ext(deptTools, "Operational Tools / Platforms", "Existing software and ERPs used daily across company departments.")
+System_Ext(fileWarehouse, "File Warehouse / Storage", "Stores uploaded unstructured reports and tagged documents (e.g., PDFs, spreadsheets).")
+
+' Executive Relationships
+Rel(executive, vision, "Views metrics, RAG alerts, and source links", "HTTPS / Web Browser")
+Rel(executive, deptTools, "Performs daily tasks")
+Rel(executive, fileWarehouse, "Uploads files")
+
+' Department Employee Relationships
+Rel(employee, deptTools, "Performs daily tasks")
+Rel(employee, fileWarehouse, "Uploads unstructured reports & standardized files")
+
+' VISION System Relationships
+Rel(vision, deptTools, "Pulls metrics & operational data", "API / Ingestion")
+Rel(vision, fileWarehouse, "Pulls metrics & operational data")
+
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - Web Application Host & SPA
+
+Person(executive, "Executive / Leader", "Accesses executive dashboard via web browser")
+Container(apiGateway, "Backend API Gateway", "Nest.js", "Handles auth and serves data")
+
+Container_Boundary(web_boundary, "Web Application Host & SPA (Next.js / React)") {
+    Component(pageRouter, "Page Router & SSR Engine", "Next.js", "Delivers initial web application pages and routes.")
+    Component(assetServer, "Static Asset & Bundle Server", "Next.js CDN", "Serves compiled React single-page app bundles, CSS styles, and assets.")
+    Component(dashboardUI, "Interactive Dashboard SPA", "React", "Displays performance indicator hierarchies, RAG risk levels, timestamps, and document previews.")
+}
+
+' Relationships
+Rel(executive, pageRouter, "Fetches web assets & pages", "HTTPS")
+Rel(pageRouter, assetServer, "Requests SPA build bundle")
+Rel(assetServer, dashboardUI, "Loads React app in user browser", "HTTPS / JS")
+Rel(executive, dashboardUI, "Interacts with dashboard UI", "Browser Interface")
+Rel(dashboardUI, apiGateway, "Requests metrics, RAG statuses, & previews", "JSON / HTTPS")
+
+@enduml

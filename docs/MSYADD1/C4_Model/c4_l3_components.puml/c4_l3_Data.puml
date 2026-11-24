@@ -1,0 +1,28 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - Data Ingestion & AI Engine
+
+System_Ext(fileWarehouse, "File Warehouse / Storage", "Stores uploaded unstructured reports")
+System_Ext(deptTools, "Operational Platforms", "Existing software and ERPs")
+ContainerDb(database, "VISION Metadata Store", "PostgreSQL / Supabase", "Stores PIs, RAG statuses, and document mappings")
+
+Container_Boundary(ai_boundary, "Data Ingestion & AI Engine (Python / AI Services)") {
+    Component(docParser, "Unstructured Document Parser", "Python / PyPDF / OpenPyXL", "Parses unstructured files (PDFs, spreadsheets) from the warehouse.")
+    Component(piExtractor, "PI Extraction Module", "Python / AI Engine", "Extracts operational Performance Indicators (PIs) and target thresholds.")
+    Component(ragEngine, "RAG Risk Evaluator", "Python / Logic Engine", "Analyzes performance indicators against targets and calculates RAG risk levels.")
+    Component(persistenceService, "Metadata Persistence Service", "Python / SQLAlchemy", "Writes extracted PIs and calculated RAG risk levels to the database.")
+}
+
+' Relationships
+Rel(docParser, fileWarehouse, "Fetches unstructured files", "HTTPS / Ingestion")
+Rel(docParser, piExtractor, "Passes extracted raw text & tables")
+Rel(piExtractor, deptTools, "Pulls operational data feeds", "API / Ingestion")
+Rel(piExtractor, ragEngine, "Passes extracted Performance Indicators (PIs)")
+Rel(ragEngine, persistenceService, "Sends computed RAG risk levels")
+Rel(persistenceService, database, "Persists extracted PIs & RAG risk alerts", "SQL")
+
+@enduml

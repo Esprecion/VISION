@@ -1,0 +1,27 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_LEFT_RIGHT()
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - Backend API Gateway
+
+Container(spa, "Single-Page App", "React", "Runs in executive browser")
+ContainerDb(database, "VISION Metadata Store", "PostgreSQL / Supabase", "Stores PIs, RAG statuses, and user sessions")
+
+Container_Boundary(api_boundary, "Backend API Gateway (Nest.js)") {
+    Component(authGuard, "Auth Guard & Access Controller", "Nest.js Guard", "Handles secure email authentication, manages user sessions, and secures API routes.")
+    Component(metricController, "PI & RAG Endpoint Controller", "Nest.js Controller", "Exposes aggregated metric endpoints and RAG risk hierarchies to the dashboard.")
+    Component(dashboardService, "Dashboard Aggregator Service", "Nest.js Service", "Compiles cross-department progress, Performance Indicators (PIs), and appends timestamps.")
+    Component(sourceLinker, "Source Verification Mapper", "Nest.js Service", "Maps extracted PIs back to original document URLs or API source locations.")
+}
+
+' Relationships
+Rel(spa, metricController, "Requests PIs, RAG alerts, & source links", "JSON / HTTPS")
+Rel(metricController, authGuard, "Delegates user authentication check")
+Rel(authGuard, dashboardService, "Routes authorized request")
+Rel(dashboardService, database, "Queries aggregated metrics & user sessions", "SQL")
+Rel(sourceLinker, dashboardService, "Provides mapped source document links")
+Rel(sourceLinker, database, "Queries source mapping metadata", "SQL")
+
+@enduml
