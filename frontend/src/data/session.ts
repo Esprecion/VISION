@@ -20,24 +20,27 @@ const MODULE_BY_DOCTYPE: Record<string, string> = {
 }
 
 const rolesCall = useCall({
-  url: '/api/method/my_custom_app.shared.api.get_my_roles',
+  url: '/api/v2/method/my_custom_app.shared.api.get_my_roles',
   immediate: false,
   onSuccess(data: any) {
-    const user = data?.message?.user || data?.user
-    sessionUser.value = user && user !== 'Guest' ? user : null
-    userRoles.value = data?.message?.roles || data?.roles || []
+    const user = data?.user || data?.message?.user
+    if (user) {
+      sessionUser.value = user === 'Guest' ? null : user
+    } else if (!sessionUser.value) {
+      sessionUser.value = getSessionUserFromCookie()
+    }
+    userRoles.value = data?.roles || data?.message?.roles || []
   },
   onError() {
     userRoles.value = []
-    sessionUser.value = null
   },
 })
 
 const permsCall = useCall({
-  url: '/api/method/my_custom_app.shared.api.get_module_perms',
+  url: '/api/v2/method/my_custom_app.shared.api.get_module_perms',
   immediate: false,
   onSuccess(data: any) {
-    modulePerms.value = data?.message || data || {}
+    modulePerms.value = data || data?.message || {}
   },
   onError() {
     modulePerms.value = {}
@@ -45,7 +48,7 @@ const permsCall = useCall({
 })
 
 const adminAccessCall = useCall({
-  url: '/api/method/my_custom_app.administration.admin.can_manage_users',
+  url: '/api/v2/method/my_custom_app.administration.admin.can_manage_users',
   immediate: false,
   onSuccess(data: any) {
     canManageUsers.value = Boolean(data?.message ?? data)

@@ -144,7 +144,7 @@ const routes = [
     path: '/finance',
     component: () => import('@/layouts/DepartmentLayout.vue'),
     props: () => ({
-      tabs: financeTabs.filter((tab) => tab.to !== '/finance/payments' || session.isCFO.value),
+      tabs: financeTabs.filter((tab) => tab.to !== '/finance/payments' || session.isCFO),
     }),
     meta: { module: 'finance' },
     children: [
@@ -214,14 +214,14 @@ export default router
 
 router.beforeEach(async (to) => {
   await ensureSessionData()
-  if (!session.isLoggedIn) {
+  if (!session.isLoggedIn || session.user === 'Guest') {
     window.location.href = '/login?redirect-to=/frontend' + to.fullPath
     return false
   }
   if (to.meta.requiresAdmin && !(await ensureAdminAccess())) {
     return { path: '/dashboard' }
   }
-  if (to.meta.requiresCFO && !session.isCFO.value) {
+  if (to.meta.requiresCFO && !session.isCFO) {
     return { path: '/dashboard' }
   }
   const module = to.meta.module as string | undefined
