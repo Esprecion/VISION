@@ -9,4 +9,12 @@ my_custom_app/public/frontend/
 my_custom_app/www/frontend.html
 *.bak
 
+benchmarks/imports/receipts/*
+!benchmarks/imports/receipts/.gitkeep
+benchmarks/imports/contracts/*
+!benchmarks/imports/contracts/.gitkeep
+benchmarks/imports/reports/*
+!benchmarks/imports/reports/.gitkeep
+benchmarks/imports/answers.json
+
 .opencode/
