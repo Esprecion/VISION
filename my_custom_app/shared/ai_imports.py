@@ -22,11 +22,22 @@ RECORD_FIELDS = {
 		"client_name",
 		"items",
 	],
+	"contract": [
+		"deal",
+		"deal_title",
+		"client",
+		"client_name",
+		"start_date",
+		"end_date",
+		"terms_and_conditions",
+		"milestones",
+	],
 }
 EXPENSE_FIELDS = ["vendor", "category", "expense_date", "date", "amount", "description"]
 PRODUCT_TYPES = {"Software", "Hardware", "Consulting", "Support"}
 EXPENSE_CATEGORIES = {"Tools and Subscriptions", "Hardware", "Contractors and Freelancers", "Other"}
 ITEM_FIELDS = {"product", "newName", "newType", "quantity", "price"}
+MILESTONE_FIELDS = {"milestone_name", "amount"}
 
 
 class ProviderUnavailable(frappe.ValidationError):
@@ -35,8 +46,11 @@ class ProviderUnavailable(frappe.ValidationError):
 
 @frappe.whitelist()
 def extract_record_fields(kind=None, source_text=None, file_name=None, file_content=None):
-	_require_role("CBO")
 	kind = str(kind or "").strip().lower()
+	if kind == "contract":
+		_require_any_role("CBO", "COO")
+	else:
+		_require_role("CBO")
 	if kind not in RECORD_FIELDS:
 		frappe.throw("Unsupported form type.", frappe.ValidationError)
 
@@ -74,6 +88,11 @@ def extract_expense_fields(source_text=None, file_name=None, file_content=None):
 
 def _require_role(role):
 	if role not in frappe.get_roles():
+		frappe.throw("Not permitted.", frappe.PermissionError)
+
+
+def _require_any_role(*roles):
+	if not any(role in frappe.get_roles() for role in roles):
 		frappe.throw("Not permitted.", frappe.PermissionError)
 
 
@@ -150,6 +169,13 @@ def _build_prompt(kind, fields, source, file_name):
 			+ ". For items, return objects with product, newName, newType, quantity, and price. "
 			+ "Return only JSON."
 		)
+	elif kind == "contract":
+		instruction = (
+			"Extract service contract details. Use the keys: "
+			+ field_list
+			+ ". For milestones, return objects with milestone_name and amount. "
+			+ "Dates must be YYYY-MM-DD. Return only JSON."
+		)
 	else:
 		instruction = "Extract form values. Use the keys: " + field_list + ". Return only JSON."
 	name_line = "File name: " + str(file_name or "") + "\n" if file_name else ""
@@ -197,7 +223,7 @@ def _normalize(values, fields, kind):
 
 	cleaned = {}
 	for field in fields:
-		if field == "items":
+		if field in {"items", "milestones"}:
 			continue
 		value = source.get(field)
 		if value is None:
@@ -225,6 +251,21 @@ def _normalize(values, fields, kind):
 				items.append(row)
 		if items:
 			cleaned["items"] = items
+
+	if "milestones" in fields and isinstance(source.get("milestones"), list):
+		milestones = []
+		for milestone in source["milestones"]:
+			if not isinstance(milestone, dict):
+				continue
+			row = {}
+			for key in MILESTONE_FIELDS:
+				value = milestone.get(key)
+				if value is not None and str(value).strip():
+					row[key] = str(value).strip()
+			if row:
+				milestones.append(row)
+		if milestones:
+			cleaned["milestones"] = milestones
 
 	if kind == "expense":
 		if not cleaned.get("expense_date") and cleaned.get("date"):

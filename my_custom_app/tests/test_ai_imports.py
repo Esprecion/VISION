@@ -112,3 +112,36 @@ class TestAIImports(FrappeTestCase):
 		self._login("CBO")
 		with self.assertRaises(frappe.PermissionError):
 			extract_expense_fields(file_name="receipt.png", file_content="aGVsbG8=")
+
+	@patch("my_custom_app.shared.ai_imports._extract")
+	def test_extract_contract_fields(self, extract):
+		self._login("CBO")
+		extract.return_value = {
+			"deal_title": "Phase 2",
+			"client_name": "Acme Corp",
+			"start_date": "2026-01-01",
+			"end_date": "2026-12-31",
+			"terms_and_conditions": "Late payments accrue 2% per month.",
+			"milestones": [{"milestone_name": "Downpayment", "amount": "1000", "extra": "ignored"}],
+			"unknown": "ignored",
+		}
+		result = extract_record_fields("contract", source_text="Service contract")
+		self.assertEqual(result["deal_title"], "Phase 2")
+		self.assertEqual(result["client_name"], "Acme Corp")
+		self.assertEqual(result["start_date"], "2026-01-01")
+		self.assertEqual(result["end_date"], "2026-12-31")
+		self.assertEqual(result["terms_and_conditions"], "Late payments accrue 2% per month.")
+		self.assertEqual(result["milestones"], [{"milestone_name": "Downpayment", "amount": "1000"}])
+		self.assertNotIn("unknown", result)
+
+	@patch("my_custom_app.shared.ai_imports._extract")
+	def test_coo_can_import_contract(self, extract):
+		self._login("COO")
+		extract.return_value = {"deal": "DEAL-001"}
+		result = extract_record_fields("contract", source_text="Service contract")
+		self.assertEqual(result, {"deal": "DEAL-001"})
+
+	def test_cfo_cannot_import_contract(self):
+		self._login("CFO")
+		with self.assertRaises(frappe.PermissionError):
+			extract_record_fields("contract", source_text="Service contract")
