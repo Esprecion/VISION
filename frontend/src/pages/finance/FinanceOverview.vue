@@ -9,6 +9,8 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import DashboardRecords from '@/components/ui/DashboardRecords.vue'
 import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
+import MetricIndicator from '@/components/ui/MetricIndicator.vue'
+import { ragLevel, ruleText } from '@/utils/metrics'
 import XIcon from '~icons/lucide/x'
 
 const initialRange = yearRange()
@@ -271,6 +273,41 @@ const companyTotal = computed(() => profitRows.value.find(isTotal))
 const profitNet = computed(() => Number(companyTotal.value?.[4] || 0))
 const profitMargin = computed(() => (companyTotal.value ? margin(companyTotal.value) : '—'))
 
+const revenueLevel = computed(() =>
+	ragLevel('revenuePerClient', Math.max(0, ...revenueRows.value.map((r) => Number(r[1]) || 0)), {
+		error: Boolean(revenue.error && !revenue.data),
+		empty: !revenueRows.value.length,
+	})
+)
+const agingLevel = computed(() =>
+	ragLevel(
+		'accountsReceivableAging',
+		Math.max(0, ...agingRows.value.map((r) => Number(r[5]) || 0)),
+		{ error: Boolean(aging.error && !aging.data), empty: !agingRows.value.length }
+	)
+)
+const burnLevel = computed(() =>
+	ragLevel('netBurnRate', latestBurn.value?.[3], {
+		error: Boolean(burn.error && !burn.data),
+		empty: !burnRows.value.length,
+	})
+)
+const profitLevel = computed(() =>
+	ragLevel(
+		'projectProfitabilityMargin',
+		companyTotal.value
+			? (Number(companyTotal.value[4] || 0) / Math.max(1, Number(companyTotal.value[2] || 0))) * 100
+			: null,
+		{ error: Boolean(profit.error && !profit.data), empty: !companyTotal.value }
+	)
+)
+const expenseLevel = computed(() =>
+	ragLevel('expenseByCategory', expenseGroups.value[0]?.total, {
+		error: Boolean(expenseRep.error && !expenseRep.data),
+		empty: !expenseGroups.value.length,
+	})
+)
+
 // ---------- Net Burn note ----------
 const burnSyncedAt = ref(null)
 watch(
@@ -359,7 +396,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="aging.error && !aging.data">
-					<div class="label">OUTSTANDING (A/R)</div>
+					<div class="label indicator-row">
+						OUTSTANDING (A/R)
+						<MetricIndicator :level="agingLevel" :rule="ruleText('accountsReceivableAging')" />
+					</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
 						{{ recordsErrorMessage }}
@@ -369,7 +409,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					</div>
 				</template>
 				<template v-else>
-					<div class="label">OUTSTANDING (A/R)</div>
+					<div class="label indicator-row">
+						OUTSTANDING (A/R)
+						<MetricIndicator :level="agingLevel" :rule="ruleText('accountsReceivableAging')" />
+					</div>
 					<div class="value">{{ peso(totalOutstanding) }}</div>
 					<div class="sub">{{ agingRows.length }} unpaid invoices</div>
 				</template>
@@ -380,7 +423,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="burn.error && !burn.data">
-					<div class="label">LATEST NET BURN</div>
+					<div class="label indicator-row">
+						LATEST NET BURN
+						<MetricIndicator :level="burnLevel" :rule="ruleText('netBurnRate')" />
+					</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
 						{{ recordsErrorMessage }}
@@ -390,7 +436,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					</div>
 				</template>
 				<template v-else>
-					<div class="label">LATEST NET BURN</div>
+					<div class="label indicator-row">
+						LATEST NET BURN
+						<MetricIndicator :level="burnLevel" :rule="ruleText('netBurnRate')" />
+					</div>
 					<div class="value" :class="{ neg: Number(latestBurn?.[3]) < 0 }">
 						{{ peso(latestBurn?.[3] ?? 0) }}
 					</div>
@@ -406,7 +455,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="profit.error && !profit.data">
-					<div class="label">NET PROFIT</div>
+					<div class="label indicator-row">
+						NET PROFIT
+						<MetricIndicator :level="profitLevel" :rule="ruleText('projectProfitabilityMargin')" />
+					</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
 						{{ recordsErrorMessage }}
@@ -416,7 +468,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					</div>
 				</template>
 				<template v-else>
-					<div class="label">NET PROFIT</div>
+					<div class="label indicator-row">
+						NET PROFIT
+						<MetricIndicator :level="profitLevel" :rule="ruleText('projectProfitabilityMargin')" />
+					</div>
 					<div class="value" :class="{ loss: profitNet < 0 }">{{ peso(profitNet) }}</div>
 					<div class="sub">{{ profitMargin }} margin</div>
 				</template>
@@ -425,7 +480,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 
 		<div class="row">
 			<div class="card">
-				<div class="card-label">Revenue per Client</div>
+				<div class="indicator-row">
+					<div class="card-label">Revenue per Client</div>
+					<MetricIndicator :level="revenueLevel" :rule="ruleText('revenuePerClient')" />
+				</div>
 				<ErrorState
 					v-if="revenue.error"
 					title="Records unavailable"
@@ -449,7 +507,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				</div>
 			</div>
 			<div class="card">
-				<div class="card-label">Net Burn Rate by Month</div>
+				<div class="indicator-row">
+					<div class="card-label">Net Burn Rate by Month</div>
+					<MetricIndicator :level="burnLevel" :rule="ruleText('netBurnRate')" />
+				</div>
 				<div v-if="burnNote" class="muted note">{{ burnNote }}</div>
 				<ErrorState
 					v-if="burn.error"
@@ -482,7 +543,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 		</div>
 
 		<div class="card profit-card">
-			<div class="card-label">Project Profitability (paid revenue minus expenses)</div>
+			<div class="indicator-row">
+				<div class="card-label">Project Profitability (paid revenue minus expenses)</div>
+				<MetricIndicator :level="profitLevel" :rule="ruleText('projectProfitabilityMargin')" />
+			</div>
 			<ErrorState
 				v-if="profit.error"
 				title="Records unavailable"
@@ -590,7 +654,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 		</div>
 
 		<div class="card">
-			<div class="card-label">Accounts Receivable Aging</div>
+			<div class="indicator-row">
+				<div class="card-label">Accounts Receivable Aging</div>
+				<MetricIndicator :level="agingLevel" :rule="ruleText('accountsReceivableAging')" />
+			</div>
 			<ErrorState
 				v-if="aging.error"
 				title="Records unavailable"
@@ -674,7 +741,10 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 		</div>
 
 		<div class="card">
-			<div class="card-label">Expenses by Category</div>
+			<div class="indicator-row">
+				<div class="card-label">Expenses by Category</div>
+				<MetricIndicator :level="expenseLevel" :rule="ruleText('expenseByCategory')" />
+			</div>
 			<ErrorState
 				v-if="expenseRep.error"
 				title="Records unavailable"
@@ -822,6 +892,12 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 }
 .card {
 	padding: var(--space-5);
+}
+.indicator-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
 }
 .label {
 	font-size: var(--fs-xs);

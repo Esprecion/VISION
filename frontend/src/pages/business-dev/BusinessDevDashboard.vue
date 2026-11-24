@@ -89,7 +89,10 @@
 
 			<!-- Product Type Performance -->
 			<div class="card chart-card">
-				<div class="card-label">Product Type Performance</div>
+				<div class="indicator-row">
+					<div class="card-label">Product Type Performance</div>
+					<MetricIndicator :level="productTypeLevel" :rule="ruleText('productTypePerformance')" />
+				</div>
 				<BarList
 					:rows="productTypeBarRows"
 					:loading="productType.loading"
@@ -118,7 +121,10 @@
 		<div class="chart-row">
 			<!-- Geographic Distribution -->
 			<div class="card chart-card">
-				<div class="card-label">Geographic Distribution of Clients</div>
+				<div class="indicator-row">
+					<div class="card-label">Geographic Distribution of Clients</div>
+					<MetricIndicator :level="geoLevel" :rule="ruleText('geographicDistribution')" />
+				</div>
 				<BarList
 					:rows="geoBarRows"
 					:loading="geo.loading"
@@ -200,7 +206,10 @@
 
 		<div class="record-summary">
 			<div v-for="metric in summaryMetrics" :key="metric.label" class="summary-metric">
-				<div class="summary-label">{{ metric.label }}</div>
+				<div class="summary-label indicator-row">
+					{{ metric.label }}
+					<MetricIndicator :level="metric.level" :rule="metric.rule" />
+				</div>
 				<div class="summary-value">{{ metric.value }}</div>
 			</div>
 		</div>
@@ -229,6 +238,8 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import DashboardRecords from '@/components/ui/DashboardRecords.vue'
 import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
+import MetricIndicator from '@/components/ui/MetricIndicator.vue'
+import { ragLevel, ruleText } from '@/utils/metrics'
 import ArrowRightIcon from '~icons/lucide/arrow-right'
 import ChevronUpIcon from '~icons/lucide/chevron-up'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
@@ -321,14 +332,45 @@ watch(
 
 const metricData = computed(() => recordsCall.data?.metrics || {})
 const summaryMetrics = computed(() => {
-	const dealsPerStage = Object.entries(metricData.value.deals_per_stage || {})
-		.map(([stage, count]) => `${stage}: ${count}`)
-		.join(' · ')
+	const recordsError = Boolean(recordsCall.error && !recordsCall.data)
+	const stageEntries = Object.entries(metricData.value.deals_per_stage || {})
+	const dealsPerStage = stageEntries.map(([stage, count]) => `${stage}: ${count}`).join(' · ')
+	const stageCounts = stageEntries.map(([, count]) => Number(count) || 0)
 	return [
-		{ label: 'DEALS PER STAGE', value: dealsPerStage || '0' },
-		{ label: 'OPEN DEAL VALUE', value: peso(metricData.value.open_deal_value) },
-		{ label: 'DRAFT CONTRACTS', value: metricData.value.draft_contracts || 0 },
-		{ label: 'FINALIZED CONTRACTS', value: metricData.value.finalized_contracts || 0 },
+		{
+			label: 'DEALS PER STAGE',
+			value: dealsPerStage || '0',
+			level: ragLevel(
+				'dealsPerStage',
+				stageCounts.length ? Math.min(...stageCounts) : null,
+				{ error: recordsError, empty: !stageCounts.length }
+			),
+			rule: ruleText('dealsPerStage'),
+		},
+		{
+			label: 'OPEN DEAL VALUE',
+			value: peso(metricData.value.open_deal_value),
+			level: ragLevel('openDealValue', metricData.value.open_deal_value, {
+				error: recordsError,
+			}),
+			rule: ruleText('openDealValue'),
+		},
+		{
+			label: 'DRAFT CONTRACTS',
+			value: metricData.value.draft_contracts || 0,
+			level: ragLevel('draftContracts', metricData.value.draft_contracts, {
+				error: recordsError,
+			}),
+			rule: ruleText('draftContracts'),
+		},
+		{
+			label: 'FINALIZED CONTRACTS',
+			value: metricData.value.finalized_contracts || 0,
+			level: ragLevel('finalizedContracts', metricData.value.finalized_contracts, {
+				error: recordsError,
+			}),
+			rule: ruleText('finalizedContracts'),
+		},
 	]
 })
 
@@ -367,6 +409,13 @@ const stageTimeBarRows = computed(() =>
 
 const showAllProductType = ref(false)
 const productTypeRows = computed(() => productType.data?.result ?? [])
+const productTypeLevel = computed(() =>
+	ragLevel(
+		'productTypePerformance',
+		Math.max(0, ...productTypeRows.value.map((r) => Number(r.total_value) || 0)),
+		{ error: Boolean(productType.error && !productType.data), empty: !productTypeRows.value.length }
+	)
+)
 const visibleProductTypeRows = computed(() =>
 	showAllProductType.value ? productTypeRows.value : productTypeRows.value.slice(0, 4)
 )
@@ -380,6 +429,13 @@ const productTypeBarRows = computed(() =>
 
 const showAllGeo = ref(false)
 const geoRows = computed(() => geo.data?.result ?? [])
+const geoLevel = computed(() =>
+	ragLevel(
+		'geographicDistribution',
+		Math.max(0, ...geoRows.value.map((r) => Number(r.total_value) || 0)),
+		{ error: Boolean(geo.error && !geo.data), empty: !geoRows.value.length }
+	)
+)
 const visibleGeoRows = computed(() =>
 	showAllGeo.value ? geoRows.value : geoRows.value.slice(0, 4)
 )
@@ -535,6 +591,12 @@ function peso(n) {
 .see-more__icon {
 	width: 12px;
 	height: 12px;
+}
+.indicator-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
 }
 .card-label {
 	font-size: var(--fs-xs);

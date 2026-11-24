@@ -7,6 +7,8 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import DashboardRecords from '@/components/ui/DashboardRecords.vue'
 import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
+import MetricIndicator from '@/components/ui/MetricIndicator.vue'
+import { ragLevel, ruleText } from '@/utils/metrics'
 
 function useReport(name) {
 	return createResource({
@@ -38,6 +40,30 @@ const avgTenure = computed(() => {
 const costRows = computed(() => rowsOf(cost)) // [month, total]
 const maxCost = computed(() => Math.max(1, ...costRows.value.map((r) => Number(r[1]) || 0)))
 const maxActive = computed(() => Math.max(1, ...activeRows.value.map((r) => Number(r[1]) || 0)))
+const onTimeLevel = computed(() =>
+	ragLevel('onTimeDeliveryRate', onTimeRow.value?.[2], {
+		error: Boolean(onTime.error && !onTime.data),
+		empty: !onTimeRow.value,
+	})
+)
+const cycleLevel = computed(() =>
+	ragLevel('averageProjectCycleTime', cycleRow.value?.[1], {
+		error: Boolean(cycle.error && !cycle.data),
+		empty: !cycleRow.value,
+	})
+)
+const activeLevel = computed(() =>
+	ragLevel('activeClientCount', activeTotal.value, {
+		error: Boolean(active.error && !active.data),
+		empty: !activeRows.value.length,
+	})
+)
+const costLevel = computed(() =>
+	ragLevel('toolApiCostTrend', costRows.value[costRows.value.length - 1]?.[1], {
+		error: Boolean(cost.error && !cost.data),
+		empty: !costRows.value.length,
+	})
+)
 
 const recordsErrorMessage = 'Unable to load records. Please try again.'
 const errText = () => recordsErrorMessage
@@ -123,7 +149,10 @@ function openRecord(record) {
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="onTime.error && !onTime.data">
-					<div class="label">ON-TIME DELIVERY</div>
+					<div class="label indicator-row">
+						ON-TIME DELIVERY
+						<MetricIndicator :level="onTimeLevel" :rule="ruleText('onTimeDeliveryRate')" />
+					</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
 						{{ recordsErrorMessage }}
@@ -133,7 +162,10 @@ function openRecord(record) {
 					</div>
 				</template>
 				<template v-else>
-					<div class="label">ON-TIME DELIVERY</div>
+					<div class="label indicator-row">
+						ON-TIME DELIVERY
+						<MetricIndicator :level="onTimeLevel" :rule="ruleText('onTimeDeliveryRate')" />
+					</div>
 					<div class="value">{{ Number(onTimeRow?.[2] ?? 0).toFixed(1) }}%</div>
 					<div class="sub" v-if="onTimeRow">
 						{{ onTimeRow[1] ?? 0 }} of {{ onTimeRow[0] }} delivered projects
@@ -147,7 +179,10 @@ function openRecord(record) {
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="cycle.error && !cycle.data">
-					<div class="label">AVG PROJECT CYCLE TIME</div>
+					<div class="label indicator-row">
+						AVG PROJECT CYCLE TIME
+						<MetricIndicator :level="cycleLevel" :rule="ruleText('averageProjectCycleTime')" />
+					</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
 						{{ recordsErrorMessage }}
@@ -157,7 +192,10 @@ function openRecord(record) {
 					</div>
 				</template>
 				<template v-else>
-					<div class="label">AVG PROJECT CYCLE TIME</div>
+					<div class="label indicator-row">
+						AVG PROJECT CYCLE TIME
+						<MetricIndicator :level="cycleLevel" :rule="ruleText('averageProjectCycleTime')" />
+					</div>
 					<div class="value">{{ Math.round(cycleRow?.[1] ?? 0) }} days</div>
 					<div class="sub" v-if="cycleRow">
 						across {{ cycleRow[0] }} delivered projects
@@ -171,7 +209,10 @@ function openRecord(record) {
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="active.error && !active.data">
-					<div class="label">ACTIVE CLIENTS</div>
+					<div class="label indicator-row">
+						ACTIVE CLIENTS
+						<MetricIndicator :level="activeLevel" :rule="ruleText('activeClientCount')" />
+					</div>
 					<div class="value">—</div>
 					<div class="sub sub--error">
 						{{ recordsErrorMessage }}
@@ -181,7 +222,10 @@ function openRecord(record) {
 					</div>
 				</template>
 				<template v-else>
-					<div class="label">ACTIVE CLIENTS</div>
+					<div class="label indicator-row">
+						ACTIVE CLIENTS
+						<MetricIndicator :level="activeLevel" :rule="ruleText('activeClientCount')" />
+					</div>
 					<div class="value">{{ activeTotal }}</div>
 					<div class="sub">with a project in progress</div>
 				</template>
@@ -235,7 +279,10 @@ function openRecord(record) {
 				</div>
 			</div>
 			<div class="card">
-				<div class="card-label">Tool and API Cost Trend (monthly)</div>
+				<div class="indicator-row">
+					<div class="card-label">Tool and API Cost Trend (monthly)</div>
+					<MetricIndicator :level="costLevel" :rule="ruleText('toolApiCostTrend')" />
+				</div>
 				<ErrorState
 					v-if="cost.error"
 					title="Records unavailable"
@@ -342,6 +389,12 @@ function openRecord(record) {
 }
 .card {
 	padding: var(--space-5);
+}
+.indicator-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
 }
 .label {
 	font-size: var(--fs-xs);
