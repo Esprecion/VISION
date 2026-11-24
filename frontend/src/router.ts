@@ -213,11 +213,11 @@ let router = createRouter({
 export default router
 
 router.beforeEach(async (to) => {
-  if (!session.isLoggedIn && to.path !== '/dashboard') {
+  await ensureSessionData()
+  if (!session.isLoggedIn) {
     window.location.href = '/login?redirect-to=/frontend' + to.fullPath
     return false
   }
-  await ensureSessionData()
   if (to.meta.requiresAdmin && !(await ensureAdminAccess())) {
     return { path: '/dashboard' }
   }

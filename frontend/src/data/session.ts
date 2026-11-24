@@ -23,10 +23,13 @@ const rolesCall = useCall({
   url: '/api/method/my_custom_app.shared.api.get_my_roles',
   immediate: false,
   onSuccess(data: any) {
+    const user = data?.message?.user || data?.user
+    sessionUser.value = user && user !== 'Guest' ? user : null
     userRoles.value = data?.message?.roles || data?.roles || []
   },
   onError() {
     userRoles.value = []
+    sessionUser.value = null
   },
 })
 
@@ -55,18 +58,16 @@ const adminAccessCall = useCall({
 async function ensureCall(call: any) {
   if (call.loading) {
     await call.promise.value
-  } else if (!call.isFinished) {
+  } else {
     await call.submit()
   }
 }
 
 export async function ensureSessionData() {
-  if (!sessionUser.value) return
-  await Promise.all([ensureCall(rolesCall), ensureCall(permsCall)])
+  await Promise.all([ensureCall(rolesCall), ensureCall(permsCall), ensureCall(adminAccessCall)])
 }
 
 export async function ensureAdminAccess() {
-  if (!sessionUser.value) return false
   await ensureCall(adminAccessCall)
   return canManageUsers.value
 }
@@ -74,11 +75,7 @@ export async function ensureAdminAccess() {
 watch(
   sessionUser,
   (user) => {
-    if (user) {
-      rolesCall.submit ? rolesCall.submit() : rolesCall.reload?.()
-      permsCall.submit ? permsCall.submit() : permsCall.reload?.()
-      adminAccessCall.submit ? adminAccessCall.submit() : adminAccessCall.reload?.()
-    } else {
+    if (!user) {
       userRoles.value = []
       modulePerms.value = {}
       canManageUsers.value = false
@@ -94,7 +91,8 @@ export const session = reactive({
     onSuccess(data: any) {
       sessionUser.value = getSessionUserFromCookie()
       session.login.reset()
-      router.replace(data.default_route || '/')
+      const route = data?.default_route || data?.message?.default_route || '/'
+      ensureSessionData().finally(() => router.replace(route))
     },
   }),
   logout: useCall({
@@ -109,7 +107,7 @@ export const session = reactive({
   user: sessionUser,
   roles: userRoles,
   canManageUsers,
-  isLoggedIn: computed(() => sessionUser.value != null),
+  isLoggedIn: computed(() => sessionUser.value != null && sessionUser.value !== 'Guest'),
   isAdmin: computed(() => userRoles.value.includes('System Manager') || sessionUser.value === 'Administrator'),
   isSystemAdmin: computed(
     () => userRoles.value.includes('System Admin') || sessionUser.value === 'Administrator'
