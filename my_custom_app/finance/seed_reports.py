@@ -1,6 +1,6 @@
 import frappe
 
-# Dev helper: creates the 3 Finance Query Reports. Safe to re-run.
+# Dev helper: creates the 4 Finance Query Reports. Safe to re-run.
 
 REPORTS = [
 	(
@@ -53,6 +53,19 @@ LEFT JOIN (
     FROM `tabExpense` GROUP BY DATE_FORMAT(expense_date, '%Y-%m')
 ) e ON e.month = m.month
 ORDER BY m.month
+""",
+	),
+	(
+		"Total Revenue by Period",
+		"Invoice",
+		"""
+SELECT CONCAT(YEAR(issue_date), '-', LPAD(MONTH(issue_date), 2, '0')) AS `Month:Data:100`,
+       SUM(paid_amount) AS `Total Paid Revenue:Currency:160`,
+       COUNT(*) AS `Paid Invoices:Int:120`
+FROM `tabInvoice`
+WHERE status = 'Paid'
+GROUP BY YEAR(issue_date), MONTH(issue_date)
+ORDER BY YEAR(issue_date), MONTH(issue_date)
 """,
 	),
 ]

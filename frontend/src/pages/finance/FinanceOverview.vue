@@ -34,6 +34,7 @@ const cells = (row) => (Array.isArray(row) ? row : Object.values(row ?? {}))
 const rowsOf = (res) => (res.data?.result ?? []).map(cells)
 
 const revenue = useReport('Revenue per Client', range())
+const totalRevenueByPeriod = useReport('Total Revenue by Period', range())
 const aging = useReport('Accounts Receivable Aging')
 const burn = useReport('Net Burn Rate', range())
 const profit = useReport('Project Profitability', range())
@@ -105,6 +106,7 @@ watch([fromInput, toInput], () => {
 	if (!fromInput.value || !toInput.value || fromInput.value > toInput.value) return
 	for (const [res, name] of [
 		[revenue, 'Revenue per Client'],
+		[totalRevenueByPeriod, 'Total Revenue by Period'],
 		[burn, 'Net Burn Rate'],
 		[profit, 'Project Profitability'],
 		[expenseRep, 'Expense by Category'],
@@ -170,6 +172,20 @@ function openRecord(record) {
 const revenueRows = computed(() => rowsOf(revenue)) // [client, total, count]
 const totalRevenue = computed(() => revenueRows.value.reduce((s, r) => s + Number(r[1] || 0), 0))
 const maxRevenue = computed(() => Math.max(1, ...revenueRows.value.map((r) => Number(r[1]) || 0)))
+
+const periodRevenueRows = computed(() => rowsOf(totalRevenueByPeriod)) // [month, total, invoices]
+const maxPeriodRevenue = computed(() =>
+	Math.max(1, ...periodRevenueRows.value.map((r) => Number(r[1]) || 0))
+)
+const latestPeriodRevenue = computed(
+	() => periodRevenueRows.value[periodRevenueRows.value.length - 1]?.[1]
+)
+const periodRevenueLevel = computed(() =>
+	ragLevel('totalRevenueByPeriod', latestPeriodRevenue.value, {
+		error: Boolean(totalRevenueByPeriod.error && !totalRevenueByPeriod.data),
+		empty: !periodRevenueRows.value.length,
+	})
+)
 
 const agingRows = computed(() => rowsOf(aging)) // [invoice, client, amount, due_date, status, days_overdue]
 const totalOutstanding = computed(() => agingRows.value.reduce((s, r) => s + Number(r[2] || 0), 0))
@@ -538,6 +554,35 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 							{{ peso(r[3]) }}
 						</div>
 					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="indicator-row">
+				<div class="card-label">Total Revenue by Period</div>
+				<MetricIndicator :level="periodRevenueLevel" :rule="ruleText('totalRevenueByPeriod')" />
+			</div>
+			<div class="muted note">Paid invoices only, summed by issue month.</div>
+			<ErrorState
+				v-if="totalRevenueByPeriod.error"
+				title="Records unavailable"
+				:message="errText(totalRevenueByPeriod)"
+				:on-retry="() => totalRevenueByPeriod.reload()"
+			/>
+			<AppSkeleton v-else-if="totalRevenueByPeriod.loading" variant="chart" :rows="4" />
+			<EmptyState
+				v-else-if="!periodRevenueRows.length"
+				title="No paid revenue"
+				description="Paid invoices in this date range will appear here."
+			/>
+			<div v-else class="bars">
+				<div v-for="r in periodRevenueRows" :key="r[0]" class="bar-row">
+					<div class="bar-label">{{ r[0] }}</div>
+					<div class="bar-track">
+						<div class="bar-fill" :style="{ width: width(r[1], maxPeriodRevenue) }"></div>
+					</div>
+					<div class="bar-value">{{ peso(r[1]) }}</div>
 				</div>
 			</div>
 		</div>
