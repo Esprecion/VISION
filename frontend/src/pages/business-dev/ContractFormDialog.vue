@@ -28,6 +28,20 @@
 					<b>{{ dealValue > 0 ? peso(dealValue) : 'not set on this deal' }}</b>
 				</div>
 
+				<div class="import-row">
+					<AppButton variant="ghost" size="sm" @click="showImport = true">
+						Import from Service Contract
+					</AppButton>
+					<ImportDialog
+						v-model="showImport"
+						kind="contract"
+						title="Import from Service Contract"
+						@imported="applyImport"
+						@unavailable="onImportUnavailable"
+					/>
+					<span v-if="imported" class="imported-note">Imported — review before saving</span>
+				</div>
+
 				<div class="field-row">
 					<AppTextInput label="Start Date" type="date" v-model="form.start_date" />
 					<AppTextInput label="End Date" type="date" v-model="form.end_date" />
@@ -102,6 +116,10 @@
 					></textarea>
 				</div>
 
+				<div v-if="importError" class="error-msg">
+					<AlertCircleIcon class="btn-icon" aria-hidden="true" />
+					{{ importError }}
+				</div>
 				<div v-if="createContract.error" class="error-msg">
 					<AlertCircleIcon class="btn-icon" aria-hidden="true" />
 					{{ createContract.error.messages?.[0] || 'Something went wrong' }}
@@ -132,6 +150,7 @@ import AlertCircleIcon from '~icons/lucide/alert-circle'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
+import ImportDialog from '@/components/ui/ImportDialog.vue'
 
 const props = defineProps({
 	modelValue: Boolean,
@@ -141,6 +160,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created'])
 
 const show = ref(props.modelValue)
+const showImport = ref(false)
+const importError = ref('')
+const imported = ref(false)
 watch(
 	() => props.modelValue,
 	(v) => (show.value = v)
@@ -150,6 +172,8 @@ watch(show, (v) => {
 	if (v) {
 		dealsResource.reload()
 		contractsResource.reload()
+		importError.value = ''
+		imported.value = false
 		if (props.prefillDealName) {
 			form.deal = props.prefillDealName
 			form.client = props.prefillClientName || ''
@@ -196,6 +220,36 @@ function onDealSelect(val) {
 
 const milestones = ref([{ milestone_name: 'Downpayment', amount: 0 }])
 const totalValue = computed(() => milestones.value.reduce((s, m) => s + (Number(m.amount) || 0), 0))
+
+function normalizeDate(value) {
+	const text = String(value || '').trim()
+	return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : ''
+}
+
+function applyImport(values) {
+	importError.value = ''
+	const matchText = String(values.deal || values.deal_title || '').trim()
+	const matchedDeal = (dealsResource.data || []).find(
+		(d) => d.name === matchText || d.deal_title === matchText
+	)
+	const dealName = matchedDeal?.name || values.deal || ''
+	onDealSelect(dealName)
+	form.client = matchedDeal?.client || values.client || values.client_name || ''
+	form.start_date = normalizeDate(values.start_date)
+	form.end_date = normalizeDate(values.end_date)
+	form.terms_and_conditions = String(values.terms_and_conditions || '')
+	if (Array.isArray(values.milestones) && values.milestones.length) {
+		milestones.value = values.milestones.map((m) => ({
+			milestone_name: String(m.milestone_name || '').trim(),
+			amount: Number(String(m.amount || '').replace(/[₱,\s]/g, '')) || 0,
+		}))
+	}
+	imported.value = true
+}
+
+function onImportUnavailable() {
+	importError.value = 'Import unavailable. Please enter the details manually.'
+}
 
 // Real deal value, read from the database (Deal.value, or the sum of its items)
 const dealValue = ref(0)
@@ -346,6 +400,16 @@ function peso(n) {
 .hint {
 	font-size: var(--fs-xs);
 	color: var(--color-gray-600);
+}
+.import-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-3);
+	flex-wrap: wrap;
+}
+.imported-note {
+	font-size: var(--fs-xs);
+	color: var(--color-emerald-800);
 }
 .milestone-rows {
 	display: flex;
