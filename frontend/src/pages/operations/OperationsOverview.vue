@@ -8,7 +8,7 @@ import ErrorState from '@/components/ui/ErrorState.vue'
 import DashboardRecords from '@/components/ui/DashboardRecords.vue'
 import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
 import MetricIndicator from '@/components/ui/MetricIndicator.vue'
-import { ragLevel, ruleText } from '@/utils/metrics'
+import { isMetricVisible, ragLevel, ruleText } from '@/utils/metrics'
 
 function useReport(name) {
 	return createResource({
@@ -230,7 +230,7 @@ function openRecord(record) {
 					<div class="sub">with a project in progress</div>
 				</template>
 			</div>
-			<div class="tile">
+			<div v-if="isMetricVisible('clientTenure')" class="tile">
 				<template v-if="tenure.loading && !tenure.data">
 					<div class="label">AVG CLIENT TENURE</div>
 					<AppSkeleton variant="text" :rows="2" />
@@ -310,7 +310,7 @@ function openRecord(record) {
 			</div>
 		</div>
 
-		<div class="card">
+		<div v-if="isMetricVisible('clientTenure')" class="card">
 			<div class="card-label">Client Tenure</div>
 			<ErrorState
 				v-if="tenure.error"

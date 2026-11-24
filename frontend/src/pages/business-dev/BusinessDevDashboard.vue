@@ -35,7 +35,7 @@
 		</PageHeader>
 
 		<!-- Compact stat tile -->
-		<div class="stat-tiles stat-tiles-single">
+		<div v-if="isMetricVisible('conversionRate')" class="stat-tiles stat-tiles-single">
 			<div v-if="conversionRate.loading" class="stat-tile">
 				<AppSkeleton variant="tile" />
 			</div>
@@ -61,7 +61,7 @@
 
 		<div class="chart-row">
 			<!-- Average Time per Pipeline Stage -->
-			<div class="card chart-card">
+			<div v-if="isMetricVisible('stageTime')" class="card chart-card">
 				<div class="card-label">Average Time per Pipeline Stage</div>
 				<BarList
 					:rows="stageTimeBarRows"
@@ -150,7 +150,7 @@
 			</div>
 
 			<!-- Client Pipeline Velocity — table, not a chart -->
-			<div class="card chart-card">
+			<div v-if="isMetricVisible('pipelineVelocity')" class="card chart-card">
 				<div class="card-label">Client Pipeline Velocity</div>
 				<AppSkeleton v-if="velocity.loading" variant="table" :rows="4" :cols="3" />
 				<ErrorState
@@ -239,7 +239,7 @@ import ErrorState from '@/components/ui/ErrorState.vue'
 import DashboardRecords from '@/components/ui/DashboardRecords.vue'
 import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
 import MetricIndicator from '@/components/ui/MetricIndicator.vue'
-import { ragLevel, ruleText } from '@/utils/metrics'
+import { isMetricVisible, ragLevel, ruleText } from '@/utils/metrics'
 import ArrowRightIcon from '~icons/lucide/arrow-right'
 import ChevronUpIcon from '~icons/lucide/chevron-up'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
