@@ -53,8 +53,8 @@ const tone = computed(() => TONES[props.value] || 'neutral')
 	color: var(--color-emerald-800);
 }
 .status-badge--warning {
-	background: var(--color-amber-100);
-	color: var(--color-amber-800);
+	background: var(--color-warning-bg);
+	color: var(--color-warning-text);
 }
 .status-badge--danger {
 	background: var(--color-red-100);

@@ -6,8 +6,8 @@
 
 /* ==========================================================================
    VISION style guide
-   Light theme, amber accent. frappe-ui components use their own preset
-   tokens; these variables cover the hand-rolled markup across the app.
+   Light blue theme, blue accent. frappe-ui components use their own preset
+   tokens; the semantic overrides below bring them in line with the palette.
    ========================================================================== */
 
 :root {
@@ -35,19 +35,19 @@
   --radius-full: 999px; /* pills */
 
   /* --- Elevation --------------------------------------------------------- */
-  --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04);
-  --shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.08);
-  --shadow-md: 0 8px 24px rgba(17, 24, 39, 0.12);
+  --shadow-xs: 0 1px 2px rgba(21, 58, 99, 0.05);
+  --shadow-sm: 0 1px 3px rgba(21, 58, 99, 0.09);
+  --shadow-md: 0 8px 24px rgba(21, 58, 99, 0.14);
 
   /* --- Focus ------------------------------------------------------------- */
   --focus-ring: 2px solid var(--color-amber-700);
   --focus-ring-offset: 2px;
 
-  /* --- Status colours (bg + text pairs from the base palette) ------------ */
+  /* --- Status colours (bg + text pairs) ---------------------------------- */
   --color-success-bg: var(--color-emerald-100);
   --color-success-text: var(--color-emerald-800);
-  --color-warning-bg: var(--color-amber-100);
-  --color-warning-text: var(--color-amber-800);
+  --color-warning-bg: #fef3c7;
+  --color-warning-text: #92400e;
   --color-danger-bg: var(--color-red-100);
   --color-danger-text: var(--color-red-800);
   --color-info-bg: var(--color-blue-100);
@@ -55,25 +55,42 @@
   --color-neutral-bg: var(--color-gray-100);
   --color-neutral-text: var(--color-gray-600);
 
-  /* --- Base palette (kept from before; screens still reference these) ---- */
+  /* --- Base palette ------------------------------------------------------ */
+  /* Blue-tinted neutrals keep surfaces, borders and text in the same family. */
   --color-white: #ffffff;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-900: #111827;
-  --color-amber-50: #fffbeb;
-  --color-amber-100: #fef3c7;
-  --color-amber-200: #fde68a;
-  --color-amber-500: #f59e0b;
-  --color-amber-700: #b45309;
-  --color-amber-800: #92400e;
+  --color-gray-50: #f2f9ff;
+  --color-gray-100: #e6f4ff;
+  --color-gray-200: #c8e6ff;
+  --color-gray-300: #a7d7fd;
+  --color-gray-400: #73bbf6;
+  --color-gray-500: #4a8ac9;
+  --color-gray-600: #356ba6;
+  --color-gray-700: #2a5588;
+  --color-gray-900: #153a63;
+
+  /* Accent (legacy amber variable names now map to the blue accent) */
+  --color-amber-50: #f2f9ff;
+  --color-amber-100: #e6f4ff;
+  --color-amber-200: #c8e6ff;
+  --color-amber-300: #a7d7fd;
+  --color-amber-500: #0289f7;
+  --color-amber-600: #007be0;
+  --color-amber-700: #0070cc;
+  --color-amber-800: #005ca3;
+
+  --color-blue-50: #f2f9ff;
+  --color-blue-100: #e6f4ff;
+  --color-blue-200: #c8e6ff;
+  --color-blue-500: #0289f7;
+  --color-blue-600: #007be0;
+  --color-blue-700: #0070cc;
+  --color-blue-800: #005ca3;
+  --color-blue-900: #004880;
+
+  --color-red-50: #fef2f2;
   --color-red-100: #fee2e2;
   --color-red-200: #fecaca;
+  --color-red-400: #f87171;
   --color-red-500: #ef4444;
   --color-red-600: #dc2626;
   --color-red-700: #b91c1c;
@@ -82,15 +99,33 @@
   --color-green-600: #16a34a;
   --color-emerald-100: #d1fae5;
   --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
   --color-emerald-800: #065f46;
-  --color-blue-100: #dbeafe;
-  --color-blue-500: #3b82f6;
-  --color-blue-700: #1d4ed8;
   --color-indigo-500: #6366f1;
   --color-purple-500: #9d7bff;
   --color-purple-600: #a855f7;
   --color-pink-500: #f472b6;
   --color-lime-500: #84cc16;
+
+  /* --- frappe-ui semantic tokens ----------------------------------------- */
+  --surface-gray-1: #f2f9ff;
+  --surface-gray-2: #e6f4ff;
+  --surface-gray-3: #c8e6ff;
+  --surface-gray-4: #a7d7fd;
+  --surface-gray-5: #4a8ac9;
+  --surface-menu-bar: #f2f9ff;
+  --outline-gray-1: #c8e6ff;
+  --outline-gray-2: #a7d7fd;
+  --outline-gray-3: #73bbf6;
+  --outline-gray-4: #4a8ac9;
+  --outline-gray-5: #2a5588;
+  --outline-gray-modals: #c8e6ff;
+  --ink-gray-4: #6f97c9;
+  --ink-gray-5: #356ba6;
+  --ink-gray-6: #2a5588;
+  --ink-gray-7: #2a5588;
+  --ink-gray-8: #2a5588;
+  --ink-gray-9: #153a63;
 }
 
 /* --- Base ---------------------------------------------------------------- */
@@ -100,9 +135,10 @@ body {
     Helvetica, Arial, sans-serif;
   font-size: var(--fs-sm);
   color: var(--color-gray-900);
+  background: var(--color-gray-50);
 }
 
-/* Visible focus outline everywhere (amber-700 = 4.6:1 on white) */
+/* Visible focus outline everywhere (blue accent) */
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
@@ -148,7 +184,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  background: var(--color-gray-900);
+  background: var(--color-amber-700);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-sm);
@@ -161,7 +197,7 @@ body {
   transition: background-color 0.15s ease;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-gray-700);
+  background: var(--color-amber-800);
 }
 .btn-primary:disabled {
   opacity: 0.5;

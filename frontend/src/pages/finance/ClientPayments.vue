@@ -355,12 +355,12 @@ async function doDelete() {
 	align-items: center;
 }
 .summary {
-	color: var(--text-muted, #64748b);
+	color: var(--text-muted, var(--color-gray-600));
 	font-size: 0.85rem;
 }
 .card {
 	background: var(--card-bg, #fff);
-	border: 1px solid var(--border, #e2e8f0);
+	border: 1px solid var(--border, var(--color-gray-200));
 	border-radius: 0.75rem;
 	overflow: hidden;
 }
@@ -376,7 +376,7 @@ th,
 td {
 	padding: 0.65rem 0.8rem;
 	text-align: left;
-	border-bottom: 1px solid var(--border, #e2e8f0);
+	border-bottom: 1px solid var(--border, var(--color-gray-200));
 }
 th {
 	font-weight: 600;
@@ -389,13 +389,13 @@ th {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
-	color: #b91c1c;
+	color: var(--color-red-700);
 	font-size: 0.85rem;
 }
 .modal-backdrop {
 	position: fixed;
 	inset: 0;
-	background: rgb(15 23 42 / 45%);
+	background: rgb(21 58 99 / 45%);
 	display: grid;
 	place-items: center;
 	z-index: 50;
@@ -422,7 +422,7 @@ th {
 .modal input,
 .modal select {
 	padding: 0.5rem;
-	border: 1px solid var(--border, #cbd5e1);
+	border: 1px solid var(--border, var(--color-gray-300));
 	border-radius: 0.4rem;
 	background: transparent;
 }

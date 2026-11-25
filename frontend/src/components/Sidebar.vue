@@ -256,7 +256,7 @@ function logout() {
 		position: fixed;
 		inset: 0;
 		z-index: 45;
-		background: rgba(17, 24, 39, 0.4);
+		background: rgba(21, 58, 99, 0.4);
 	}
 }
 </style>

@@ -1100,7 +1100,7 @@ td.link:hover {
 .drill-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(17, 24, 39, 0.45);
+	background: rgba(21, 58, 99, 0.45);
 	display: flex;
 	align-items: center;
 	justify-content: center;
