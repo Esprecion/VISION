@@ -13,7 +13,21 @@ TEXT_EXTENSIONS = {".txt", ".md", ".csv", ".json"}
 MAX_SOURCE_CHARS = 60000
 
 RECORD_FIELDS = {
-	"client": ["client_name", "address", "contact_person", "contact_email", "contact_phone", "territory"],
+	"client": [
+		"client_name",
+		"first_name",
+		"last_name",
+		"address",
+		"street_barangay",
+		"city_municipality",
+		"province",
+		"postal_code",
+		"country",
+		"contact_person",
+		"contact_email",
+		"contact_phone",
+		"territory",
+	],
 	"product": ["product_name", "type", "description"],
 	"deal": [
 		"deal_title",

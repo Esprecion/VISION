@@ -51,6 +51,23 @@ def create_deal_with_details(deal, client, items):
 	return doc.as_dict()
 
 
+def _client_name_parts(client):
+	new = client.get("new") or {}
+	first = (new.get("first_name") or "").strip()
+	last = (new.get("last_name") or "").strip()
+	if not first and not last:
+		parts = (new.get("client_name") or "").split()
+		if parts:
+			first = parts[0]
+			last = " ".join(parts[1:])
+	return first, last
+
+
+def _client_full_name(client):
+	first, last = _client_name_parts(client)
+	return " ".join(part for part in (first, last) if part)
+
+
 def _validate_client(client):
 	existing = client.get("existing")
 	if existing:
@@ -58,8 +75,7 @@ def _validate_client(client):
 			frappe.throw(f"Client {existing} does not exist")
 		return
 
-	name = ((client.get("new") or {}).get("client_name") or "").strip()
-	if not name:
+	if not _client_full_name(client):
 		frappe.throw("Client name is required")
 
 
@@ -97,7 +113,8 @@ def _get_or_create_client(client):
 		return existing
 
 	new = client.get("new") or {}
-	name = (new.get("client_name") or "").strip()
+	first, last = _client_name_parts(client)
+	name = " ".join(part for part in (first, last) if part)
 	if not name:
 		frappe.throw("Client name is required")
 
@@ -108,12 +125,19 @@ def _get_or_create_client(client):
 	doc = frappe.get_doc(
 		{
 			"doctype": "Client",
+			"first_name": first,
+			"last_name": last,
 			"client_name": name,
 			"contact_person": (new.get("contact_person") or "").strip(),
 			"contact_email": (new.get("contact_email") or "").strip(),
 			"contact_phone": (new.get("contact_phone") or "").strip(),
 			"territory": (new.get("territory") or "").strip(),
 			"address": (new.get("address") or "").strip(),
+			"street_barangay": (new.get("street_barangay") or new.get("address") or "").strip(),
+			"city_municipality": (new.get("city_municipality") or "").strip(),
+			"province": (new.get("province") or "").strip(),
+			"postal_code": (new.get("postal_code") or "").strip(),
+			"country": (new.get("country") or "Philippines").strip(),
 		}
 	)
 	doc.insert()

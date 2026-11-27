@@ -3,8 +3,21 @@
  "name": "Client",
  "module": "Business Development",
  "custom": 0,
+ "track_changes": 1,
  "autoname": "field:client_name",
  "fields": [
+  {
+   "fieldname": "first_name",
+   "label": "First Name",
+   "fieldtype": "Data",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "last_name",
+   "label": "Last Name",
+   "fieldtype": "Data",
+   "in_list_view": 1
+  },
   {
    "fieldname": "client_name",
    "label": "Client Name",
@@ -14,8 +27,35 @@
   },
   {
    "fieldname": "address",
-   "label": "Address",
-   "fieldtype": "Small Text"
+   "label": "Legacy Address",
+   "fieldtype": "Small Text",
+   "hidden": 1
+  },
+  {
+   "fieldname": "street_barangay",
+   "label": "Street & Barangay",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "city_municipality",
+   "label": "City / Municipality",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "province",
+   "label": "Province",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "postal_code",
+   "label": "Postal Code",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "country",
+   "label": "Country",
+   "fieldtype": "Data",
+   "default": "Philippines"
   },
   {
    "fieldname": "contact_person",

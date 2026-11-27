@@ -12,12 +12,30 @@
 					@unavailable="onImportUnavailable"
 				/>
 				<AppTextInput
-					v-model="form.client_name"
-					label="Client Name"
-					required
-					placeholder="e.g. Acme Corp"
+					v-model="form.first_name"
+					label="First Name"
+					:required="!isEdit"
+					placeholder="e.g. Juan"
 				/>
-				<AppTextInput v-model="form.address" label="Address" />
+				<AppTextInput
+					v-model="form.last_name"
+					label="Last Name"
+					:required="!isEdit"
+					placeholder="e.g. Dela Cruz"
+				/>
+				<AppTextInput
+					v-model="form.street_barangay"
+					label="Street & Barangay"
+					placeholder="e.g. 12 Rizal St., Barangay San Antonio"
+				/>
+				<AppTextInput
+					v-model="form.city_municipality"
+					label="City / Municipality"
+					placeholder="e.g. Makati City"
+				/>
+				<AppTextInput v-model="form.province" label="Province" placeholder="e.g. Metro Manila" />
+				<AppTextInput v-model="form.postal_code" label="Postal Code" placeholder="e.g. 1203" />
+				<AppTextInput v-model="form.country" label="Country" />
 				<AppTextInput v-model="form.contact_person" label="Contact Person" />
 				<AppTextInput v-model="form.contact_email" type="email" label="Contact Email" />
 				<AppTextInput v-model="form.contact_phone" label="Contact Phone" />
@@ -36,7 +54,7 @@
 			<AppButton
 				variant="solid"
 				theme="gray"
-				:disabled="!form.client_name || isLoading"
+				:disabled="!canSave || isLoading"
 				:loading="isLoading"
 				@click="submit"
 			>
@@ -73,12 +91,22 @@ const dialogTitle = computed(() => (isEdit.value ? 'Edit Client' : 'Add Client')
 
 const form = reactive({
 	client_name: '',
-	address: '',
+	first_name: '',
+	last_name: '',
+	street_barangay: '',
+	city_municipality: '',
+	province: '',
+	postal_code: '',
+	country: 'Philippines',
 	contact_person: '',
 	contact_email: '',
 	contact_phone: '',
 	territory: '',
 })
+
+const canSave = computed(() =>
+	isEdit.value || (!!form.first_name.trim() && !!form.last_name.trim())
+)
 
 const loading = ref(false)
 const loaded = ref(null)
@@ -105,6 +133,7 @@ const errorText = computed(() => {
 
 function resetForm() {
 	Object.keys(form).forEach((k) => (form[k] = ''))
+	form.country = 'Philippines'
 	importError.value = ''
 }
 
@@ -124,7 +153,13 @@ async function prepare() {
 		})
 		loaded.value = doc
 		form.client_name = doc.client_name || ''
-		form.address = doc.address || ''
+		form.first_name = doc.first_name || ''
+		form.last_name = doc.last_name || ''
+		form.street_barangay = doc.street_barangay || doc.address || ''
+		form.city_municipality = doc.city_municipality || ''
+		form.province = doc.province || ''
+		form.postal_code = doc.postal_code || ''
+		form.country = doc.country || 'Philippines'
 		form.contact_person = doc.contact_person || ''
 		form.contact_email = doc.contact_email || ''
 		form.contact_phone = doc.contact_phone || ''
@@ -146,6 +181,12 @@ function applyImport(values) {
 	Object.keys(form).forEach((key) => {
 		if (values[key] !== undefined) form[key] = values[key]
 	})
+	if (values.client_name && !form.first_name && !form.last_name) {
+		const parts = String(values.client_name).trim().split(/\s+/)
+		form.first_name = parts.shift() || ''
+		form.last_name = parts.join(' ')
+	}
+	if (values.address && !form.street_barangay) form.street_barangay = values.address
 }
 
 function onImportUnavailable() {
@@ -153,8 +194,13 @@ function onImportUnavailable() {
 }
 
 function submit() {
-	if (!form.client_name || isLoading.value) return
-	const doc = isEdit.value ? { ...loaded.value, ...form } : { doctype: 'Client', ...form }
+	if (!canSave.value || isLoading.value) return
+	const payload = { ...form }
+	const fullName = `${form.first_name.trim()} ${form.last_name.trim()}`.trim()
+	if (fullName) payload.client_name = fullName
+	const doc = isEdit.value
+		? { ...loaded.value, ...payload }
+		: { doctype: 'Client', ...payload }
 	activeResource.value.submit(
 		{ doc },
 		{

@@ -24,10 +24,18 @@ const clientsResource = createListResource({
 	fields: [
 		'name',
 		'client_name',
+		'first_name',
+		'last_name',
+		'street_barangay',
+		'city_municipality',
+		'province',
+		'postal_code',
+		'country',
 		'contact_person',
 		'contact_email',
 		'contact_phone',
 		'territory',
+		'address',
 		'creation',
 	],
 	orderBy: 'client_name asc',
@@ -62,10 +70,27 @@ const filteredClients = computed(() => {
 	return list.filter(
 		(c) =>
 			(c.client_name || '').toLowerCase().includes(q) ||
+			(c.first_name || '').toLowerCase().includes(q) ||
+			(c.last_name || '').toLowerCase().includes(q) ||
+			(c.street_barangay || '').toLowerCase().includes(q) ||
+			(c.city_municipality || '').toLowerCase().includes(q) ||
+			(c.province || '').toLowerCase().includes(q) ||
 			(c.contact_person || '').toLowerCase().includes(q) ||
 			(c.territory || '').toLowerCase().includes(q)
 	)
 })
+
+function clientAddress(c) {
+	const parts = [
+		c.street_barangay,
+		c.city_municipality,
+		c.province,
+		c.postal_code,
+		c.country,
+	]
+	const address = parts.filter(Boolean).join(', ')
+	return address || c.address || ''
+}
 
 function clearSearch() {
 	search.value = ''
@@ -136,6 +161,7 @@ function clearSearch() {
 					<thead>
 						<tr>
 							<th>Client Name</th>
+							<th>Address</th>
 							<th>Contact Person</th>
 							<th>Email</th>
 							<th>Phone</th>
@@ -147,6 +173,7 @@ function clearSearch() {
 					<tbody>
 						<tr v-for="c in filteredClients" :key="c.name">
 							<td class="strong">{{ c.client_name }}</td>
+							<td>{{ displayValue(clientAddress(c)) }}</td>
 							<td>{{ displayValue(c.contact_person) }}</td>
 							<td>{{ displayValue(c.contact_email) }}</td>
 							<td>{{ displayValue(c.contact_phone) }}</td>

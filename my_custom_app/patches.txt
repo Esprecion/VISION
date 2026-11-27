@@ -20,3 +20,4 @@ my_custom_app.patches.update_role_report_permissions
 my_custom_app.patches.remove_system_admin_report_permissions
 my_custom_app.patches.recompute_invoice_payment_totals
 my_custom_app.patches.enable_username_login
+my_custom_app.patches.migrate_client_address_fields

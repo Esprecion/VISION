@@ -41,10 +41,19 @@
 						placeholder="Search clients..."
 					/>
 					<div v-else class="new-box">
+						<AppTextInput v-model="clientForm.first_name" placeholder="First name *" />
+						<AppTextInput v-model="clientForm.last_name" placeholder="Last name *" />
 						<AppTextInput
-							v-model="clientForm.client_name"
-							placeholder="Client name *"
+							v-model="clientForm.street_barangay"
+							placeholder="Street & barangay"
 						/>
+						<AppTextInput
+							v-model="clientForm.city_municipality"
+							placeholder="City / municipality"
+						/>
+						<AppTextInput v-model="clientForm.province" placeholder="Province" />
+						<AppTextInput v-model="clientForm.postal_code" placeholder="Postal code" />
+						<AppTextInput v-model="clientForm.country" placeholder="Country" />
 						<AppTextInput
 							v-model="clientForm.contact_person"
 							placeholder="Contact person"
@@ -59,7 +68,6 @@
 							placeholder="Contact phone"
 						/>
 						<AppTextInput v-model="clientForm.territory" placeholder="Territory" />
-						<AppTextInput v-model="clientForm.address" placeholder="Address" />
 					</div>
 				</div>
 
@@ -248,6 +256,13 @@ const productTypes = ['Software', 'Hardware', 'Consulting', 'Support']
 const newClient = ref(false)
 const clientForm = reactive({
 	client_name: '',
+	first_name: '',
+	last_name: '',
+	street_barangay: '',
+	city_municipality: '',
+	province: '',
+	postal_code: '',
+	country: 'Philippines',
 	contact_person: '',
 	contact_email: '',
 	contact_phone: '',
@@ -310,7 +325,11 @@ const validItems = computed(() =>
 	)
 )
 
-const clientOk = computed(() => (newClient.value ? !!clientForm.client_name.trim() : !!form.client))
+const clientOk = computed(() =>
+	newClient.value
+		? !!clientForm.first_name.trim() && !!clientForm.last_name.trim()
+		: !!form.client
+)
 const canSubmit = computed(() => form.deal_title && clientOk.value && validItems.value.length > 0)
 
 const createDeal = createResource({
@@ -324,6 +343,7 @@ function resetForm() {
 	form.client = ''
 	form.expected_close_date = ''
 	Object.keys(clientForm).forEach((k) => (clientForm[k] = ''))
+	clientForm.country = 'Philippines'
 	newClient.value = false
 	items.value = [blankItem()]
 }
@@ -339,7 +359,23 @@ function applyImport(values) {
 		newClient.value = false
 	} else if (values.client_name || values.client) {
 		newClient.value = true
-		clientForm.client_name = values.client_name || values.client
+		const importedName = values.client_name || values.client
+		clientForm.client_name = importedName
+		if (values.first_name !== undefined) clientForm.first_name = values.first_name
+		if (values.last_name !== undefined) clientForm.last_name = values.last_name
+		if (!clientForm.first_name && !clientForm.last_name) {
+			const parts = String(importedName).trim().split(/\s+/)
+			clientForm.first_name = parts.shift() || ''
+			clientForm.last_name = parts.join(' ')
+		}
+		if (values.street_barangay !== undefined) clientForm.street_barangay = values.street_barangay
+		else if (values.address !== undefined) clientForm.street_barangay = values.address
+		if (values.city_municipality !== undefined) {
+			clientForm.city_municipality = values.city_municipality
+		}
+		if (values.province !== undefined) clientForm.province = values.province
+		if (values.postal_code !== undefined) clientForm.postal_code = values.postal_code
+		if (values.country !== undefined) clientForm.country = values.country
 	}
 	if (!Array.isArray(values.items)) return
 	const importedItems = values.items
@@ -371,7 +407,16 @@ function submit() {
 				stage: props.stage,
 				expected_close_date: form.expected_close_date || null,
 			},
-			client: newClient.value ? { new: { ...clientForm } } : { existing: form.client },
+			client: newClient.value
+				? {
+						new: {
+							...clientForm,
+							client_name:
+								`${clientForm.first_name.trim()} ${clientForm.last_name.trim()}`.trim() ||
+								clientForm.client_name,
+						},
+					}
+				: { existing: form.client },
 			items: validItems.value.map((i) => ({
 				...(i.isNew
 					? { new_product: { product_name: i.newName, type: i.newType } }
