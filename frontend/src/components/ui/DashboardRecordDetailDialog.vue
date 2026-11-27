@@ -18,6 +18,11 @@
 				</table>
 			</div>
 			<div v-else class="detail-empty">No details to display.</div>
+			<RecordHistoryPanel
+				v-if="record?.doctype && record?.name"
+				:doctype="record.doctype"
+				:docname="record.name"
+			/>
 		</template>
 		<template #actions="{ close }">
 			<div class="detail-actions">
@@ -32,6 +37,7 @@ import { computed, watch } from 'vue'
 import { createResource } from 'frappe-ui'
 import AppButton from './AppButton.vue'
 import AppSkeleton from './AppSkeleton.vue'
+import RecordHistoryPanel from './RecordHistoryPanel.vue'
 import { displayValue } from '../../utils/format'
 
 const props = defineProps({
@@ -83,6 +89,7 @@ watch(
 }
 .detail-table-wrap {
 	overflow-x: auto;
+	margin-bottom: var(--space-4);
 }
 .detail-table {
 	width: 100%;

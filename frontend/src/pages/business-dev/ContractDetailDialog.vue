@@ -220,6 +220,12 @@
 						</div>
 					</div>
 				</div>
+
+				<RecordHistoryPanel
+					doctype="Service Contract"
+					:docname="props.contractName"
+					:refresh-key="historyRefreshKey"
+				/>
 			</div>
 		</template>
 	</Dialog>
@@ -239,6 +245,7 @@ import FinanceFormDialog from '@/components/FinanceFormDialog.vue'
 import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import RecordHistoryPanel from '@/components/ui/RecordHistoryPanel.vue'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
 import PlusIcon from '~icons/lucide/plus'
 import XIcon from '~icons/lucide/x'
@@ -265,6 +272,7 @@ const doc = ref(null)
 const dealInfo = ref(null)
 const editing = ref(false)
 const saving = ref(false)
+const historyRefreshKey = ref(0)
 const form = reactive({
 	start_date: '',
 	end_date: '',
@@ -333,6 +341,7 @@ async function loadAll() {
 		}
 		await loadInvoices()
 		await loadComments()
+		historyRefreshKey.value += 1
 	} finally {
 		loading.value = false
 	}
@@ -382,6 +391,7 @@ async function saveChanges() {
 		const saved = await call('frappe.client.save', { doc: updatedDoc })
 		doc.value = saved
 		editing.value = false
+		historyRefreshKey.value += 1
 		emit('updated')
 	} finally {
 		saving.value = false
@@ -396,6 +406,7 @@ async function updateStatus(newStatus) {
 		value: newStatus,
 	})
 	doc.value.status = newStatus
+	historyRefreshKey.value += 1
 	emit('updated')
 }
 
@@ -498,6 +509,9 @@ function peso(n) {
 .dd-section {
 	border-top: 1px solid var(--color-gray-200);
 	padding-top: var(--space-4);
+}
+.record-history {
+	margin-top: var(--space-4);
 }
 .section-label {
 	font-size: var(--fs-xs);

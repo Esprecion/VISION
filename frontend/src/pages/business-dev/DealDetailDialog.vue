@@ -197,31 +197,12 @@
 					</div>
 				</div>
 
-				<!-- History -->
-				<div class="dd-section">
-					<button class="dd-section-toggle" @click="showHistory = !showHistory">
-						History ({{ filteredHistory.length }})
-						<ChevronDownIcon
-							class="dd-toggle-icon"
-							:class="{ 'dd-toggle-icon--open': showHistory }"
-							aria-hidden="true"
-						/>
-					</button>
-					<div v-if="showHistory" class="dd-section-body">
-						<div v-if="filteredHistory.length === 0" class="dd-empty">
-							No changes recorded.
-						</div>
-						<div v-for="h in filteredHistory" :key="h.name" class="dd-history-entry">
-							<div v-for="(c, i) in h.changes" :key="i" class="dd-history-line">
-								<strong>{{ formatUser(h.owner) }}</strong>
-								changed <em>{{ fieldLabel(c.field) }}</em> from
-								<span class="dd-old">{{ displayVal(c.old) }}</span> to
-								<span class="dd-new">{{ displayVal(c.new) }}</span>
-								<span class="dd-timestamp">— {{ formatRelative(h.creation) }}</span>
-							</div>
-						</div>
-					</div>
-				</div>
+				<RecordHistoryPanel
+					doctype="Deal"
+					:docname="props.dealName"
+					:hidden-fields="['stage']"
+					:refresh-key="historyRefreshKey"
+				/>
 			</div>
 		</template>
 	</Dialog>
@@ -234,6 +215,7 @@ import AppSkeleton from '@/components/ui/AppSkeleton.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import AppTextInput from '@/components/ui/AppTextInput.vue'
 import AppButton from '@/components/ui/AppButton.vue'
+import RecordHistoryPanel from '@/components/ui/RecordHistoryPanel.vue'
 import ChevronDownIcon from '~icons/lucide/chevron-down'
 import PlusIcon from '~icons/lucide/plus'
 import XIcon from '~icons/lucide/x'
@@ -261,29 +243,13 @@ const form = reactive({
 })
 const saving = ref(false)
 const showComments = ref(false)
-const showHistory = ref(false)
 const comments = ref([])
-const history = ref([])
+const historyRefreshKey = ref(0)
 const newComment = ref('')
 const postingComment = ref(false)
 
 const dialogTitle = computed(() => doc.value?.deal_title || 'Deal')
 
-const FIELD_LABELS = {
-	deal_title: 'Title',
-	client: 'Client',
-	expected_close_date: 'Expected Close Date',
-	value: 'Total Value',
-	quantity: 'Qty',
-	price: 'Price',
-	product: 'Product',
-}
-function fieldLabel(f) {
-	return FIELD_LABELS[f] || f
-}
-function displayVal(v) {
-	return v === null || v === undefined || v === '' ? '(empty)' : v
-}
 function formatUser(email) {
 	if (!email) return 'Unknown'
 	const namePart = email.split('@')[0]
@@ -425,49 +391,6 @@ async function loadComments() {
 	comments.value = res || []
 }
 
-function extractRowChanges(rowChanged) {
-	if (!Array.isArray(rowChanged)) return []
-	const out = []
-	for (const entry of rowChanged) {
-		const fieldDiffs = entry[entry.length - 1]
-		if (Array.isArray(fieldDiffs)) {
-			for (const fd of fieldDiffs) {
-				if (Array.isArray(fd) && fd.length >= 3) {
-					out.push({ field: fd[0], old: fd[1], new: fd[2] })
-				}
-			}
-		}
-	}
-	return out
-}
-
-async function loadHistory() {
-	const res = await call('frappe.client.get_list', {
-		doctype: 'Version',
-		filters: { ref_doctype: 'Deal', docname: props.dealName },
-		fields: ['name', 'data', 'owner', 'creation'],
-		order_by: 'creation desc',
-		limit_page_length: 100,
-	})
-	history.value = (res || [])
-		.map((v) => {
-			let changed = []
-			let rowChanged = []
-			try {
-				const parsed = JSON.parse(v.data)
-				changed = (parsed.changed || [])
-					.filter((c) => c[0] !== 'stage')
-					.map((c) => ({ field: c[0], old: c[1], new: c[2] }))
-				rowChanged = extractRowChanges(parsed.row_changed)
-			} catch (e) {
-				changed = []
-			}
-			return { ...v, changes: [...changed, ...rowChanged] }
-		})
-		.filter((v) => v.changes.length > 0)
-}
-const filteredHistory = computed(() => history.value)
-
 async function postComment() {
 	if (!newComment.value.trim()) return
 	postingComment.value = true
@@ -511,7 +434,7 @@ async function saveChanges() {
 		doc.value = saved
 		loadedSnapshot = snapshotForm()
 		editing.value = false
-		await loadHistory()
+		historyRefreshKey.value += 1
 		emit('updated')
 	} finally {
 		saving.value = false
@@ -522,13 +445,15 @@ watch(show, async (v) => {
 	if (v) {
 		editing.value = false
 		showComments.value = false
-		showHistory.value = false
 		doc.value = null
 		dealError.value = ''
 		clientsResource.reload()
 		productsResource.reload()
 		await loadDeal()
-		if (doc.value) await Promise.all([loadComments(), loadHistory()])
+		if (doc.value) {
+			await loadComments()
+			historyRefreshKey.value += 1
+		}
 	}
 })
 </script>
@@ -699,19 +624,6 @@ watch(show, async (v) => {
 	font-size: var(--fs-sm);
 	color: var(--color-gray-900);
 	margin-top: var(--space-1);
-}
-.dd-history-line {
-	font-size: var(--fs-xs);
-	color: var(--color-gray-700);
-	margin-bottom: var(--space-1);
-}
-.dd-old {
-	color: var(--color-amber-700);
-	text-decoration: line-through;
-}
-.dd-new {
-	color: var(--color-gray-900);
-	font-weight: 600;
 }
 .dd-timestamp {
 	font-size: var(--fs-xs);

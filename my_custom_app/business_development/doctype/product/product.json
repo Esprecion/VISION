@@ -3,6 +3,7 @@
  "name": "Product",
  "module": "Business Development",
  "custom": 0,
+ "track_changes": 1,
  "autoname": "field:product_name",
  "fields": [
   {

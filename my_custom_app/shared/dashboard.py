@@ -10,7 +10,20 @@ MODULE_DOCTYPES = {
 CLOSED_DEAL_STAGES = {"Closed", "Closed Lost", "Closed Won", "Lost", "Won"}
 
 DETAIL_FIELDS = {
-	"Client": ["client_name", "territory", "contact_person", "contact_email", "contact_phone", "address"],
+	"Client": [
+		"client_name",
+		"first_name",
+		"last_name",
+		"street_barangay",
+		"city_municipality",
+		"province",
+		"postal_code",
+		"country",
+		"territory",
+		"contact_person",
+		"contact_email",
+		"contact_phone",
+	],
 	"Client Payment": ["invoice", "client", "amount", "payment_date", "payment_method", "reference"],
 	"Deal": ["deal_title", "client", "territory", "stage", "value", "expected_close_date"],
 	"Expense": ["category", "amount", "expense_date", "project"],
@@ -89,6 +102,19 @@ def _record(doctype, row, title_field, subtitle_field=None, meta_field=None):
 	}
 
 
+def _client_subtitle(row):
+	address = ", ".join(
+		part
+		for part in (
+			row.get("street_barangay"),
+			row.get("city_municipality"),
+			row.get("province"),
+		)
+		if part
+	)
+	return address or row.get("territory") or row.get("address") or ""
+
+
 def _count(values):
 	counts = {}
 	for value in values:
@@ -125,7 +151,17 @@ def business_development_records_and_metrics(from_date=None, to_date=None, stage
 
 	clients = _rows(
 		"Client",
-		["name", "client_name", "territory"],
+		[
+			"name",
+			"client_name",
+			"first_name",
+			"last_name",
+			"street_barangay",
+			"city_municipality",
+			"province",
+			"territory",
+			"address",
+		],
 		{"name": client} if client else {},
 	)
 	products = _rows("Product", ["name", "product_name", "type"])
@@ -142,7 +178,7 @@ def business_development_records_and_metrics(from_date=None, to_date=None, stage
 			"contract_counts": contract_counts,
 		},
 		"records": {
-			"clients": [_record("Client", row, "client_name", "territory") for row in clients],
+			"clients": [_record("Client", row, "client_name", _client_subtitle(row)) for row in clients],
 			"products": [_record("Product", row, "product_name", "type") for row in products],
 			"deals": [_record("Deal", row, "deal_title", "client", "stage") for row in deals],
 			"contracts": [_record("Service Contract", row, "deal", "client", "status") for row in contracts],
@@ -249,6 +285,111 @@ def finance_records_and_metrics(from_date=None, to_date=None, client=None):
 			"to_date": str(to_date)[:10] if to_date else "",
 			"client": client or "",
 		},
+	}
+
+
+def _version_changes(data):
+	try:
+		parsed = frappe.parse_json(data) if data else {}
+	except Exception:
+		return []
+	if not isinstance(parsed, dict):
+		return []
+
+	changes = []
+	for change in parsed.get("changed") or []:
+		if isinstance(change, (list, tuple)) and len(change) >= 3:
+			changes.append({"field": change[0], "old": change[1], "new": change[2]})
+
+	for row in parsed.get("row_changed") or []:
+		if not isinstance(row, (list, tuple)) or not row:
+			continue
+		field_diffs = row[-1]
+		if not isinstance(field_diffs, (list, tuple)):
+			continue
+		for diff in field_diffs:
+			if isinstance(diff, (list, tuple)) and len(diff) >= 3:
+				changes.append({"field": diff[0], "old": diff[1], "new": diff[2]})
+
+	return changes
+
+
+def _version_field_label(doctype, fieldname):
+	meta = frappe.get_meta(doctype)
+	field = meta.get_field(fieldname)
+	if field:
+		return field.label or fieldname
+
+	for parent_field in meta.fields:
+		if parent_field.fieldtype != "Table" or not parent_field.options:
+			continue
+		child_field = frappe.get_meta(parent_field.options).get_field(fieldname)
+		if child_field:
+			parent_label = parent_field.label or parent_field.fieldname
+			return f"{parent_label} · {child_field.label or fieldname}"
+
+	return str(fieldname or "").replace("_", " ").title()
+
+
+def _version_value(value):
+	if value is None or value == "":
+		return "(empty)"
+	if isinstance(value, (list, dict)):
+		return frappe.as_json(value)
+	return str(value)
+
+
+@frappe.whitelist()
+def get_record_history(doctype=None, name=None):
+	if doctype not in DETAIL_FIELDS:
+		frappe.throw(_("Unsupported record type."))
+	_require_doctype_read(doctype)
+	if not name or not frappe.db.exists(doctype, name):
+		frappe.throw(_("Record not found."))
+
+	metadata = frappe.db.get_value(
+		doctype,
+		name,
+		["creation", "modified", "modified_by", "owner"],
+		as_dict=True,
+	) or {}
+
+	versions = frappe.get_all(
+		"Version",
+		filters={"ref_doctype": doctype, "docname": name},
+		fields=["name", "data", "owner", "creation"],
+		order_by="creation desc",
+		limit_page_length=100,
+		ignore_permissions=True,
+	)
+
+	history = []
+	for version in versions:
+		changes = []
+		for change in _version_changes(version.data):
+			changes.append(
+				{
+					"field": change["field"],
+					"label": _version_field_label(doctype, change["field"]),
+					"old": _version_value(change["old"]),
+					"new": _version_value(change["new"]),
+				}
+			)
+		if changes:
+			history.append(
+				{
+					"name": version.name,
+					"owner": version.owner,
+					"creation": version.creation,
+					"changes": changes,
+				}
+			)
+
+	return {
+		"doctype": doctype,
+		"name": name,
+		"metadata": metadata,
+		"history": history,
 	}
 
 

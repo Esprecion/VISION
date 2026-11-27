@@ -3,6 +3,7 @@
  "name": "Service Contract",
  "module": "Business Development",
  "custom": 0,
+ "track_changes": 1,
  "autoname": "hash",
  "fields": [
   {
