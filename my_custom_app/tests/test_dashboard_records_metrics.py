@@ -5,6 +5,7 @@ from my_custom_app.administration.admin_roles import ensure_roles
 from my_custom_app.shared.dashboard import (
 	business_development_records_and_metrics,
 	finance_records_and_metrics,
+	get_accounts_receivable,
 	get_dashboard_record,
 	operations_records_and_metrics,
 )
@@ -215,6 +216,44 @@ class TestDashboardRecordsAndMetrics(FrappeTestCase):
 		self.assertEqual(result["metrics"]["total_invoiced"], 0)
 		self.assertEqual(result["metrics"]["total_received"], 0)
 		self.assertEqual(result["metrics"]["total_expenses"], 0)
+
+	def test_accounts_receivable_as_of(self):
+		client = self._client("ar-client")
+		invoice = self._invoice(client)
+		self._payment(invoice)
+		future_invoice = self._insert(
+			frappe.get_doc(
+				{
+					"doctype": "Invoice",
+					"client": client.name,
+					"amount": 50000,
+					"issue_date": "2026-04-01",
+					"due_date": "2026-04-30",
+					"status": "Sent",
+				}
+			)
+		)
+
+		before_payment = get_accounts_receivable(as_of="2026-03-03")
+		before_row = next(row for row in before_payment["rows"] if row["invoice"] == invoice.name)
+		self.assertEqual(before_payment["as_of"], "2026-03-03")
+		self.assertEqual(before_row["amount"], 100000)
+		self.assertEqual(before_row["days_overdue"], -28)
+		self.assertEqual(before_row["bucket"], "Current")
+
+		after_payment = get_accounts_receivable(as_of="2026-03-06")
+		after_row = next(row for row in after_payment["rows"] if row["invoice"] == invoice.name)
+		self.assertEqual(after_row["amount"], 70000)
+		self.assertEqual(after_row["days_overdue"], 25)
+		self.assertEqual(after_row["bucket"], "1-30")
+		self.assertNotIn(
+			future_invoice.name,
+			[row["invoice"] for row in after_payment["rows"]],
+		)
+
+	def test_accounts_receivable_rejects_invalid_as_of(self):
+		with self.assertRaises(frappe.ValidationError):
+			get_accounts_receivable(as_of="not-a-date")
 
 	def test_get_dashboard_record_returns_read_only_fields(self):
 		client = self._client("detail-client")

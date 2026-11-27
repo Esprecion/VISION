@@ -59,6 +59,6 @@ def execute():
 			"is_standard": "No",
 			"module": frappe.db.get_value("DocType", "Invoice", "module"),
 			"query": QUERY,
-			"roles": [{"role": "CFO"}, {"role": "System Manager"}],
+			"roles": [{"role": "System Manager"}, {"role": "CBO"}, {"role": "COO"}, {"role": "CFO"}, {"role": "CTO"}],
 		}
 	).insert(ignore_permissions=True)

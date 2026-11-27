@@ -11,6 +11,7 @@ import DashboardRecords from '@/components/ui/DashboardRecords.vue'
 import DashboardRecordDetailDialog from '@/components/ui/DashboardRecordDetailDialog.vue'
 import MetricIndicator from '@/components/ui/MetricIndicator.vue'
 import { ragLevel, ruleText } from '@/utils/metrics'
+import { formatDateTime } from '@/utils/format'
 import XIcon from '~icons/lucide/x'
 
 const initialRange = yearRange()
@@ -21,6 +22,19 @@ function setRange(r) {
 	fromInput.value = r.from
 	toInput.value = r.to
 }
+function todayInput() {
+	const now = new Date()
+	return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+}
+function isValidDateInput(value) {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false
+	const [year, month, day] = value.split('-').map(Number)
+	const date = new Date(year, month - 1, day)
+	return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+}
+
+const asOfInput = ref(todayInput())
+const asOfError = ref('')
 
 function useReport(name, filters = {}) {
 	return createResource({
@@ -35,7 +49,11 @@ const rowsOf = (res) => (res.data?.result ?? []).map(cells)
 
 const revenue = useReport('Revenue per Client', range())
 const totalRevenueByPeriod = useReport('Total Revenue by Period', range())
-const aging = useReport('Accounts Receivable Aging')
+const aging = createResource({
+	url: 'my_custom_app.shared.dashboard.get_accounts_receivable',
+	params: { as_of: asOfInput.value },
+	auto: true,
+})
 const burn = useReport('Net Burn Rate', range())
 const profit = useReport('Project Profitability', range())
 const expenseRep = useReport('Expense by Category', range())
@@ -115,6 +133,15 @@ watch([fromInput, toInput], () => {
 		res.reload()
 	}
 })
+watch(asOfInput, (value) => {
+	if (!isValidDateInput(value)) {
+		asOfError.value = 'Enter a valid as-of date.'
+		return
+	}
+	asOfError.value = ''
+	aging.update({ params: { as_of: value } })
+	aging.reload()
+})
 
 const recordsErrorMessage = 'Unable to load records. Please try again.'
 const selectedClient = ref('')
@@ -187,11 +214,34 @@ const periodRevenueLevel = computed(() =>
 	})
 )
 
-const agingRows = computed(() => rowsOf(aging)) // [invoice, client, amount, due_date, status, days_overdue]
-const totalOutstanding = computed(() => agingRows.value.reduce((s, r) => s + Number(r[2] || 0), 0))
+const agingRows = computed(() =>
+	(aging.data?.rows || []).map((r) => [
+		r.invoice,
+		r.client,
+		r.amount,
+		r.due_date,
+		r.status,
+		r.days_overdue,
+		r.bucket,
+	])
+)
+const totalOutstanding = computed(() => Number(aging.data?.total_outstanding || 0))
+const asOfLabel = computed(() => formatDateTime(asOfInput.value))
 
 const burnRows = computed(() => rowsOf(burn)) // [month, revenue, expenses, net_burn]
 const latestBurn = computed(() => burnRows.value[burnRows.value.length - 1])
+const monthIndex = (month) => {
+	const [year, monthNumber] = String(month || '').split('-').map(Number)
+	return year && monthNumber ? year * 12 + monthNumber - 1 : null
+}
+const burnMonthCount = computed(() => {
+	const rows = burnRows.value
+	if (!rows.length) return 0
+	const first = monthIndex(rows[0][0])
+	const last = monthIndex(rows[rows.length - 1][0])
+	if (first == null || last == null) return rows.length
+	return Math.max(rows.length, last - first + 1)
+})
 const maxBurnAbs = computed(() =>
 	Math.max(
 		1,
@@ -209,33 +259,21 @@ const margin = (r) => {
 }
 
 // ---------- A/R aging buckets ----------
-const BUCKETS = [
-	{ key: 'current', label: 'Current', color: 'var(--color-emerald-500)', test: (d) => d <= 0 },
-	{
-		key: 'b1',
-		label: '1-30 days',
-		color: 'var(--brand-400)',
-		test: (d) => d >= 1 && d <= 30,
-	},
-	{
-		key: 'b2',
-		label: '31-60 days',
-		color: 'var(--brand-500)',
-		test: (d) => d >= 31 && d <= 60,
-	},
-	{
-		key: 'b3',
-		label: '61-90 days',
-		color: 'var(--color-red-500)',
-		test: (d) => d >= 61 && d <= 90,
-	},
-	{ key: 'b4', label: '90+ days', color: 'var(--color-red-800)', test: (d) => d > 90 },
-]
+const BUCKET_COLORS = {
+	Current: 'var(--color-emerald-500)',
+	'1-30': 'var(--brand-400)',
+	'31-60': 'var(--brand-500)',
+	'61-90': 'var(--color-red-500)',
+	'90+': 'var(--color-red-800)',
+}
 const agingBuckets = computed(() =>
-	BUCKETS.map((b) => {
-		const rows = agingRows.value.filter((r) => b.test(Number(r[5]) || 0))
-		return { ...b, rows, total: rows.reduce((t, r) => t + Number(r[2] || 0), 0) }
-	})
+	(aging.data?.buckets || []).map((b) => ({
+		key: b.bucket,
+		label: b.bucket,
+		color: BUCKET_COLORS[b.bucket] || 'var(--brand-400)',
+		rows: agingRows.value.filter((r) => r[6] === b.bucket),
+		total: Number(b.total || 0),
+	}))
 )
 function donutSegments(items, r = 40) {
 	const C = 2 * Math.PI * r
@@ -338,7 +376,7 @@ const burnNote = computed(() => {
 	const when = burnSyncedAt.value ? burnSyncedAt.value.toLocaleString('en-PH') : '—'
 	return (
 		'Net burn = expenses minus revenue per month. Covers ' +
-		rows.length +
+		burnMonthCount.value +
 		' month(s), ' +
 		rows[0][0] +
 		' to ' +
@@ -366,6 +404,9 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<button type="button" @click="setRange(quarterRange(0))">This quarter</button>
 					<button type="button" @click="setRange(quarterRange(-1))">Last quarter</button>
 					<button type="button" @click="setRange(yearRange())">This year</button>
+					<span class="as-of-label">A/R as of</span>
+					<input type="date" v-model="asOfInput" aria-label="Accounts receivable as of date" />
+					<span v-if="asOfError" class="as-of-error">{{ asOfError }}</span>
 				</div>
 				<div class="record-filters">
 					<select v-model="selectedRecordType" aria-label="Filter by record type">
@@ -408,12 +449,12 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			</div>
 			<div class="tile">
 				<template v-if="aging.loading && !aging.data">
-					<div class="label">OUTSTANDING (A/R)</div>
+					<div class="label">OUTSTANDING (A/R) AS OF {{ asOfLabel }}</div>
 					<AppSkeleton variant="text" :rows="2" />
 				</template>
 				<template v-else-if="aging.error && !aging.data">
 					<div class="label indicator-row">
-						OUTSTANDING (A/R)
+						OUTSTANDING (A/R) AS OF {{ asOfLabel }}
 						<MetricIndicator :level="agingLevel" :rule="ruleText('accountsReceivableAging')" />
 					</div>
 					<div class="value">—</div>
@@ -426,7 +467,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 				</template>
 				<template v-else>
 					<div class="label indicator-row">
-						OUTSTANDING (A/R)
+						OUTSTANDING (A/R) AS OF {{ asOfLabel }}
 						<MetricIndicator :level="agingLevel" :rule="ruleText('accountsReceivableAging')" />
 					</div>
 					<div class="value">{{ peso(totalOutstanding) }}</div>
@@ -713,7 +754,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 			<EmptyState
 				v-else-if="!agingRows.length"
 				title="Nothing outstanding"
-				description="No invoices with an outstanding balance in this date range."
+				:description="`No invoices with an outstanding balance as of ${asOfLabel}.`"
 			/>
 			<template v-else>
 				<div class="aging-top">
@@ -759,7 +800,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 					<table>
 						<thead>
 							<tr>
-								<th colspan="5" :style="{ color: b.color }">
+								<th colspan="6" :style="{ color: b.color }">
 									{{ b.label }} · {{ peso(b.total) }}
 								</th>
 							</tr>
@@ -768,6 +809,7 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 								<th>Client</th>
 								<th>Outstanding</th>
 								<th>Due Date</th>
+								<th>Days Overdue</th>
 								<th>Status</th>
 							</tr>
 						</thead>
@@ -776,8 +818,9 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 								<td>{{ r[0] }}</td>
 								<td>{{ r[1] }}</td>
 								<td>{{ peso(r[2]) }}</td>
-								<td>{{ r[3] }}</td>
+								<td>{{ formatDateTime(r[3]) }}</td>
 								<td :class="{ stale: Number(r[5]) > 0 }">{{ dueLabel(r[5]) }}</td>
+								<td>{{ r[4] || '—' }}</td>
 							</tr>
 						</tbody>
 					</table>
@@ -918,6 +961,15 @@ const width = (v, max) => Math.max(2, (Number(v) / max) * 100) + '%'
 .period-picker .to {
 	font-size: var(--fs-xs);
 	color: var(--color-gray-600);
+}
+.period-picker .as-of-label {
+	font-size: var(--fs-xs);
+	color: var(--color-gray-600);
+	margin-left: var(--space-2);
+}
+.period-picker .as-of-error {
+	font-size: var(--fs-xs);
+	color: var(--color-red-600);
 }
 .tiles {
 	display: grid;

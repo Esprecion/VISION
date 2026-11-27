@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from frappe.utils import getdate, today
 
 MODULE_DOCTYPES = {
 	"business_dev": "Deal",
@@ -8,6 +9,8 @@ MODULE_DOCTYPES = {
 }
 
 CLOSED_DEAL_STAGES = {"Closed", "Closed Lost", "Closed Won", "Lost", "Won"}
+
+AR_AGING_BUCKETS = ("Current", "1-30", "31-60", "61-90", "90+")
 
 DETAIL_FIELDS = {
 	"Client": [
@@ -86,6 +89,27 @@ def _date_filters(fieldname, from_date=None, to_date=None):
 
 def _client_filters(client=None):
 	return {"client": client} if client else {}
+
+
+def _parse_as_of(value=None):
+	if value in (None, ""):
+		return getdate(today())
+	try:
+		return getdate(value)
+	except Exception:
+		frappe.throw(_("As of date is invalid"), frappe.ValidationError)
+
+
+def _aging_bucket(days_overdue):
+	if days_overdue <= 0:
+		return "Current"
+	if days_overdue <= 30:
+		return "1-30"
+	if days_overdue <= 60:
+		return "31-60"
+	if days_overdue <= 90:
+		return "61-90"
+	return "90+"
 
 
 def _rows(doctype, fields, filters=None):
@@ -285,6 +309,82 @@ def finance_records_and_metrics(from_date=None, to_date=None, client=None):
 			"to_date": str(to_date)[:10] if to_date else "",
 			"client": client or "",
 		},
+	}
+
+
+@frappe.whitelist()
+def get_accounts_receivable(as_of=None):
+	_require_module_read("finance")
+	as_of_date = _parse_as_of(as_of)
+
+	invoices = frappe.get_all(
+		"Invoice",
+		fields=[
+			"name",
+			"client",
+			"amount",
+			"issue_date",
+			"due_date",
+			"status",
+		],
+		limit_page_length=0,
+		ignore_permissions=True,
+	)
+	eligible_names = [
+		row.name
+		for row in invoices
+		if not row.issue_date or getdate(row.issue_date) <= as_of_date
+	]
+	payments_by_invoice = {}
+	if eligible_names:
+		payments = frappe.get_all(
+			"Client Payment",
+			filters={
+				"invoice": ["in", eligible_names],
+				"payment_date": ["<=", str(as_of_date)],
+			},
+			fields=["invoice", "amount"],
+			limit_page_length=0,
+			ignore_permissions=True,
+		)
+		for payment in payments:
+			payments_by_invoice[payment.invoice] = payments_by_invoice.get(payment.invoice, 0) + _number(
+				payment.amount
+			)
+
+	rows = []
+	bucket_totals = {bucket: 0 for bucket in AR_AGING_BUCKETS}
+	for invoice in invoices:
+		if invoice.issue_date and getdate(invoice.issue_date) > as_of_date:
+			continue
+		outstanding = max(_number(invoice.amount) - payments_by_invoice.get(invoice.name, 0), 0)
+		if outstanding <= 0:
+			continue
+		due_date = getdate(invoice.due_date) if invoice.due_date else as_of_date
+		days_overdue = (as_of_date - due_date).days
+		bucket = _aging_bucket(days_overdue)
+		bucket_totals[bucket] += outstanding
+		rows.append(
+			{
+				"invoice": invoice.name,
+				"client": invoice.client,
+				"amount": outstanding,
+				"issue_date": invoice.issue_date,
+				"due_date": invoice.due_date,
+				"days_overdue": days_overdue,
+				"bucket": bucket,
+				"status": invoice.status,
+			}
+		)
+
+	rows.sort(key=lambda row: row["days_overdue"], reverse=True)
+	return {
+		"as_of": str(as_of_date),
+		"rows": rows,
+		"buckets": [
+			{"bucket": bucket, "total": bucket_totals[bucket]} for bucket in AR_AGING_BUCKETS
+		],
+		"total_outstanding": sum(row["amount"] for row in rows),
 	}
 
 

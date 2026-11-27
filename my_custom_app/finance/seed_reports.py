@@ -2,6 +2,31 @@ import frappe
 
 # Dev helper: creates the 4 Finance Query Reports. Safe to re-run.
 
+AR_QUERY = """
+SELECT inv.name AS `Invoice:Link/Invoice:120`,
+       inv.client AS `Client:Link/Client:200`,
+       GREATEST(COALESCE(inv.amount, 0) - COALESCE(pay.paid, 0), 0) AS `Amount:Currency:130`,
+       inv.due_date AS `Due Date:Date:110`,
+       inv.status AS `Status:Data:90`,
+       COALESCE(DATEDIFF(%(as_of)s, inv.due_date), 0) AS `Days Overdue:Int:110`
+FROM `tabInvoice` inv
+LEFT JOIN (
+    SELECT invoice, SUM(amount) AS paid
+    FROM `tabClient Payment`
+    WHERE payment_date <= %(as_of)s
+    GROUP BY invoice
+) pay ON pay.invoice = inv.name
+WHERE (inv.issue_date IS NULL OR inv.issue_date <= %(as_of)s)
+  AND GREATEST(COALESCE(inv.amount, 0) - COALESCE(pay.paid, 0), 0) > 0
+ORDER BY `Days Overdue:Int:110` DESC
+"""
+
+REPORT_FILTERS = {
+	"Accounts Receivable Aging": [
+		{"fieldname": "as_of", "label": "As Of", "fieldtype": "Date", "reqd": 1},
+	],
+}
+
 REPORTS = [
 	(
 		"Revenue per Client",
@@ -16,21 +41,7 @@ GROUP BY client
 ORDER BY `Total Paid Revenue:Currency:160` DESC
 """,
 	),
-	(
-		"Accounts Receivable Aging",
-		"Invoice",
-		"""
-SELECT name AS `Invoice:Link/Invoice:120`,
-       client AS `Client:Link/Client:200`,
-       outstanding_amount AS `Amount:Currency:130`,
-       due_date AS `Due Date:Date:110`,
-       status AS `Status:Data:90`,
-       GREATEST(DATEDIFF(CURDATE(), due_date), 0) AS `Days Overdue:Int:110`
-FROM `tabInvoice`
-WHERE outstanding_amount > 0
-ORDER BY `Days Overdue:Int:110` DESC
-""",
-	),
+	("Accounts Receivable Aging", "Invoice", AR_QUERY),
 	(
 		"Net Burn Rate",
 		"Invoice",
@@ -85,6 +96,7 @@ def run():
 				"is_standard": "No",
 				"module": "Finance",
 				"query": query.strip(),
+				"filters": REPORT_FILTERS.get(name, []),
 				"roles": [{"role": "System Manager"}, {"role": "CBO"}, {"role": "COO"}, {"role": "CFO"}],
 			}
 		).insert(ignore_permissions=True)
