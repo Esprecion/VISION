@@ -14,25 +14,16 @@
 				<div v-if="!group.rows.length" class="group-empty">
 					No {{ group.label.toLowerCase() }} yet.
 				</div>
-				<div v-else class="table-scroll">
-					<table class="records-table">
-						<tbody>
-							<tr v-for="row in group.rows" :key="`${row.doctype}-${row.name}`">
-								<td>
-									<button
-										type="button"
-										class="record-link"
-										@click="emit('select', row)"
-									>
-										{{ row.title }}
-									</button>
-								</td>
-								<td class="record-subtitle">{{ row.subtitle || '—' }}</td>
-								<td class="record-meta">{{ row.meta || '—' }}</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
+				<template v-else>
+					<RecordRow
+						v-for="row in group.rows"
+						:key="`${row.doctype}-${row.name}`"
+						:name="displayName(row)"
+						:detail="row.subtitle || ''"
+						:status="row.meta || ''"
+						@select="emit('select', row)"
+					/>
+				</template>
 			</div>
 			<EmptyState v-if="!hasRows" :title="emptyMessage" />
 		</div>
@@ -43,6 +34,7 @@
 import { computed } from 'vue'
 import AppSkeleton from './AppSkeleton.vue'
 import EmptyState from './EmptyState.vue'
+import RecordRow from './RecordRow.vue'
 
 const props = defineProps({
 	title: { type: String, default: 'Records' },
@@ -55,7 +47,17 @@ const props = defineProps({
 
 const emit = defineEmits(['select'])
 const errorMessage = 'Unable to load records. Please try again.'
+const hashIdPattern = /^[a-z0-9]{10}$/i
 const hasRows = computed(() => props.groups.some((group) => group.rows.length))
+
+function displayName(row) {
+	const title = String(row.title || '')
+	if (row.doctype !== 'Service Contract') return title || row.name
+	if (title && !hashIdPattern.test(title)) return title
+	const client = String(row.subtitle || '').trim()
+	if (client) return `Contract with ${client}`
+	return row.name || title || 'Contract'
+}
 
 function retry() {
 	if (props.onRetry) props.onRetry()
@@ -117,38 +119,7 @@ function retry() {
 	font-size: var(--fs-sm);
 	color: var(--color-gray-500);
 }
-.table-scroll {
-	overflow-x: auto;
-}
-.records-table {
-	width: 100%;
-	border-collapse: collapse;
-	font-size: var(--fs-sm);
-}
-.records-table td {
-	padding: var(--space-2) var(--space-2);
-	border-bottom: 1px solid var(--color-gray-100);
-	text-align: left;
-	color: var(--color-gray-700);
-}
-.records-table tr:last-child td {
-	border-bottom: 0;
-}
-.record-link {
-	border: 0;
-	background: transparent;
-	padding: 0;
-	color: var(--color-gray-900);
-	font-weight: 600;
-	cursor: pointer;
-	font-family: inherit;
-	text-align: left;
-}
-.record-link:hover {
-	text-decoration: underline;
-}
-.record-subtitle,
-.record-meta {
-	color: var(--color-gray-500);
+.records-group {
+	min-width: 0;
 }
 </style>
