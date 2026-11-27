@@ -6,8 +6,8 @@
 
 /* ==========================================================================
    VISION style guide
-   Light blue theme, blue accent. frappe-ui components use their own preset
-   tokens; the semantic overrides below bring them in line with the palette.
+   Vaultera Labs theme. frappe-ui components use their own preset tokens;
+   the semantic overrides below bring them in line with the palette.
    ========================================================================== */
 
 :root {
@@ -35,57 +35,78 @@
   --radius-full: 999px; /* pills */
 
   /* --- Elevation --------------------------------------------------------- */
-  --shadow-xs: 0 1px 2px rgba(21, 58, 99, 0.05);
-  --shadow-sm: 0 1px 3px rgba(21, 58, 99, 0.09);
-  --shadow-md: 0 8px 24px rgba(21, 58, 99, 0.14);
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
 
   /* --- Focus ------------------------------------------------------------- */
-  --focus-ring: 2px solid var(--color-amber-700);
+  --focus-ring: 2px solid var(--brand-500);
   --focus-ring-offset: 2px;
+
+  --brand-50: #f5faff;
+  --brand-100: #e6f2ff;
+  --brand-200: #cce5ff;
+  --brand-300: #b3d8ff;
+  --brand-400: #80beff;
+  --brand-500: #007cff;
+  --brand-600: #0066cc;
+  --brand-700: #0052a3;
+  --brand-800: #004080;
+  --brand-900: #003366;
 
   /* --- Status colours (bg + text pairs) ---------------------------------- */
   --color-success-bg: var(--color-emerald-100);
   --color-success-text: var(--color-emerald-800);
-  --color-warning-bg: #fef3c7;
-  --color-warning-text: #92400e;
+  --color-warning-bg: var(--brand-100);
+  --color-warning-text: var(--brand-700);
   --color-danger-bg: var(--color-red-100);
   --color-danger-text: var(--color-red-800);
-  --color-info-bg: var(--color-blue-100);
-  --color-info-text: var(--color-blue-700);
-  --color-neutral-bg: var(--color-gray-100);
-  --color-neutral-text: var(--color-gray-600);
+  --color-info-bg: var(--brand-100);
+  --color-info-text: var(--brand-700);
+  --color-neutral-bg: var(--brand-100);
+  --color-neutral-text: var(--brand-700);
 
   /* --- Base palette ------------------------------------------------------ */
-  /* Blue-tinted neutrals keep surfaces, borders and text in the same family. */
   --color-white: #ffffff;
-  --color-gray-50: #f2f9ff;
-  --color-gray-100: #e6f4ff;
-  --color-gray-200: #c8e6ff;
-  --color-gray-300: #a7d7fd;
-  --color-gray-400: #73bbf6;
-  --color-gray-500: #4a8ac9;
-  --color-gray-600: #356ba6;
-  --color-gray-700: #2a5588;
-  --color-gray-900: #153a63;
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
 
-  /* Accent (legacy amber variable names now map to the blue accent) */
-  --color-amber-50: #f2f9ff;
-  --color-amber-100: #e6f4ff;
-  --color-amber-200: #c8e6ff;
-  --color-amber-300: #a7d7fd;
-  --color-amber-500: #0289f7;
-  --color-amber-600: #007be0;
-  --color-amber-700: #0070cc;
-  --color-amber-800: #005ca3;
+  --card-bg: var(--color-white);
+  --card-border: var(--color-gray-200);
+  --card-radius: var(--radius-lg);
+  --card-shadow: var(--shadow-xs);
+  --modal-scrim: rgba(15, 23, 42, 0.45);
 
-  --color-blue-50: #f2f9ff;
-  --color-blue-100: #e6f4ff;
-  --color-blue-200: #c8e6ff;
-  --color-blue-500: #0289f7;
-  --color-blue-600: #007be0;
-  --color-blue-700: #0070cc;
-  --color-blue-800: #005ca3;
-  --color-blue-900: #004880;
+  /* Accent (legacy amber variable names now map to the brand palette) */
+  --color-amber-50: var(--brand-50);
+  --color-amber-100: var(--brand-100);
+  --color-amber-200: var(--brand-200);
+  --color-amber-300: var(--brand-300);
+  --color-amber-400: var(--brand-400);
+  --color-amber-500: var(--brand-400);
+  --color-amber-600: var(--brand-500);
+  --color-amber-700: var(--brand-500);
+  --color-amber-800: var(--brand-600);
+  --color-amber-900: var(--brand-700);
+
+  --color-blue-50: var(--brand-50);
+  --color-blue-100: var(--brand-100);
+  --color-blue-200: var(--brand-200);
+  --color-blue-300: var(--brand-300);
+  --color-blue-400: var(--brand-400);
+  --color-blue-500: var(--brand-500);
+  --color-blue-600: var(--brand-600);
+  --color-blue-700: var(--brand-700);
+  --color-blue-800: var(--brand-800);
+  --color-blue-900: var(--brand-900);
 
   --color-red-50: #fef2f2;
   --color-red-100: #fee2e2;
@@ -95,7 +116,7 @@
   --color-red-600: #dc2626;
   --color-red-700: #b91c1c;
   --color-red-800: #991b1b;
-  --color-orange-500: #f97316;
+  --color-orange-500: var(--brand-500);
   --color-green-600: #16a34a;
   --color-emerald-100: #d1fae5;
   --color-emerald-500: #10b981;
@@ -108,37 +129,104 @@
   --color-lime-500: #84cc16;
 
   /* --- frappe-ui semantic tokens ----------------------------------------- */
-  --surface-gray-1: #f2f9ff;
-  --surface-gray-2: #e6f4ff;
-  --surface-gray-3: #c8e6ff;
-  --surface-gray-4: #a7d7fd;
-  --surface-gray-5: #4a8ac9;
-  --surface-menu-bar: #f2f9ff;
-  --outline-gray-1: #c8e6ff;
-  --outline-gray-2: #a7d7fd;
-  --outline-gray-3: #73bbf6;
-  --outline-gray-4: #4a8ac9;
-  --outline-gray-5: #2a5588;
-  --outline-gray-modals: #c8e6ff;
-  --ink-gray-4: #6f97c9;
-  --ink-gray-5: #356ba6;
-  --ink-gray-6: #2a5588;
-  --ink-gray-7: #2a5588;
-  --ink-gray-8: #2a5588;
-  --ink-gray-9: #153a63;
+  --surface-white: var(--color-white);
+  --surface-gray-1: var(--color-gray-50);
+  --surface-gray-2: var(--color-gray-100);
+  --surface-gray-3: var(--color-gray-200);
+  --surface-gray-4: var(--color-gray-300);
+  --surface-gray-5: var(--brand-700);
+  --surface-gray-6: var(--brand-600);
+  --surface-gray-7: var(--brand-500);
+  --surface-blue-1: var(--brand-50);
+  --surface-blue-2: var(--brand-100);
+  --surface-blue-3: var(--brand-600);
+  --surface-amber-1: var(--brand-100);
+  --surface-amber-2: var(--brand-200);
+  --surface-amber-3: var(--brand-500);
+  --surface-orange-1: var(--brand-100);
+  --surface-menu-bar: var(--color-white);
+  --surface-cards: var(--card-bg);
+  --surface-selected: var(--brand-100);
+  --outline-white: var(--color-white);
+  --outline-gray-1: var(--color-gray-200);
+  --outline-gray-2: var(--color-gray-300);
+  --outline-gray-3: var(--brand-400);
+  --outline-gray-4: var(--brand-500);
+  --outline-gray-5: var(--brand-700);
+  --outline-blue-1: var(--brand-300);
+  --outline-amber-1: var(--brand-300);
+  --outline-amber-2: var(--brand-400);
+  --outline-orange-1: var(--brand-400);
+  --outline-gray-modals: var(--color-gray-200);
+  --ink-white: var(--color-white);
+  --ink-gray-1: var(--color-gray-200);
+  --ink-gray-2: var(--color-gray-300);
+  --ink-gray-3: var(--color-gray-400);
+  --ink-gray-4: var(--color-gray-500);
+  --ink-gray-5: var(--color-gray-600);
+  --ink-gray-6: var(--color-gray-700);
+  --ink-gray-7: var(--color-gray-700);
+  --ink-gray-8: var(--color-gray-900);
+  --ink-gray-9: var(--color-gray-900);
+  --ink-blue-1: var(--brand-100);
+  --ink-blue-2: var(--brand-600);
+  --ink-blue-3: var(--brand-600);
+  --ink-blue-link: var(--brand-600);
+  --ink-amber-1: var(--brand-700);
+  --ink-amber-2: var(--brand-600);
+  --ink-amber-3: var(--brand-700);
 }
 
 /* --- Base ---------------------------------------------------------------- */
+html {
+  font-family: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-heading,
+.sidebar-brand,
+.nav-item,
+.tab-item,
+button {
+  font-family: 'Poppins', 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+}
+input,
+select,
+textarea {
+  font-family: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+}
+html,
+body,
+button,
+p,
+span,
+div {
+  font-variation-settings: normal;
+}
 body {
   -webkit-tap-highlight-color: transparent;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Helvetica, Arial, sans-serif;
   font-size: var(--fs-sm);
   color: var(--color-gray-900);
   background: var(--color-gray-50);
 }
 
-/* Visible focus outline everywhere (blue accent) */
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+tbody tr:hover,
+tbody tr:hover td,
+tbody tr:hover th {
+  background: var(--brand-100);
+}
+
+/* Visible focus outline everywhere (brand accent) */
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
@@ -184,20 +272,20 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  background: var(--color-amber-700);
+  background: var(--brand-500);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-sm);
   padding: 9px 16px;
   font-family: inherit;
-  font-weight: 600;
+  font-weight: 700;
   font-size: var(--fs-sm);
   line-height: 1.25rem;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-amber-800);
+  background: var(--brand-600);
 }
 .btn-primary:disabled {
   opacity: 0.5;
@@ -222,8 +310,8 @@ body {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--color-gray-300);
-  color: var(--color-amber-700);
+  border-color: var(--brand-300);
+  color: var(--brand-600);
 }
 .btn-secondary:disabled {
   opacity: 0.5;

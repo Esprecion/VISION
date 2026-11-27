@@ -46,7 +46,7 @@ defineProps<{
 	color: var(--color-gray-900);
 }
 .tab-item-active {
-	color: var(--color-amber-800);
-	border-bottom-color: var(--color-amber-700);
+	color: var(--brand-600);
+	border-bottom-color: var(--brand-500);
 }
 </style>

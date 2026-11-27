@@ -113,7 +113,7 @@ function logout() {
 	margin-bottom: var(--space-6);
 }
 .sidebar-brand {
-	color: var(--color-amber-700);
+	color: var(--brand-500);
 	font-weight: 700;
 	font-size: var(--fs-md);
 	letter-spacing: 0.02em;
@@ -160,8 +160,8 @@ function logout() {
 	color: var(--color-gray-900);
 }
 .nav-item-active {
-	background: var(--color-amber-100);
-	color: var(--color-amber-800);
+	background: var(--brand-100);
+	color: var(--brand-500);
 	font-weight: 500;
 }
 .badge {

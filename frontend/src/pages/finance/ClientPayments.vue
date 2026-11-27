@@ -359,9 +359,10 @@ async function doDelete() {
 	font-size: 0.85rem;
 }
 .card {
-	background: var(--card-bg, #fff);
-	border: 1px solid var(--border, var(--color-gray-200));
-	border-radius: 0.75rem;
+	background: var(--card-bg);
+	border: 1px solid var(--card-border);
+	border-radius: var(--card-radius);
+	box-shadow: var(--card-shadow);
 	overflow: hidden;
 }
 .table-scroll {
@@ -395,14 +396,15 @@ th {
 .modal-backdrop {
 	position: fixed;
 	inset: 0;
-	background: rgb(21 58 99 / 45%);
+	background: var(--modal-scrim);
 	display: grid;
 	place-items: center;
 	z-index: 50;
 }
 .modal {
-	background: var(--card-bg, #fff);
-	border-radius: 0.75rem;
+	background: var(--card-bg);
+	border-radius: var(--card-radius);
+	box-shadow: var(--shadow-md);
 	padding: 1.25rem;
 	width: min(28rem, calc(100vw - 2rem));
 	display: flex;

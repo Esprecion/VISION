@@ -41,12 +41,12 @@ const tone = computed(() => TONES[props.value] || 'neutral')
 	white-space: nowrap;
 }
 .status-badge--neutral {
-	background: var(--color-gray-100);
-	color: var(--color-gray-700);
+	background: var(--color-neutral-bg);
+	color: var(--color-neutral-text);
 }
 .status-badge--info {
-	background: var(--color-blue-100);
-	color: var(--color-blue-700);
+	background: var(--brand-100);
+	color: var(--brand-700);
 }
 .status-badge--success {
 	background: var(--color-emerald-100);

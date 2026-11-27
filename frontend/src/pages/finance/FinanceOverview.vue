@@ -214,13 +214,13 @@ const BUCKETS = [
 	{
 		key: 'b1',
 		label: '1-30 days',
-		color: 'var(--color-amber-500)',
+		color: 'var(--brand-400)',
 		test: (d) => d >= 1 && d <= 30,
 	},
 	{
 		key: 'b2',
 		label: '31-60 days',
-		color: 'var(--color-orange-500)',
+		color: 'var(--brand-500)',
 		test: (d) => d >= 31 && d <= 60,
 	},
 	{
@@ -261,12 +261,12 @@ const expenseRows = computed(() => rowsOf(expenseRep)) // [category, vendor, amo
 const PALETTE = [
 	'var(--color-indigo-500)',
 	'var(--color-emerald-500)',
-	'var(--color-amber-500)',
+	'var(--brand-400)',
 	'var(--color-red-500)',
 	'var(--color-blue-500)',
 	'var(--color-purple-600)',
 	'var(--color-lime-500)',
-	'var(--color-orange-500)',
+	'var(--brand-500)',
 ]
 const expenseGroups = computed(() => {
 	const m = new Map()

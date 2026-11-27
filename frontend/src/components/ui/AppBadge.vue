@@ -13,10 +13,10 @@ import { Badge } from 'frappe-ui'
 const THEMES = {
 	neutral: 'gray',
 	success: 'green',
-	warning: 'orange',
+	warning: 'blue',
 	danger: 'red',
 	info: 'blue',
-	amber: 'orange',
+	amber: 'blue',
 }
 
 const props = defineProps({
